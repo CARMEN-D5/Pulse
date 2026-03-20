@@ -20,6 +20,7 @@ import { WeeklyReviewScreen } from "../features/weekly-review/screens/WeeklyRevi
 import { ActivityScreen } from "../features/activity/screens/ActivityScreen";
 import { SocialScreen } from "../features/social/screens/SocialScreen";
 import { BudgetScreen } from "../features/budget/screens/BudgetScreen";
+import { JournalScreen } from "../features/journal/screens/JournalScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -67,6 +68,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Budget"
             component={BudgetScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Journal"
+            component={JournalScreen}
             options={{ animation: "slide_from_right" }}
           />
         </>

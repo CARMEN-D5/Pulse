@@ -49,6 +49,13 @@ const DAILY_ACTIONS: ActionItem[] = [
     onPress: (nav) => nav.navigate("Friends"),
   },
   {
+    emoji: "📝",
+    title: "Journal",
+    subtitle: "Reflect with guided prompts",
+    color: "#6366F1",
+    onPress: (nav) => nav.navigate("Journal"),
+  },
+  {
     emoji: "💰",
     title: "Budget",
     subtitle: "Track income & expenses",

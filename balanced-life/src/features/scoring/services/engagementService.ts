@@ -160,8 +160,18 @@ async function detectFeaturesUsedThisWeek(userId: string): Promise<FeatureKey[]>
   const budgetSnap = await getDocs(budgetQuery);
   if (!budgetSnap.empty) features.push("budget");
 
+  // Journal: any journal entry this week?
+  const journalQuery = query(
+    collection(db, "users", userId, "journal"),
+    where("date", ">=", mondayStr),
+    where("date", "<=", todayStr),
+    limit(1)
+  );
+  const journalSnap = await getDocs(journalQuery);
+  if (!journalSnap.empty) features.push("journal");
+
   // Future features — add detection when implemented:
-  // journal, todos
+  // todos
 
   return features;
 }
