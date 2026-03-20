@@ -1,22 +1,22 @@
 /**
  * DashboardScreen — Home tab.
- * Shows Balance Wheel (radar chart), score tier, domain breakdown with
- * progress bars + strongest/weakest badges, streak, and quick-action buttons.
+ * Shows Balance Wheel (radar chart with tappable domains), score tier,
+ * engagement card, and streak. Tapping a domain navigates to Progress.
  */
 import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { signOut } from "firebase/auth";
+// signOut moved to ProfileScreen
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigation, useFocusEffect, CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 
-import { auth, db } from "../../config/firebase";
+import { db } from "../../config/firebase";
 import { useAuthStore } from "../../features/auth/stores/authStore";
 import { COLORS, SPACING, FONT_SIZES } from "../../config/theme";
-import { Card, Button, EmptyState } from "../../shared/components";
-import { DOMAINS, DOMAIN_IDS } from "../../config/domains";
+import { Card, EmptyState } from "../../shared/components";
+import { DomainId } from "../../config/domains";
 import { getScoreTier } from "../../config/scoring";
 import { DomainScores, WeeklyEngagement } from "../../features/scoring/types/scoring.types";
 import { RootStackParamList, MainTabParamList } from "../../shared/types/navigation.types";
@@ -52,7 +52,6 @@ export function DashboardScreen() {
       if (data.latestDomainScores) setDomainScores(data.latestDomainScores);
       if (data.streakData?.currentStreak) setStreak(data.streakData.currentStreak);
     }
-    // Fetch engagement score
     try {
       const engScore = await fetchWeeklyEngagement(user.uid);
       setEngagement(engScore);
@@ -69,16 +68,9 @@ export function DashboardScreen() {
 
   const hasScores = balanceScore != null && domainScores != null;
 
-  // Find strongest & weakest domains
-  let strongest: string | null = null;
-  let weakest: string | null = null;
-  if (domainScores) {
-    const sorted = [...DOMAIN_IDS].sort(
-      (a, b) => domainScores[b] - domainScores[a]
-    );
-    strongest = sorted[0];
-    weakest = sorted[sorted.length - 1];
-  }
+  const handleDomainPress = (domainId: DomainId) => {
+    navigation.navigate("Progress", { domainId });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -108,9 +100,14 @@ export function DashboardScreen() {
           />
         ) : (
           <>
-            {/* Balance Wheel (Radar Chart) */}
+            {/* Balance Wheel (Radar Chart) — tap domain to see progress */}
             <Card style={styles.chartCard}>
-              <RadarChart scores={domainScores} size={280} />
+              <RadarChart
+                scores={domainScores}
+                size={280}
+                onDomainPress={handleDomainPress}
+              />
+              <Text style={styles.chartHint}>Tap a domain to see its progress</Text>
             </Card>
 
             {/* Overall Score + Tier */}
@@ -134,107 +131,20 @@ export function DashboardScreen() {
               </View>
             </Card>
 
+            {/* Streak */}
+            {streak > 0 && (
+              <View style={styles.streakRow}>
+                <Text style={styles.streakText}>
+                  🔥 {streak} day{streak !== 1 ? "s" : ""} streak
+                </Text>
+              </View>
+            )}
+
             {/* Engagement Score */}
             {engagement && <EngagementCard engagement={engagement} />}
-
-            {/* Domain Breakdown */}
-            <Text style={styles.sectionTitle}>Life Domains</Text>
-            {DOMAIN_IDS.map((id) => {
-              const domain = DOMAINS[id];
-              const score = domainScores[id];
-              const tier = getScoreTier(score);
-              const isStrongest = id === strongest;
-              const isWeakest = id === weakest;
-
-              return (
-                <Card key={id} style={styles.domainCard}>
-                  <View style={styles.domainRow}>
-                    <View
-                      style={[styles.domainDot, { backgroundColor: domain.color }]}
-                    />
-                    <View style={styles.domainInfo}>
-                      <View style={styles.domainNameRow}>
-                        <Text style={styles.domainLabel}>{domain.label}</Text>
-                        {isStrongest && (
-                          <Text style={styles.badge}>Strongest</Text>
-                        )}
-                        {isWeakest && (
-                          <Text style={[styles.badge, styles.badgeWeak]}>
-                            Focus
-                          </Text>
-                        )}
-                      </View>
-                      <View style={styles.barBg}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            {
-                              width: `${Math.max(score, 2)}%` as any,
-                              backgroundColor: domain.color,
-                            },
-                          ]}
-                        />
-                      </View>
-                    </View>
-                    <Text
-                      style={[styles.domainScore, { color: tier.color }]}
-                    >
-                      {score}
-                    </Text>
-                  </View>
-                </Card>
-              );
-            })}
           </>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          {streak > 0 && (
-            <View style={styles.streakRow}>
-              <Text style={styles.streakText}>
-                🔥 {streak} day{streak !== 1 ? "s" : ""} streak
-              </Text>
-            </View>
-          )}
-          <Button
-            title="Daily Check-In"
-            onPress={() => navigation.navigate("CheckIn")}
-            style={styles.actionButton}
-          />
-          <Button
-            title="Weekly Missions"
-            variant="outline"
-            onPress={() => navigation.navigate("Missions")}
-            style={styles.actionButton}
-          />
-          <Button
-            title="Weekly Review"
-            variant="outline"
-            onPress={() => navigation.navigate("WeeklyReview")}
-            style={styles.actionButton}
-          />
-          <Button
-            title="Log Activity"
-            variant="outline"
-            onPress={() => navigation.navigate("Activity")}
-            style={styles.actionButton}
-          />
-          <Button
-            title="Social Log"
-            variant="outline"
-            onPress={() => navigation.navigate("Friends")}
-            style={styles.actionButton}
-          />
-        </View>
-
-        {/* Sign out (testing) */}
-        <Button
-          title="Sign Out"
-          onPress={() => signOut(auth)}
-          variant="ghost"
-          style={styles.signOutButton}
-        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -267,11 +177,16 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     marginBottom: SPACING.md,
   },
+  chartHint: {
+    fontSize: FONT_SIZES.caption,
+    color: COLORS.textMuted,
+    marginTop: SPACING.xs,
+  },
   overallCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.md,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   scoreCircle: {
     width: 64,
@@ -302,72 +217,6 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 2,
   },
-  sectionTitle: {
-    fontSize: FONT_SIZES.subtitle,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.sm,
-  },
-  domainCard: {
-    marginBottom: SPACING.sm,
-  },
-  domainRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-  },
-  domainDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  domainInfo: {
-    flex: 1,
-    gap: SPACING.xs,
-  },
-  domainNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
-  },
-  domainLabel: {
-    fontSize: FONT_SIZES.body,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-  },
-  badge: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: COLORS.success,
-    backgroundColor: "#DCFCE7",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  badgeWeak: {
-    color: COLORS.warning,
-    backgroundColor: "#FEF3C7",
-  },
-  barBg: {
-    height: 6,
-    backgroundColor: COLORS.border,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  barFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  domainScore: {
-    fontSize: FONT_SIZES.title,
-    fontWeight: "700",
-    minWidth: 36,
-    textAlign: "right",
-  },
-  quickActions: {
-    marginTop: SPACING.lg,
-  },
   streakRow: {
     alignItems: "center",
     marginBottom: SPACING.md,
@@ -376,11 +225,5 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.bodyLarge,
     fontWeight: "700",
     color: "#EA580C",
-  },
-  actionButton: {
-    marginBottom: SPACING.sm,
-  },
-  signOutButton: {
-    marginTop: SPACING.md,
   },
 });

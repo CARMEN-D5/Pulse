@@ -1,15 +1,16 @@
 /**
- * ProgressScreen — Score trend charts over 7/30/90 days.
- * Shows Balance Score line chart, domain-specific charts, and period stats.
+ * ProgressScreen — Score trend charts, domain breakdown, and mood history.
+ * Accepts optional domainId param to auto-select a domain from Dashboard.
  */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 
 import { COLORS, SPACING, FONT_SIZES } from "../../config/theme";
 import { DOMAINS, DomainId, DOMAIN_IDS } from "../../config/domains";
-import { EmptyState } from "../../shared/components";
+import { getScoreTier } from "../../config/scoring";
+import { EmptyState, Card } from "../../shared/components";
 import { useAuthStore } from "../../features/auth/stores/authStore";
 import { TimeRangeToggle } from "../../features/progress/components/TimeRangeToggle";
 import { DomainChips } from "../../features/progress/components/DomainChips";
@@ -25,16 +26,26 @@ import {
 import { MoodHistory } from "../../features/mood/components/MoodHistory";
 import { fetchMoodHistory } from "../../features/mood/services/moodService";
 import { MoodDataPoint } from "../../features/mood/types/mood.types";
+import { MainTabParamList } from "../../shared/types/navigation.types";
 
 export function ProgressScreen() {
   const { user } = useAuthStore();
+  const route = useRoute<RouteProp<MainTabParamList, "Progress">>();
+  const incomingDomainId = route.params?.domainId as DomainId | undefined;
+
   const [range, setRange] = useState<TimeRange>("7d");
   const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
   const [snapshots, setSnapshots] = useState<DailySnapshot[]>([]);
   const [moodData, setMoodData] = useState<MoodDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Map time range to number of days for mood history
+  // Auto-select domain when navigated from Dashboard radar chart
+  useEffect(() => {
+    if (incomingDomainId && DOMAIN_IDS.includes(incomingDomainId)) {
+      setSelectedDomain(incomingDomainId);
+    }
+  }, [incomingDomainId]);
+
   const rangeDays = range === "7d" ? 7 : range === "30d" ? 30 : 90;
 
   const loadData = useCallback(async () => {
@@ -54,7 +65,6 @@ export function ProgressScreen() {
     }
   }, [user, range, rangeDays]);
 
-  // Reload when screen is focused or range changes
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -62,6 +72,21 @@ export function ProgressScreen() {
   );
 
   const hasData = snapshots.length > 0;
+
+  // Get latest and first domain scores for the merged view
+  const latestSnapshot = hasData ? snapshots[snapshots.length - 1] : null;
+  const firstSnapshot = hasData ? snapshots[0] : null;
+
+  // Find strongest & weakest
+  let strongest: string | null = null;
+  let weakest: string | null = null;
+  if (latestSnapshot) {
+    const sorted = [...DOMAIN_IDS].sort(
+      (a, b) => (latestSnapshot.domainScores[b] ?? 0) - (latestSnapshot.domainScores[a] ?? 0)
+    );
+    strongest = sorted[0];
+    weakest = sorted[sorted.length - 1];
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -96,7 +121,6 @@ export function ProgressScreen() {
 
             {/* Charts */}
             {selectedDomain === null ? (
-              /* Balance Score chart */
               <TrendLineChart
                 title="Balance Score"
                 data={toBalanceScoreData(snapshots, range)}
@@ -104,7 +128,6 @@ export function ProgressScreen() {
                 showArea
               />
             ) : (
-              /* Single domain chart */
               <TrendLineChart
                 title={DOMAINS[selectedDomain].label}
                 data={toDomainData(snapshots, selectedDomain, range)}
@@ -120,35 +143,62 @@ export function ProgressScreen() {
               </View>
             )}
 
-            {/* All domains overview (when Balance Score is selected) */}
-            {selectedDomain === null && (
-              <View style={styles.domainOverview}>
-                <Text style={styles.sectionTitle}>Domain Trends</Text>
+            {/* Life Domains — merged with trend data */}
+            {selectedDomain === null && latestSnapshot && firstSnapshot && (
+              <View style={styles.domainSection}>
+                <Text style={styles.sectionTitle}>Life Domains</Text>
                 {DOMAIN_IDS.map((id) => {
                   const domain = DOMAINS[id];
-                  const data = toDomainData(snapshots, id, range);
-                  const latest = data.length > 0 ? data[data.length - 1].value : 0;
-                  const first = data.length > 0 ? data[0].value : 0;
-                  const change = latest - first;
+                  const score = latestSnapshot.domainScores[id] ?? 0;
+                  const firstScore = firstSnapshot.domainScores[id] ?? 0;
+                  const change = Math.round((score - firstScore) * 10) / 10;
+                  const tier = getScoreTier(score);
+                  const isStrongest = id === strongest;
+                  const isWeakest = id === weakest;
 
                   return (
-                    <View key={id} style={styles.domainMiniRow}>
-                      <View style={[styles.domainDot, { backgroundColor: domain.color }]} />
-                      <Text style={styles.domainName}>{domain.label}</Text>
-                      <Text style={[styles.domainScore, { color: domain.color }]}>
-                        {latest}
-                      </Text>
-                      {change !== 0 && (
-                        <Text
-                          style={[
-                            styles.domainChange,
-                            { color: change > 0 ? COLORS.success : COLORS.error },
-                          ]}
-                        >
-                          {change > 0 ? "+" : ""}{Math.round(change * 10) / 10}
-                        </Text>
-                      )}
-                    </View>
+                    <Card key={id} style={styles.domainCard}>
+                      <View style={styles.domainRow}>
+                        <View style={[styles.domainDot, { backgroundColor: domain.color }]} />
+                        <View style={styles.domainInfo}>
+                          <View style={styles.domainNameRow}>
+                            <Text style={styles.domainLabel}>{domain.label}</Text>
+                            {isStrongest && (
+                              <Text style={styles.badgeStrong}>Strongest</Text>
+                            )}
+                            {isWeakest && (
+                              <Text style={styles.badgeWeak}>Focus</Text>
+                            )}
+                          </View>
+                          <View style={styles.barBg}>
+                            <View
+                              style={[
+                                styles.barFill,
+                                {
+                                  width: `${Math.max(score, 2)}%` as any,
+                                  backgroundColor: domain.color,
+                                },
+                              ]}
+                            />
+                          </View>
+                        </View>
+                        <View style={styles.domainScoreCol}>
+                          <Text style={[styles.domainScore, { color: tier.color }]}>
+                            {score}
+                          </Text>
+                          {change !== 0 && (
+                            <Text
+                              style={[
+                                styles.domainChange,
+                                { color: change > 0 ? COLORS.success : COLORS.error },
+                              ]}
+                            >
+                              {change > 0 ? "+" : ""}{change}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </Card>
                   );
                 })}
               </View>
@@ -185,47 +235,84 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FONT_SIZES.subtitle,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.textPrimary,
     marginBottom: SPACING.sm,
   },
-  domainOverview: {
-    backgroundColor: COLORS.background,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.lg,
-    gap: SPACING.md,
+  moodSection: {
+    marginBottom: SPACING.md,
   },
-  domainMiniRow: {
+  // Life Domains
+  domainSection: {
+    gap: SPACING.sm,
+  },
+  domainCard: {
+    paddingVertical: SPACING.sm,
+  },
+  domainRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
   },
   domainDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
-  domainName: {
+  domainInfo: {
     flex: 1,
+    gap: SPACING.xs,
+  },
+  domainNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+  },
+  domainLabel: {
     fontSize: FONT_SIZES.body,
-    fontWeight: "500",
+    fontWeight: "600",
     color: COLORS.textPrimary,
   },
-  domainScore: {
-    fontSize: FONT_SIZES.bodyLarge,
+  badgeStrong: {
+    fontSize: 10,
     fontWeight: "700",
-    minWidth: 30,
-    textAlign: "right",
+    color: COLORS.success,
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  badgeWeak: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.warning,
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  barBg: {
+    height: 6,
+    backgroundColor: COLORS.border,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  barFill: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  domainScoreCol: {
+    alignItems: "flex-end",
+    minWidth: 44,
+  },
+  domainScore: {
+    fontSize: FONT_SIZES.title,
+    fontWeight: "700",
   },
   domainChange: {
     fontSize: FONT_SIZES.caption,
     fontWeight: "600",
-    minWidth: 35,
-    textAlign: "right",
-  },
-  moodSection: {
-    marginBottom: SPACING.md,
   },
 });

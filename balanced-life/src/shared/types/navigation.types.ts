@@ -16,8 +16,8 @@ export type OnboardingStackParamList = {
 
 export type MainTabParamList = {
   Dashboard: undefined;
-  Progress: undefined;
-  Missions: undefined;
+  Activities: undefined;
+  Progress: { domainId?: string } | undefined;
   Profile: undefined;
 };
 

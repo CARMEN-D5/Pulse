@@ -1,6 +1,6 @@
 /**
  * MainTabs — Bottom tab navigator for the main authenticated app.
- * Tabs: Home, Progress, Missions, Profile
+ * Tabs: Home, Activities, Progress, Profile
  */
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -8,8 +8,8 @@ import { MainTabParamList } from "../shared/types/navigation.types";
 import { COLORS } from "../config/theme";
 
 import { DashboardScreen } from "../screens/main/DashboardScreen";
+import { ActivitiesScreen } from "../screens/main/ActivitiesScreen";
 import { ProgressScreen } from "../screens/main/ProgressScreen";
-import { MissionsScreen } from "../features/missions/screens/MissionsScreen";
 import { ProfileScreen } from "../screens/main/ProfileScreen";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -41,17 +41,17 @@ export function MainTabs() {
         }}
       />
       <Tab.Screen
+        name="Activities"
+        component={ActivitiesScreen}
+        options={{
+          tabBarLabel: "Activities",
+        }}
+      />
+      <Tab.Screen
         name="Progress"
         component={ProgressScreen}
         options={{
           tabBarLabel: "Progress",
-        }}
-      />
-      <Tab.Screen
-        name="Missions"
-        component={MissionsScreen}
-        options={{
-          tabBarLabel: "Missions",
         }}
       />
       <Tab.Screen

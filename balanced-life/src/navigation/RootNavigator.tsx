@@ -19,6 +19,7 @@ import { CheckInResultScreen } from "../features/check-in/screens/CheckInResultS
 import { WeeklyReviewScreen } from "../features/weekly-review/screens/WeeklyReviewScreen";
 import { ActivityScreen } from "../features/activity/screens/ActivityScreen";
 import { SocialScreen } from "../features/social/screens/SocialScreen";
+import { BudgetScreen } from "../features/budget/screens/BudgetScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -61,6 +62,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="Friends"
             component={SocialScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Budget"
+            component={BudgetScreen}
             options={{ animation: "slide_from_right" }}
           />
         </>

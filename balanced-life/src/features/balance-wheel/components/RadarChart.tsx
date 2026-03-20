@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import Svg, { Polygon, Line, Circle, Text as SvgText } from "react-native-svg";
 import { DomainId, DOMAIN_IDS, DOMAINS } from "../../../config/domains";
 import { DomainScores } from "../../scoring/types/scoring.types";
@@ -7,6 +7,8 @@ import { DomainScores } from "../../scoring/types/scoring.types";
 interface RadarChartProps {
   scores: DomainScores;
   size?: number;
+  /** Called when a domain label is tapped */
+  onDomainPress?: (domainId: DomainId) => void;
 }
 
 const LEVELS = [20, 40, 60, 80, 100];
@@ -24,7 +26,7 @@ function polarToCartesian(
   };
 }
 
-export function RadarChart({ scores, size = 300 }: RadarChartProps) {
+export function RadarChart({ scores, size = 300, onDomainPress }: RadarChartProps) {
   const center = size / 2;
   const maxRadius = size * 0.38;
   const labelRadius = size * 0.47;
@@ -48,101 +50,173 @@ export function RadarChart({ scores, size = 300 }: RadarChartProps) {
     return polarToCartesian(center, center, radius, i * angleStep);
   });
 
+  // Calculate label positions for touch targets
+  const labelPositions = DOMAIN_IDS.map((id, i) => {
+    const p = polarToCartesian(center, center, labelRadius, i * angleStep);
+    return { id, ...p };
+  });
+
   return (
     <View style={{ alignItems: "center" }}>
-      <Svg width={size} height={size}>
-        {/* Background grid levels */}
-        {LEVELS.map((level) => {
-          const points = DOMAIN_IDS.map((_, i) => {
-            const r = (level / 100) * maxRadius;
-            const p = polarToCartesian(center, center, r, i * angleStep);
-            return `${p.x},${p.y}`;
-          }).join(" ");
-          return (
-            <Polygon
-              key={level}
-              points={points}
-              fill="none"
-              stroke="#E5E7EB"
-              strokeWidth={1}
-            />
-          );
-        })}
+      <View style={{ width: size, height: size }}>
+        <Svg width={size} height={size}>
+          {/* Background grid levels */}
+          {LEVELS.map((level) => {
+            const points = DOMAIN_IDS.map((_, i) => {
+              const r = (level / 100) * maxRadius;
+              const p = polarToCartesian(center, center, r, i * angleStep);
+              return `${p.x},${p.y}`;
+            }).join(" ");
+            return (
+              <Polygon
+                key={level}
+                points={points}
+                fill="none"
+                stroke="#E5E7EB"
+                strokeWidth={1}
+              />
+            );
+          })}
 
-        {/* Axis lines from center to each vertex */}
-        {DOMAIN_IDS.map((_, i) => {
-          const p = polarToCartesian(center, center, maxRadius, i * angleStep);
-          return (
-            <Line
-              key={`axis-${i}`}
-              x1={center}
-              y1={center}
-              x2={p.x}
-              y2={p.y}
-              stroke="#E5E7EB"
-              strokeWidth={1}
-            />
-          );
-        })}
+          {/* Axis lines from center to each vertex */}
+          {DOMAIN_IDS.map((_, i) => {
+            const p = polarToCartesian(center, center, maxRadius, i * angleStep);
+            return (
+              <Line
+                key={`axis-${i}`}
+                x1={center}
+                y1={center}
+                x2={p.x}
+                y2={p.y}
+                stroke="#E5E7EB"
+                strokeWidth={1}
+              />
+            );
+          })}
 
-        {/* Data polygon (filled area) */}
-        <Polygon
-          points={getPolygonPoints(scoreValues)}
-          fill="rgba(46, 117, 182, 0.2)"
-          stroke="#2E75B6"
-          strokeWidth={2}
-        />
-
-        {/* Data points (dots on each vertex) */}
-        {dataPoints.map((point, i) => (
-          <Circle
-            key={`dot-${i}`}
-            cx={point.x}
-            cy={point.y}
-            r={5}
-            fill={DOMAINS[DOMAIN_IDS[i]].color}
-            stroke="#fff"
+          {/* Data polygon (filled area) */}
+          <Polygon
+            points={getPolygonPoints(scoreValues)}
+            fill="rgba(46, 117, 182, 0.2)"
+            stroke="#2E75B6"
             strokeWidth={2}
           />
-        ))}
 
-        {/* Domain labels */}
-        {DOMAIN_IDS.map((id, i) => {
-          const domain = DOMAINS[id];
-          const p = polarToCartesian(center, center, labelRadius, i * angleStep);
-          const score = scores[id];
+          {/* Data points (dots on each vertex) */}
+          {dataPoints.map((point, i) => (
+            <Circle
+              key={`dot-${i}`}
+              cx={point.x}
+              cy={point.y}
+              r={5}
+              fill={DOMAINS[DOMAIN_IDS[i]].color}
+              stroke="#fff"
+              strokeWidth={2}
+            />
+          ))}
 
-          // Adjust text anchor based on position
-          let textAnchor: "start" | "middle" | "end" = "middle";
-          if (p.x < center - 10) textAnchor = "end";
-          else if (p.x > center + 10) textAnchor = "start";
+          {/* Domain labels (rendered in SVG for non-tappable fallback) */}
+          {!onDomainPress &&
+            DOMAIN_IDS.map((id, i) => {
+              const domain = DOMAINS[id];
+              const p = polarToCartesian(center, center, labelRadius, i * angleStep);
+              const score = scores[id];
 
-          return (
-            <React.Fragment key={`label-${id}`}>
-              <SvgText
-                x={p.x}
-                y={p.y - 6}
-                fontSize={11}
-                fontWeight="600"
-                fill={domain.color}
-                textAnchor={textAnchor}
+              let textAnchor: "start" | "middle" | "end" = "middle";
+              if (p.x < center - 10) textAnchor = "end";
+              else if (p.x > center + 10) textAnchor = "start";
+
+              return (
+                <React.Fragment key={`label-${id}`}>
+                  <SvgText
+                    x={p.x}
+                    y={p.y - 6}
+                    fontSize={11}
+                    fontWeight="600"
+                    fill={domain.color}
+                    textAnchor={textAnchor}
+                  >
+                    {domain.label}
+                  </SvgText>
+                  <SvgText
+                    x={p.x}
+                    y={p.y + 10}
+                    fontSize={13}
+                    fontWeight="700"
+                    fill={domain.color}
+                    textAnchor={textAnchor}
+                  >
+                    {score}
+                  </SvgText>
+                </React.Fragment>
+              );
+            })}
+        </Svg>
+
+        {/* Tappable domain labels overlay (when onDomainPress provided) */}
+        {onDomainPress &&
+          labelPositions.map((pos, i) => {
+            const domain = DOMAINS[pos.id];
+            const score = scores[pos.id];
+            return (
+              <TouchableOpacity
+                key={`tap-${pos.id}`}
+                style={[
+                  styles.labelTouchTarget,
+                  {
+                    left: pos.x - 40,
+                    top: pos.y - 16,
+                  },
+                ]}
+                onPress={() => onDomainPress(pos.id)}
+                activeOpacity={0.6}
               >
-                {domain.label}
-              </SvgText>
-              <SvgText
-                x={p.x}
-                y={p.y + 10}
-                fontSize={13}
-                fontWeight="700"
-                fill={domain.color}
-                textAnchor={textAnchor}
-              >
-                {score}
-              </SvgText>
-            </React.Fragment>
-          );
-        })}
-      </Svg>
+                <SvgLabel
+                  domain={domain}
+                  score={score}
+                />
+              </TouchableOpacity>
+            );
+          })}
+      </View>
     </View>
   );
 }
+
+/** Small SVG-based label for the tappable overlay */
+function SvgLabel({ domain, score }: { domain: { label: string; color: string }; score: number }) {
+  return (
+    <Svg width={80} height={32}>
+      <SvgText
+        x={40}
+        y={11}
+        fontSize={11}
+        fontWeight="600"
+        fill={domain.color}
+        textAnchor="middle"
+      >
+        {domain.label}
+      </SvgText>
+      <SvgText
+        x={40}
+        y={27}
+        fontSize={13}
+        fontWeight="700"
+        fill={domain.color}
+        textAnchor="middle"
+      >
+        {score}
+      </SvgText>
+    </Svg>
+  );
+}
+
+const styles = StyleSheet.create({
+  labelTouchTarget: {
+    position: "absolute",
+    width: 80,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});
