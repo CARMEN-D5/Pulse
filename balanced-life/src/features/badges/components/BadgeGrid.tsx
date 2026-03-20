@@ -8,6 +8,7 @@ import { COLORS, SPACING, FONT_SIZES } from "../../../config/theme";
 import { BadgeDefinition, UnlockedBadge } from "../types/badge.types";
 import { BADGE_LIBRARY } from "../constants/badgeLibrary";
 import { BadgeCard } from "./BadgeCard";
+import { EmptyState } from "../../../shared/components/EmptyState";
 
 interface Props {
   unlockedBadges: UnlockedBadge[];
@@ -26,6 +27,17 @@ export function BadgeGrid({ unlockedBadges }: Props) {
   const unlockedMap = new Map(unlockedBadges.map((b) => [b.id, b]));
   const totalUnlocked = unlockedBadges.length;
   const totalBadges = BADGE_LIBRARY.length;
+
+  if (totalUnlocked === 0) {
+    return (
+      <EmptyState
+        icon="🏅"
+        title="No Achievements Yet"
+        message="Complete check-ins, missions, and build streaks to earn your first badge!"
+        compact
+      />
+    );
+  }
 
   return (
     <View>

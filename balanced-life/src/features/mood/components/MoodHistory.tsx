@@ -6,6 +6,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { COLORS, SPACING, FONT_SIZES } from "../../../config/theme";
 import { MoodDataPoint, MOOD_OPTIONS } from "../types/mood.types";
+import { EmptyState } from "../../../shared/components/EmptyState";
 
 interface MoodHistoryProps {
   data: MoodDataPoint[];
@@ -27,9 +28,12 @@ function getAvgMood(data: MoodDataPoint[]): { avg: number; emoji: string; label:
 export function MoodHistory({ data }: MoodHistoryProps) {
   if (data.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No mood data yet. Log your mood after check-ins!</Text>
-      </View>
+      <EmptyState
+        icon="😊"
+        title="No Mood Data Yet"
+        message="Log your mood after each check-in to start tracking how you feel over time."
+        compact
+      />
     );
   }
 

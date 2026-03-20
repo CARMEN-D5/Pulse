@@ -100,8 +100,11 @@ export function DashboardScreen() {
 
         {!hasScores ? (
           <EmptyState
+            icon="⚖️"
             title="Welcome to Balanced Life"
             message="Complete your first check-in to see your Balance Wheel — a visual map of how balanced your 5 life domains are."
+            actionLabel="Start Check-In"
+            onAction={() => navigation.navigate("CheckIn")}
           />
         ) : (
           <>

@@ -1,13 +1,24 @@
 /**
- * ProfileScreen — User profile, badge collection, notification settings, and account management.
+ * ProfileScreen — User profile editing, badge collection, notification settings, and account management.
  */
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, Alert, Switch, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Switch,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { signOut } from "firebase/auth";
+import { signOut, updateProfile } from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useFocusEffect } from "@react-navigation/native";
 
-import { auth } from "../../config/firebase";
+import { auth, db } from "../../config/firebase";
 import { useAuthStore } from "../../features/auth/stores/authStore";
 import { COLORS, SPACING, FONT_SIZES } from "../../config/theme";
 import { Card, Button } from "../../shared/components";
@@ -22,6 +33,28 @@ import {
   loadNotificationSettings,
   saveNotificationSettings,
 } from "../../features/notifications/services/notificationService";
+
+// ── Avatar options ──
+
+const AVATAR_EMOJIS = [
+  "😊", "😎", "🤓", "🧑‍💻", "🧘", "🏃", "🎨", "🌟",
+  "🦊", "🐱", "🐶", "🦉", "🐼", "🦁", "🐸", "🦋",
+  "🌸", "🔥", "💎", "🌈", "🍀", "🎯", "⚡", "🚀",
+];
+
+const AVATAR_COLORS = [
+  "#2E75B6", "#8B5CF6", "#EF4444", "#10B981",
+  "#F59E0B", "#3B82F6", "#EC4899", "#6366F1",
+];
+
+interface AvatarData {
+  emoji: string;
+  color: string;
+}
+
+const DEFAULT_AVATAR: AvatarData = { emoji: "", color: COLORS.primary };
+
+// ── Time/day options (notification settings) ──
 
 const TIME_OPTIONS = [
   { label: "6:00 AM", hour: 6, minute: 0 },
@@ -53,12 +86,20 @@ function getDayLabel(day: number): string {
   return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day] ?? "Sunday";
 }
 
+// ── Main component ──
+
 export function ProfileScreen() {
   const { user } = useAuthStore();
   const [unlockedBadges, setUnlockedBadges] = useState<UnlockedBadge[]>([]);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDayPicker, setShowDayPicker] = useState(false);
+
+  // Profile editing state
+  const [avatarData, setAvatarData] = useState<AvatarData>(DEFAULT_AVATAR);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,8 +110,60 @@ export function ProfileScreen() {
       loadNotificationSettings(user.uid)
         .then(setNotifSettings)
         .catch((e) => console.warn("Failed to load notification settings:", e));
+      // Load avatar from Firestore
+      getDoc(doc(db, "users", user.uid, "settings", "profile"))
+        .then((snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.avatar) setAvatarData(data.avatar);
+          }
+        })
+        .catch(() => {});
     }, [user])
   );
+
+  // ── Name editing ──
+
+  const handleStartEditName = () => {
+    setNameInput(user?.displayName || "");
+    setEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed || !auth.currentUser) {
+      setEditingName(false);
+      return;
+    }
+    try {
+      await updateProfile(auth.currentUser, { displayName: trimmed });
+      // Force re-render by refreshing auth state
+      useAuthStore.getState().setUser({ ...auth.currentUser } as any);
+      setEditingName(false);
+    } catch (e) {
+      Alert.alert("Error", "Failed to update name.");
+    }
+  };
+
+  // ── Avatar editing ──
+
+  const handleSelectAvatar = async (emoji: string, color: string) => {
+    if (!user) return;
+    const newAvatar = { emoji, color };
+    setAvatarData(newAvatar);
+    setShowAvatarPicker(false);
+    try {
+      await setDoc(
+        doc(db, "users", user.uid, "settings", "profile"),
+        { avatar: newAvatar },
+        { merge: true }
+      );
+    } catch (e) {
+      console.warn("Failed to save avatar:", e);
+    }
+  };
+
+  // ── Notification settings ──
 
   const updateSettings = async (patch: Partial<NotificationSettings>) => {
     if (!user) return;
@@ -100,6 +193,12 @@ export function ProfileScreen() {
     ]);
   };
 
+  // ── Derived values ──
+
+  const displayName = user?.displayName || "User";
+  const avatarLetter = (user?.displayName?.[0] || user?.email?.[0] || "U").toUpperCase();
+  const hasCustomAvatar = avatarData.emoji !== "";
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -107,12 +206,47 @@ export function ProfileScreen() {
 
         {/* User Info */}
         <Card style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(user?.displayName?.[0] || user?.email?.[0] || "U").toUpperCase()}
-            </Text>
-          </View>
-          <Text style={styles.name}>{user?.displayName || "User"}</Text>
+          {/* Avatar */}
+          <TouchableOpacity onPress={() => setShowAvatarPicker(true)} activeOpacity={0.7}>
+            <View style={[styles.avatar, { backgroundColor: avatarData.color }]}>
+              {hasCustomAvatar ? (
+                <Text style={styles.avatarEmoji}>{avatarData.emoji}</Text>
+              ) : (
+                <Text style={styles.avatarText}>{avatarLetter}</Text>
+              )}
+            </View>
+            <View style={styles.editAvatarBadge}>
+              <Text style={styles.editAvatarIcon}>✏️</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Name */}
+          {editingName ? (
+            <View style={styles.nameEditRow}>
+              <TextInput
+                style={styles.nameInput}
+                value={nameInput}
+                onChangeText={setNameInput}
+                autoFocus
+                maxLength={30}
+                placeholder="Enter your name"
+                onSubmitEditing={handleSaveName}
+                returnKeyType="done"
+              />
+              <TouchableOpacity onPress={handleSaveName} style={styles.saveButton}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditingName(false)} style={styles.cancelButton}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={handleStartEditName} style={styles.nameRow}>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.editIcon}>✏️</Text>
+            </TouchableOpacity>
+          )}
+
           <Text style={styles.email}>{user?.email}</Text>
         </Card>
 
@@ -252,9 +386,77 @@ export function ProfileScreen() {
           style={styles.signOutButton}
         />
       </ScrollView>
+
+      {/* Avatar Picker Modal */}
+      <Modal visible={showAvatarPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Choose Avatar</Text>
+
+            {/* Color picker */}
+            <Text style={styles.modalSubtitle}>Background Color</Text>
+            <View style={styles.colorGrid}>
+              {AVATAR_COLORS.map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  style={[
+                    styles.colorOption,
+                    { backgroundColor: color },
+                    avatarData.color === color && styles.colorOptionSelected,
+                  ]}
+                  onPress={() => setAvatarData((prev) => ({ ...prev, color }))}
+                />
+              ))}
+            </View>
+
+            {/* Emoji picker */}
+            <Text style={styles.modalSubtitle}>Emoji</Text>
+            <View style={styles.emojiGrid}>
+              {AVATAR_EMOJIS.map((emoji) => (
+                <TouchableOpacity
+                  key={emoji}
+                  style={[
+                    styles.emojiOption,
+                    avatarData.emoji === emoji && styles.emojiOptionSelected,
+                  ]}
+                  onPress={() => handleSelectAvatar(emoji, avatarData.color)}
+                >
+                  <Text style={styles.emojiOptionText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Preview + actions */}
+            <View style={styles.modalPreview}>
+              <View style={[styles.previewAvatar, { backgroundColor: avatarData.color }]}>
+                {avatarData.emoji ? (
+                  <Text style={styles.previewEmoji}>{avatarData.emoji}</Text>
+                ) : (
+                  <Text style={styles.previewLetter}>{avatarLetter}</Text>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Reset to Default"
+                variant="ghost"
+                onPress={() => handleSelectAvatar("", COLORS.primary)}
+              />
+              <Button
+                title="Close"
+                variant="outline"
+                onPress={() => setShowAvatarPicker(false)}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+// ── Sub-components ──
 
 function ToggleRow({
   label,
@@ -287,6 +489,8 @@ function SettingsRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ── Styles ──
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -311,7 +515,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: SPACING.sm,
@@ -321,10 +524,73 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
   },
+  avatarEmoji: {
+    fontSize: 36,
+  },
+  editAvatarBadge: {
+    position: "absolute",
+    bottom: 4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editAvatarIcon: {
+    fontSize: 12,
+  },
+  // Name editing
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+  },
   name: {
     fontSize: FONT_SIZES.title,
     fontWeight: "700",
     color: COLORS.textPrimary,
+  },
+  editIcon: {
+    fontSize: 14,
+  },
+  nameEditRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginVertical: SPACING.xs,
+  },
+  nameInput: {
+    flex: 1,
+    fontSize: FONT_SIZES.bodyLarge,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.primary,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.xs,
+  },
+  saveButton: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+  },
+  saveButtonText: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  cancelButton: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+  },
+  cancelButtonText: {
+    fontSize: FONT_SIZES.body,
+    color: COLORS.textMuted,
   },
   email: {
     fontSize: FONT_SIZES.body,
@@ -395,5 +661,96 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     marginTop: SPACING.md,
+  },
+  // Avatar picker modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xxl,
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: FONT_SIZES.title,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    textAlign: "center",
+    marginBottom: SPACING.lg,
+  },
+  modalSubtitle: {
+    fontSize: FONT_SIZES.body,
+    fontWeight: "600",
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+  },
+  colorGrid: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
+  },
+  colorOption: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  colorOptionSelected: {
+    borderColor: COLORS.textPrimary,
+    borderWidth: 3,
+  },
+  emojiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
+  },
+  emojiOption: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  emojiOptionSelected: {
+    backgroundColor: COLORS.primary + "20",
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+  },
+  emojiOptionText: {
+    fontSize: 22,
+  },
+  modalPreview: {
+    alignItems: "center",
+    marginBottom: SPACING.md,
+  },
+  previewAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  previewEmoji: {
+    fontSize: 32,
+  },
+  previewLetter: {
+    fontSize: FONT_SIZES.heading,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: SPACING.md,
   },
 });

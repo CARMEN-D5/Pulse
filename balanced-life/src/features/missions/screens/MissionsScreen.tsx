@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../../config/theme";
 import { DOMAINS } from "../../../config/domains";
 import { useAuthStore } from "../../auth/stores/authStore";
+import { EmptyState } from "../../../shared/components/EmptyState";
 import { MissionCard } from "../components/MissionCard";
 import { WeeklyMissionSet } from "../types/mission.types";
 import {
@@ -163,9 +164,11 @@ export function MissionsScreen() {
             ))}
           </>
         ) : (
-          <Text style={styles.errorText}>
-            Unable to load missions. Please try again.
-          </Text>
+          <EmptyState
+            icon="🎯"
+            title="No Missions Yet"
+            message="Complete a daily check-in first — missions are personalised based on your weakest life domains."
+          />
         )}
       </ScrollView>
     </SafeAreaView>

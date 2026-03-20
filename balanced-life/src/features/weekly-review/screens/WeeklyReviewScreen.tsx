@@ -13,6 +13,7 @@ import { RootStackParamList } from "../../../shared/types/navigation.types";
 import { COLORS, SPACING, FONT_SIZES } from "../../../config/theme";
 import { Button } from "../../../shared/components/Button";
 import { Card } from "../../../shared/components/Card";
+import { EmptyState } from "../../../shared/components/EmptyState";
 import { useAuthStore } from "../../auth/stores/authStore";
 import { WeeklyReviewData } from "../types/weeklyReview.types";
 import { fetchWeeklyReviewData } from "../services/weeklyReviewService";
@@ -60,10 +61,13 @@ export function WeeklyReviewScreen() {
   if (!reviewData) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.errorText}>Could not load weekly review.</Text>
-          <Button title="Go Back" onPress={() => navigation.goBack()} variant="outline" />
-        </View>
+        <EmptyState
+          icon="📋"
+          title="No Review Available"
+          message="No activity this week yet. Start with a daily check-in and come back to see your weekly summary!"
+          actionLabel="Go Back"
+          onAction={() => navigation.goBack()}
+        />
       </SafeAreaView>
     );
   }

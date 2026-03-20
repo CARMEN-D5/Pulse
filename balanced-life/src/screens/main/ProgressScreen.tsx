@@ -82,8 +82,9 @@ export function ProgressScreen() {
           </View>
         ) : !hasData ? (
           <EmptyState
+            icon="📊"
             title="No Progress Data Yet"
-            message="Complete your daily check-ins to start tracking your progress over time. Charts and insights will appear here."
+            message="Check in for a few days to see your trends appear here. Charts and insights will update over time."
           />
         ) : (
           <>
