@@ -16,6 +16,7 @@ import { OnboardingStack } from "./OnboardingStack";
 import { MainTabs } from "./MainTabs";
 import { CheckInScreen } from "../features/check-in/screens/CheckInScreen";
 import { CheckInResultScreen } from "../features/check-in/screens/CheckInResultScreen";
+import { MissionsScreen } from "../features/missions/screens/MissionsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -43,6 +44,11 @@ export function RootNavigator() {
           <Stack.Screen
             name="CheckInResult"
             component={CheckInResultScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Missions"
+            component={MissionsScreen}
             options={{ animation: "slide_from_right" }}
           />
         </>

@@ -1,0 +1,561 @@
+/**
+ * Mission Library — 15 micro actions per domain (75 total).
+ *
+ * Each action is specific, achievable, and designed for a single session.
+ * Actions target the 5 life domains and are assigned weekly based on
+ * the user's weakest areas.
+ */
+
+import { MissionTemplate } from "../types/mission.types";
+
+export const MISSION_LIBRARY: MissionTemplate[] = [
+  // ================================================================
+  // SPIRITUALITY (15)
+  // ================================================================
+  {
+    id: "sp-01",
+    domain: "spirituality",
+    title: "Write down 3 things you're grateful for",
+    description: "Take a quiet moment to reflect on what's going well in your life and write them down.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "sp-02",
+    domain: "spirituality",
+    title: "Meditate for 10 minutes",
+    description: "Find a quiet space, close your eyes, and focus on your breathing for 10 minutes.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "sp-03",
+    domain: "spirituality",
+    title: "Journal about what matters most to you",
+    description: "Free-write for 10 minutes about your values, purpose, or what gives your life meaning.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "sp-04",
+    domain: "spirituality",
+    title: "Spend 15 minutes in nature without your phone",
+    description: "Go for a short walk or sit outside. Leave your phone behind and just be present.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "sp-05",
+    domain: "spirituality",
+    title: "Read something inspiring for 15 minutes",
+    description: "Pick up a book, article, or poem that uplifts you and read without distraction.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "sp-06",
+    domain: "spirituality",
+    title: "Do a 5-minute breathing exercise",
+    description: "Try box breathing: inhale 4 seconds, hold 4, exhale 4, hold 4. Repeat for 5 minutes.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "sp-07",
+    domain: "spirituality",
+    title: "Write a letter to your future self",
+    description: "Write about where you want to be in 6 months and what you hope to feel.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "sp-08",
+    domain: "spirituality",
+    title: "Identify one core value and act on it today",
+    description: "Choose a value (kindness, courage, honesty) and do one small thing that reflects it.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "sp-09",
+    domain: "spirituality",
+    title: "Listen to calming music for 10 minutes",
+    description: "Put on music that relaxes you. Close your eyes and just listen — no multitasking.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "sp-10",
+    domain: "spirituality",
+    title: "Practice saying no to one unnecessary commitment",
+    description: "Identify something draining your energy this week and politely decline or postpone it.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "sp-11",
+    domain: "spirituality",
+    title: "Do a digital detox for 1 hour",
+    description: "Put all screens away for one hour. Read, draw, walk, or just sit with your thoughts.",
+    estimatedMinutes: 60,
+  },
+  {
+    id: "sp-12",
+    domain: "spirituality",
+    title: "Write down your personal mission statement",
+    description: "In 1-2 sentences, capture what you want your life to be about. Keep it simple.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "sp-13",
+    domain: "spirituality",
+    title: "Spend 10 minutes doing something creative",
+    description: "Draw, write, play music, cook something new — anything that lets you express yourself.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "sp-14",
+    domain: "spirituality",
+    title: "Reflect on a recent challenge and what it taught you",
+    description: "Think about a difficult moment from the past week. What did you learn from it?",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "sp-15",
+    domain: "spirituality",
+    title: "Practise mindful eating during one meal",
+    description: "Eat without screens. Notice the taste, texture, and smell. Chew slowly.",
+    estimatedMinutes: 20,
+  },
+
+  // ================================================================
+  // FAMILY & FRIENDS / SOCIAL (15)
+  // ================================================================
+  {
+    id: "so-01",
+    domain: "social",
+    title: "Send a message to a friend you haven't spoken to recently",
+    description: "Think of someone you've lost touch with. Send them a quick hello or check-in message.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "so-02",
+    domain: "social",
+    title: "Call a family member for a 10-minute catch-up",
+    description: "Pick up the phone and call someone in your family. Ask how they're doing.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "so-03",
+    domain: "social",
+    title: "Plan a catch-up with a friend this week",
+    description: "Text or message a friend and set a date to meet up — coffee, lunch, or a walk.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "so-04",
+    domain: "social",
+    title: "Write a thank-you message to someone who helped you",
+    description: "Think of someone who made a difference recently and send them a genuine thank-you.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "so-05",
+    domain: "social",
+    title: "Have a screen-free conversation over a meal",
+    description: "Eat with someone — a housemate, partner, or friend — with no phones at the table.",
+    estimatedMinutes: 30,
+  },
+  {
+    id: "so-06",
+    domain: "social",
+    title: "Ask someone how they're really doing",
+    description: "Go beyond 'How are you?' — ask a genuine follow-up and really listen to the answer.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "so-07",
+    domain: "social",
+    title: "Share a photo or memory with a friend",
+    description: "Send an old photo, a funny memory, or something that reminded you of them.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "so-08",
+    domain: "social",
+    title: "Attend a social event or group activity",
+    description: "Join a club meeting, group sport, study group, or community event this week.",
+    estimatedMinutes: 60,
+  },
+  {
+    id: "so-09",
+    domain: "social",
+    title: "Cook or bake something for someone",
+    description: "Make a meal, snack, or treat for a friend, housemate, or family member.",
+    estimatedMinutes: 30,
+  },
+  {
+    id: "so-10",
+    domain: "social",
+    title: "Give someone a genuine compliment today",
+    description: "Notice something good about someone and tell them. Be specific and sincere.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "so-11",
+    domain: "social",
+    title: "Offer to help someone with a task",
+    description: "Ask a friend, colleague, or neighbour if there's anything you can help with.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "so-12",
+    domain: "social",
+    title: "Have a video call with someone far away",
+    description: "Connect face-to-face with a friend or family member who lives in another city.",
+    estimatedMinutes: 20,
+  },
+  {
+    id: "so-13",
+    domain: "social",
+    title: "Write a list of 5 people you're glad to have in your life",
+    description: "Reflect on the relationships that matter most and why you value them.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "so-14",
+    domain: "social",
+    title: "Introduce yourself to someone new",
+    description: "Start a conversation with someone you don't usually talk to — at work, uni, or your neighbourhood.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "so-15",
+    domain: "social",
+    title: "Put your phone away during a social interaction",
+    description: "Next time you're with someone, keep your phone in your pocket for the entire conversation.",
+    estimatedMinutes: 15,
+  },
+
+  // ================================================================
+  // WORK / PRODUCTIVITY (15)
+  // ================================================================
+  {
+    id: "pr-01",
+    domain: "productivity",
+    title: "Write down your top 3 priorities for today",
+    description: "Before starting work, identify the 3 most important tasks. Focus on those first.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "pr-02",
+    domain: "productivity",
+    title: "Do a 25-minute focused work session (Pomodoro)",
+    description: "Set a timer for 25 minutes, work on one task with no distractions, then take a 5-minute break.",
+    estimatedMinutes: 30,
+  },
+  {
+    id: "pr-03",
+    domain: "productivity",
+    title: "Clean and organise your workspace",
+    description: "Spend 10 minutes clearing clutter, organising files, and tidying your desk or digital desktop.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "pr-04",
+    domain: "productivity",
+    title: "Plan your week every Sunday evening",
+    description: "Spend 15 minutes reviewing next week's commitments and setting your intentions.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "pr-05",
+    domain: "productivity",
+    title: "Tackle one task you've been putting off",
+    description: "Pick the thing you've been avoiding. Set a 15-minute timer and just start.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "pr-06",
+    domain: "productivity",
+    title: "Turn off notifications for 1 hour while working",
+    description: "Put your phone on Do Not Disturb and close unnecessary tabs. Focus deeply for one hour.",
+    estimatedMinutes: 60,
+  },
+  {
+    id: "pr-07",
+    domain: "productivity",
+    title: "Break a big task into 3 smaller steps",
+    description: "Pick a task that feels overwhelming and split it into concrete, doable sub-tasks.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "pr-08",
+    domain: "productivity",
+    title: "Review and clear your email inbox",
+    description: "Spend 15 minutes replying, archiving, or deleting emails. Aim for inbox zero.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "pr-09",
+    domain: "productivity",
+    title: "Set a deadline for a personal project",
+    description: "Pick something you want to finish and commit to a specific date. Write it down.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "pr-10",
+    domain: "productivity",
+    title: "Learn one new thing related to your work or study",
+    description: "Watch a tutorial, read an article, or explore a topic for 15 minutes.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "pr-11",
+    domain: "productivity",
+    title: "Do a 5-minute end-of-day review",
+    description: "Before finishing work, write down what you accomplished and what's left for tomorrow.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "pr-12",
+    domain: "productivity",
+    title: "Delegate or drop one low-priority task",
+    description: "Look at your to-do list and remove or hand off something that doesn't truly matter.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "pr-13",
+    domain: "productivity",
+    title: "Batch similar tasks together",
+    description: "Group emails, calls, or admin tasks into one block instead of switching throughout the day.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "pr-14",
+    domain: "productivity",
+    title: "Set up a morning routine and follow it tomorrow",
+    description: "Plan the first 30 minutes of your day — what will you do before checking your phone?",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "pr-15",
+    domain: "productivity",
+    title: "Track how you spend your time for one day",
+    description: "Log what you do every hour today. At the end, review where your time actually went.",
+    estimatedMinutes: 10,
+  },
+
+  // ================================================================
+  // HEALTH (15)
+  // ================================================================
+  {
+    id: "he-01",
+    domain: "health",
+    title: "Take a 15-minute walk",
+    description: "Step outside and walk at a comfortable pace. No destination needed — just move.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "he-02",
+    domain: "health",
+    title: "Do a 10-minute stretching routine",
+    description: "Stretch your neck, shoulders, back, and legs. Hold each stretch for 20-30 seconds.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "he-03",
+    domain: "health",
+    title: "Drink 8 glasses of water today",
+    description: "Track your water intake throughout the day. Keep a bottle nearby as a reminder.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "he-04",
+    domain: "health",
+    title: "Go to bed 30 minutes earlier tonight",
+    description: "Set an alarm to start your bedtime routine 30 minutes before your usual time.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "he-05",
+    domain: "health",
+    title: "Cook a healthy meal from scratch",
+    description: "Choose a simple recipe with fresh ingredients. Enjoy the process of making it.",
+    estimatedMinutes: 30,
+  },
+  {
+    id: "he-06",
+    domain: "health",
+    title: "Do a 20-minute home workout",
+    description: "Try bodyweight exercises: push-ups, squats, lunges, planks. No equipment needed.",
+    estimatedMinutes: 20,
+  },
+  {
+    id: "he-07",
+    domain: "health",
+    title: "Take the stairs instead of the elevator today",
+    description: "Every time you encounter stairs today, take them. Small movements add up.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "he-08",
+    domain: "health",
+    title: "Do a screen-free wind-down before bed",
+    description: "Stop using screens 30 minutes before sleep. Read, journal, or listen to calm music.",
+    estimatedMinutes: 30,
+  },
+  {
+    id: "he-09",
+    domain: "health",
+    title: "Try a new physical activity",
+    description: "Go for a swim, try a yoga video, dance, or play a sport you haven't tried before.",
+    estimatedMinutes: 30,
+  },
+  {
+    id: "he-10",
+    domain: "health",
+    title: "Eat a piece of fruit or vegetables with every meal today",
+    description: "Add something fresh and colourful to each meal. Start small — one extra serve counts.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "he-11",
+    domain: "health",
+    title: "Do 5 minutes of deep breathing when you feel stressed",
+    description: "Next time stress hits, pause. Breathe in for 4 counts, out for 6. Repeat for 5 minutes.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "he-12",
+    domain: "health",
+    title: "Track your sleep for 3 nights this week",
+    description: "Write down when you went to bed and woke up. Notice patterns.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "he-13",
+    domain: "health",
+    title: "Replace one sugary drink with water today",
+    description: "Swap a soft drink, juice, or energy drink for water or herbal tea.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "he-14",
+    domain: "health",
+    title: "Stand up and move every hour for a full day",
+    description: "Set a reminder to stand, stretch, or walk for 2 minutes every hour while working.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "he-15",
+    domain: "health",
+    title: "Prepare tomorrow's meals today",
+    description: "Meal prep lunch or snacks for tomorrow so you're not reaching for junk food.",
+    estimatedMinutes: 30,
+  },
+
+  // ================================================================
+  // FINANCIAL (15)
+  // ================================================================
+  {
+    id: "fi-01",
+    domain: "financial",
+    title: "Track every expense today",
+    description: "Write down every purchase you make today, no matter how small.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-02",
+    domain: "financial",
+    title: "Review your bank statement from last week",
+    description: "Open your banking app and review last week's transactions. Any surprises?",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-03",
+    domain: "financial",
+    title: "Set a simple weekly spending budget",
+    description: "Decide on a realistic weekly spending limit. Write it down and commit to it.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-04",
+    domain: "financial",
+    title: "Transfer a small amount to savings",
+    description: "Move even $5-10 into a savings account. Building the habit matters more than the amount.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "fi-05",
+    domain: "financial",
+    title: "Identify one subscription you don't use",
+    description: "Check your recurring payments. Cancel one service you haven't used in the past month.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-06",
+    domain: "financial",
+    title: "Pack lunch instead of buying it tomorrow",
+    description: "Prepare something at home tonight to take with you. Save money and eat healthier.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "fi-07",
+    domain: "financial",
+    title: "Wait 24 hours before a non-essential purchase",
+    description: "Next time you want to buy something you don't need, wait a day and see if you still want it.",
+    estimatedMinutes: 5,
+  },
+  {
+    id: "fi-08",
+    domain: "financial",
+    title: "List your financial goals for the next 3 months",
+    description: "Write down 2-3 specific financial goals. Make them measurable (e.g. save $200).",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-09",
+    domain: "financial",
+    title: "Compare prices before your next purchase",
+    description: "Before buying something this week, check 2-3 alternatives to get the best deal.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-10",
+    domain: "financial",
+    title: "Set up automatic savings if you haven't already",
+    description: "Configure a small automatic transfer to savings on payday. Even $10/week works.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-11",
+    domain: "financial",
+    title: "Calculate your net worth",
+    description: "Add up what you own minus what you owe. It's a baseline — no judgement, just awareness.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "fi-12",
+    domain: "financial",
+    title: "Read one article about personal finance",
+    description: "Spend 10 minutes reading about budgeting, saving, or investing basics.",
+    estimatedMinutes: 10,
+  },
+  {
+    id: "fi-13",
+    domain: "financial",
+    title: "Plan your meals for the week to reduce food waste",
+    description: "Write a meal plan and shopping list. Buy only what you need — saves money and food.",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "fi-14",
+    domain: "financial",
+    title: "Review your spending categories from this month",
+    description: "Group your expenses into categories (food, transport, entertainment). Where's the most going?",
+    estimatedMinutes: 15,
+  },
+  {
+    id: "fi-15",
+    domain: "financial",
+    title: "Find one free activity to replace a paid one this week",
+    description: "Instead of spending money on entertainment, try a free alternative (park, library, home workout).",
+    estimatedMinutes: 5,
+  },
+];
+
+/** Get all missions for a specific domain */
+export function getMissionsByDomain(domain: string): MissionTemplate[] {
+  return MISSION_LIBRARY.filter((m) => m.domain === domain);
+}

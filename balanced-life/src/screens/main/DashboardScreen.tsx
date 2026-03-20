@@ -117,6 +117,12 @@ export function DashboardScreen() {
             onPress={() => navigation.navigate("CheckIn")}
             style={styles.checkInButton}
           />
+          <Button
+            title="Weekly Missions"
+            variant="outline"
+            onPress={() => navigation.navigate("Missions")}
+            style={styles.checkInButton}
+          />
         </View>
 
         {/* Temporary sign out button for testing */}
