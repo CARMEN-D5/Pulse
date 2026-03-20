@@ -50,8 +50,8 @@ export const DOMAINS: Record<DomainId, DomainConfig> = {
   },
   social: {
     id: "social",
-    label: "Social Connection",
-    description: "Friendships, family relationships, and community",
+    label: "Family & Friends",
+    description: "Family relationships, friendships, and feeling connected",
     icon: "users",
     color: "#F59E0B",
     lightColor: "#FEF3C7",

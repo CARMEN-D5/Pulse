@@ -5,13 +5,13 @@ import { ASSESSMENT_QUESTIONS, ANSWER_OPTIONS } from "../constants/questions";
 import { DomainScores, BalanceScoreResult } from "../../scoring/types/scoring.types";
 import { calculateBalanceScore } from "../../scoring/engine/balanceScore";
 
-/** Convert raw answers (1-5 values) to 0-10 scores, handling reverse scoring */
+/** Convert raw answers (1-5 values) to 0-10 scores */
 function answersToScores(answers: Record<number, number>): number[] {
   return ASSESSMENT_QUESTIONS.map((q) => {
     const rawValue = answers[q.id];
     const option = ANSWER_OPTIONS.find((o) => o.value === rawValue);
     if (!option) return 0;
-    return q.reverseScored ? 10 - option.score : option.score;
+    return option.score;
   });
 }
 
