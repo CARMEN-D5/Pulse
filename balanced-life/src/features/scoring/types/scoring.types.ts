@@ -18,11 +18,17 @@ export interface DailyScoreSnapshot {
   streakCount: number;
 }
 
-/** Engagement score breakdown */
-export interface EngagementScore {
+/** Reward tier earned from weekly engagement */
+export type RewardTier = "none" | "bronze" | "silver" | "gold";
+
+/** Weekly engagement score — resets every Monday */
+export interface WeeklyEngagement {
+  weekId: string; // e.g. "2026-W12"
   overall: number; // 0-100
-  checkInCompletion: number; // 0-100: days checked in / 7
-  actionCompletion: number; // 0-100: actions completed / assigned
+  tier: RewardTier;
+  checkInCompletion: number; // 0-100: days checked in this week / 7
+  actionCompletion: number; // 0-100: missions completed / assigned
   streakStrength: number; // 0-100: based on current streak length
-  featureParticipation: number; // 0-100: features used
+  featureParticipation: number; // 0-100: features used this week
+  daysRemaining: number; // days left in the current week
 }

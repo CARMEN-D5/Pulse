@@ -18,9 +18,11 @@ import { COLORS, SPACING, FONT_SIZES } from "../../config/theme";
 import { Card, Button, EmptyState } from "../../shared/components";
 import { DOMAINS, DOMAIN_IDS } from "../../config/domains";
 import { getScoreTier } from "../../config/scoring";
-import { DomainScores } from "../../features/scoring/types/scoring.types";
+import { DomainScores, WeeklyEngagement } from "../../features/scoring/types/scoring.types";
 import { RootStackParamList, MainTabParamList } from "../../shared/types/navigation.types";
 import { RadarChart } from "../../features/balance-wheel/components/RadarChart";
+import { EngagementCard } from "../../features/scoring/components/EngagementCard";
+import { fetchWeeklyEngagement } from "../../features/scoring/services/engagementService";
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Dashboard">,
@@ -35,6 +37,7 @@ export function DashboardScreen() {
   const [balanceScore, setBalanceScore] = useState<number | null>(null);
   const [domainScores, setDomainScores] = useState<DomainScores | null>(null);
   const [streak, setStreak] = useState(0);
+  const [engagement, setEngagement] = useState<WeeklyEngagement | null>(null);
 
   const fetchScores = useCallback(async () => {
     if (!user) return;
@@ -44,6 +47,13 @@ export function DashboardScreen() {
       if (data.latestBalanceScore != null) setBalanceScore(data.latestBalanceScore);
       if (data.latestDomainScores) setDomainScores(data.latestDomainScores);
       if (data.streakData?.currentStreak) setStreak(data.streakData.currentStreak);
+    }
+    // Fetch engagement score
+    try {
+      const engScore = await fetchWeeklyEngagement(user.uid);
+      setEngagement(engScore);
+    } catch (e) {
+      console.warn("Failed to fetch engagement score:", e);
     }
   }, [user]);
 
@@ -116,6 +126,9 @@ export function DashboardScreen() {
                 </Text>
               </View>
             </Card>
+
+            {/* Engagement Score */}
+            {engagement && <EngagementCard engagement={engagement} />}
 
             {/* Domain Breakdown */}
             <Text style={styles.sectionTitle}>Life Domains</Text>

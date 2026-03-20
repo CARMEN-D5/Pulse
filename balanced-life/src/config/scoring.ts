@@ -26,12 +26,19 @@ export const MAX_DAILY_MOVEMENT = 3;
 /** Floor value before geometric mean to prevent zero-collapse */
 export const GEO_MEAN_FLOOR = 1;
 
-/** Engagement score weights */
+/** Weekly engagement score weights */
 export const ENGAGEMENT_WEIGHTS = {
   checkInCompletion: 0.4,
   actionCompletion: 0.3,
   streakStrength: 0.2,
   featureParticipation: 0.1,
+} as const;
+
+/** Reward tier thresholds for weekly engagement */
+export const REWARD_TIER_THRESHOLDS = {
+  gold: 85,
+  silver: 60,
+  bronze: 30,
 } as const;
 
 /** Score tiers for display labels and colours */
