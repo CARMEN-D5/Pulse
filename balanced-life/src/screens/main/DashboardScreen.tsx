@@ -214,6 +214,18 @@ export function DashboardScreen() {
             onPress={() => navigation.navigate("WeeklyReview")}
             style={styles.actionButton}
           />
+          <Button
+            title="Log Activity"
+            variant="outline"
+            onPress={() => navigation.navigate("Activity")}
+            style={styles.actionButton}
+          />
+          <Button
+            title="Social Log"
+            variant="outline"
+            onPress={() => navigation.navigate("Friends")}
+            style={styles.actionButton}
+          />
         </View>
 
         {/* Sign out (testing) */}

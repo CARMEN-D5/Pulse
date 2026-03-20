@@ -5,7 +5,7 @@
  * the Weekly Engagement Score. Resets every Monday — clean slate.
  */
 
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, limit } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { WeeklyEngagement } from "../types/scoring.types";
 import {
@@ -128,8 +128,30 @@ async function detectFeaturesUsedThisWeek(userId: string): Promise<FeatureKey[]>
   }
   if (hasMood) features.push("mood");
 
+  // Activity: any activity logged this week?
+  const mondayStr = formatDate(monday);
+  const todayStr = formatDate(today);
+  const activityQuery = query(
+    collection(db, "users", userId, "activities"),
+    where("date", ">=", mondayStr),
+    where("date", "<=", todayStr),
+    limit(1)
+  );
+  const activitySnap = await getDocs(activityQuery);
+  if (!activitySnap.empty) features.push("activity");
+
+  // Social: any social interaction logged this week?
+  const socialQuery = query(
+    collection(db, "users", userId, "socialLogs"),
+    where("date", ">=", mondayStr),
+    where("date", "<=", todayStr),
+    limit(1)
+  );
+  const socialSnap = await getDocs(socialQuery);
+  if (!socialSnap.empty) features.push("friends");
+
   // Future features — add detection when implemented:
-  // journal, budget, todos, activity, friends
+  // journal, budget, todos
 
   return features;
 }
