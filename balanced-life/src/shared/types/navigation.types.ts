@@ -28,6 +28,7 @@ export type RootStackParamList = {
   CheckIn: undefined;
   CheckInResult: { result: import("../../features/check-in/services/checkInService").CheckInResult };
   DomainDetail: { domainId: string };
+  WeeklyReview: undefined;
   Journal: undefined;
   Budget: undefined;
   Todos: undefined;

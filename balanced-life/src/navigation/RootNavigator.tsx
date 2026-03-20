@@ -16,6 +16,7 @@ import { OnboardingStack } from "./OnboardingStack";
 import { MainTabs } from "./MainTabs";
 import { CheckInScreen } from "../features/check-in/screens/CheckInScreen";
 import { CheckInResultScreen } from "../features/check-in/screens/CheckInResultScreen";
+import { WeeklyReviewScreen } from "../features/weekly-review/screens/WeeklyReviewScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -44,6 +45,11 @@ export function RootNavigator() {
             name="CheckInResult"
             component={CheckInResultScreen}
             options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="WeeklyReview"
+            component={WeeklyReviewScreen}
+            options={{ animation: "slide_from_bottom" }}
           />
         </>
       )}
