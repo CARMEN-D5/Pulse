@@ -12,9 +12,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../../config/theme";
 import { DOMAINS } from "../../../config/domains";
@@ -28,6 +29,7 @@ import {
 } from "../services/missionService";
 
 export function MissionsScreen() {
+  const navigation = useNavigation();
   const { user } = useAuthStore();
   const [missionSet, setMissionSet] = useState<WeeklyMissionSet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,11 @@ export function MissionsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Weekly Missions</Text>
+        <View style={{ width: 60 }} />
       </View>
 
       <ScrollView

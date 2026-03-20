@@ -22,6 +22,8 @@ import { SocialScreen } from "../features/social/screens/SocialScreen";
 import { BudgetScreen } from "../features/budget/screens/BudgetScreen";
 import { JournalScreen } from "../features/journal/screens/JournalScreen";
 import { TodoScreen } from "../features/todos/screens/TodoScreen";
+import { DomainDetailScreen } from "../features/domain-detail/screens/DomainDetailScreen";
+import { MissionsScreen } from "../features/missions/screens/MissionsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -79,6 +81,16 @@ export function RootNavigator() {
           <Stack.Screen
             name="Todos"
             component={TodoScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="DomainDetail"
+            component={DomainDetailScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Missions"
+            component={MissionsScreen}
             options={{ animation: "slide_from_right" }}
           />
         </>

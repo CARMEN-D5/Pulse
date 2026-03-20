@@ -3,9 +3,12 @@
  * Accepts optional domainId param to auto-select a domain from Dashboard.
  */
 import React, { useState, useCallback, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
+import { useFocusEffect, useRoute, useNavigation, RouteProp, CompositeNavigationProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { RootStackParamList } from "../../shared/types/navigation.types";
 
 import { COLORS, SPACING, FONT_SIZES } from "../../config/theme";
 import { DOMAINS, DomainId, DOMAIN_IDS } from "../../config/domains";
@@ -28,8 +31,14 @@ import { fetchMoodHistory } from "../../features/mood/services/moodService";
 import { MoodDataPoint } from "../../features/mood/types/mood.types";
 import { MainTabParamList } from "../../shared/types/navigation.types";
 
+type ProgressNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, "Progress">,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
 export function ProgressScreen() {
   const { user } = useAuthStore();
+  const navigation = useNavigation<ProgressNav>();
   const route = useRoute<RouteProp<MainTabParamList, "Progress">>();
   const incomingDomainId = route.params?.domainId as DomainId | undefined;
 
@@ -157,48 +166,54 @@ export function ProgressScreen() {
                   const isWeakest = id === weakest;
 
                   return (
-                    <Card key={id} style={styles.domainCard}>
-                      <View style={styles.domainRow}>
-                        <View style={[styles.domainDot, { backgroundColor: domain.color }]} />
-                        <View style={styles.domainInfo}>
-                          <View style={styles.domainNameRow}>
-                            <Text style={styles.domainLabel}>{domain.label}</Text>
-                            {isStrongest && (
-                              <Text style={styles.badgeStrong}>Strongest</Text>
-                            )}
-                            {isWeakest && (
-                              <Text style={styles.badgeWeak}>Focus</Text>
-                            )}
+                    <TouchableOpacity
+                      key={id}
+                      activeOpacity={0.7}
+                      onPress={() => navigation.navigate("DomainDetail", { domainId: id })}
+                    >
+                      <Card style={styles.domainCard}>
+                        <View style={styles.domainRow}>
+                          <View style={[styles.domainDot, { backgroundColor: domain.color }]} />
+                          <View style={styles.domainInfo}>
+                            <View style={styles.domainNameRow}>
+                              <Text style={styles.domainLabel}>{domain.label}</Text>
+                              {isStrongest && (
+                                <Text style={styles.badgeStrong}>Strongest</Text>
+                              )}
+                              {isWeakest && (
+                                <Text style={styles.badgeWeak}>Focus</Text>
+                              )}
+                            </View>
+                            <View style={styles.barBg}>
+                              <View
+                                style={[
+                                  styles.barFill,
+                                  {
+                                    width: `${Math.max(score, 2)}%` as any,
+                                    backgroundColor: domain.color,
+                                  },
+                                ]}
+                              />
+                            </View>
                           </View>
-                          <View style={styles.barBg}>
-                            <View
-                              style={[
-                                styles.barFill,
-                                {
-                                  width: `${Math.max(score, 2)}%` as any,
-                                  backgroundColor: domain.color,
-                                },
-                              ]}
-                            />
-                          </View>
-                        </View>
-                        <View style={styles.domainScoreCol}>
-                          <Text style={[styles.domainScore, { color: tier.color }]}>
-                            {score}
-                          </Text>
-                          {change !== 0 && (
-                            <Text
-                              style={[
-                                styles.domainChange,
-                                { color: change > 0 ? COLORS.success : COLORS.error },
-                              ]}
-                            >
-                              {change > 0 ? "+" : ""}{change}
+                          <View style={styles.domainScoreCol}>
+                            <Text style={[styles.domainScore, { color: tier.color }]}>
+                              {score}
                             </Text>
-                          )}
+                            {change !== 0 && (
+                              <Text
+                                style={[
+                                  styles.domainChange,
+                                  { color: change > 0 ? COLORS.success : COLORS.error },
+                                ]}
+                              >
+                                {change > 0 ? "+" : ""}{change}
+                              </Text>
+                            )}
+                          </View>
                         </View>
-                      </View>
-                    </Card>
+                      </Card>
+                    </TouchableOpacity>
                   );
                 })}
               </View>

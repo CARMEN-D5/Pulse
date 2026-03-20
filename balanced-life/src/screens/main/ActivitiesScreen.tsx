@@ -77,7 +77,7 @@ const WEEKLY_ACTIONS: ActionItem[] = [
     title: "Weekly Missions",
     subtitle: "Personalised micro actions",
     color: "#8B5CF6",
-    onPress: (nav) => nav.navigate("Missions" as any),
+    onPress: (nav) => nav.navigate("Missions"),
   },
   {
     emoji: "📋",
