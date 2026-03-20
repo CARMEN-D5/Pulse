@@ -25,6 +25,11 @@ import { dailyEmaStep, buildDailySignal } from "../../scoring/engine/emaCalculat
 import { checkInValueToScore, CheckInValue } from "../constants/checkInOptions";
 import { checkAndUnlockBadges } from "../../badges/services/badgeService";
 import { BadgeDefinition } from "../../badges/types/badge.types";
+import {
+  notifyStreakMilestone,
+  notifyBadgeUnlock,
+  loadNotificationSettings,
+} from "../../notifications/services/notificationService";
 
 export type CheckInAnswers = Record<DomainId, CheckInValue>;
 
@@ -127,6 +132,23 @@ export async function saveCheckIn(
     newBadges = await checkAndUnlockBadges(userId);
   } catch (e) {
     console.warn("Badge check failed:", e);
+  }
+
+  // 9. Send push notifications for milestones (non-blocking)
+  try {
+    const notifSettings = await loadNotificationSettings(userId);
+    if (notifSettings.enabled) {
+      if (notifSettings.streakMilestones) {
+        notifyStreakMilestone(streakCount).catch(() => {});
+      }
+      if (notifSettings.badgeUnlocks && newBadges.length > 0) {
+        for (const badge of newBadges) {
+          notifyBadgeUnlock(badge.title, badge.emoji).catch(() => {});
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Notification dispatch failed:", e);
   }
 
   return {

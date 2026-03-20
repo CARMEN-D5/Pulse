@@ -23,6 +23,7 @@ import { RootStackParamList, MainTabParamList } from "../../shared/types/navigat
 import { RadarChart } from "../../features/balance-wheel/components/RadarChart";
 import { EngagementCard } from "../../features/scoring/components/EngagementCard";
 import { fetchWeeklyEngagement } from "../../features/scoring/services/engagementService";
+import { useNotifications } from "../../features/notifications/hooks/useNotifications";
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Dashboard">,
@@ -38,6 +39,9 @@ export function DashboardScreen() {
   const [domainScores, setDomainScores] = useState<DomainScores | null>(null);
   const [streak, setStreak] = useState(0);
   const [engagement, setEngagement] = useState<WeeklyEngagement | null>(null);
+
+  // Initialise push notifications on first render
+  useNotifications(user?.uid);
 
   const fetchScores = useCallback(async () => {
     if (!user) return;
