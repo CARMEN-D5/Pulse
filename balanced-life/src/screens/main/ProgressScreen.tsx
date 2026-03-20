@@ -22,26 +22,37 @@ import {
   toBalanceScoreData,
   toDomainData,
 } from "../../features/progress/services/progressService";
+import { MoodHistory } from "../../features/mood/components/MoodHistory";
+import { fetchMoodHistory } from "../../features/mood/services/moodService";
+import { MoodDataPoint } from "../../features/mood/types/mood.types";
 
 export function ProgressScreen() {
   const { user } = useAuthStore();
   const [range, setRange] = useState<TimeRange>("7d");
   const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
   const [snapshots, setSnapshots] = useState<DailySnapshot[]>([]);
+  const [moodData, setMoodData] = useState<MoodDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Map time range to number of days for mood history
+  const rangeDays = range === "7d" ? 7 : range === "30d" ? 30 : 90;
 
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await fetchSnapshots(user.uid, range);
+      const [data, moods] = await Promise.all([
+        fetchSnapshots(user.uid, range),
+        fetchMoodHistory(user.uid, rangeDays),
+      ]);
       setSnapshots(data);
+      setMoodData(moods);
     } catch (error) {
       console.error("Failed to fetch progress data:", error);
     } finally {
       setLoading(false);
     }
-  }, [user, range]);
+  }, [user, range, rangeDays]);
 
   // Reload when screen is focused or range changes
   useFocusEffect(
@@ -99,6 +110,13 @@ export function ProgressScreen() {
                 color={DOMAINS[selectedDomain].color}
                 showArea
               />
+            )}
+
+            {/* Mood History */}
+            {selectedDomain === null && (
+              <View style={styles.moodSection}>
+                <MoodHistory data={moodData} />
+              </View>
             )}
 
             {/* All domains overview (when Balance Score is selected) */}
@@ -205,5 +223,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     minWidth: 35,
     textAlign: "right",
+  },
+  moodSection: {
+    marginBottom: SPACING.md,
   },
 });

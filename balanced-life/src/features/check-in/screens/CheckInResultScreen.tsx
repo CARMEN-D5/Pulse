@@ -13,6 +13,10 @@ import { DOMAINS, DOMAIN_IDS } from "../../../config/domains";
 import { getScoreTier } from "../../../config/scoring";
 import { CheckInResult } from "../services/checkInService";
 import { BadgeUnlockBanner } from "../../badges/components/BadgeUnlockBanner";
+import { MoodPicker } from "../../mood/components/MoodPicker";
+import { saveMood } from "../../mood/services/moodService";
+import { useAuthStore } from "../../auth/stores/authStore";
+import { MoodLevel } from "../../mood/types/mood.types";
 
 type CheckInResultParams = {
   CheckInResult: { result: CheckInResult };
@@ -21,10 +25,20 @@ type CheckInResultParams = {
 export function CheckInResultScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<CheckInResultParams, "CheckInResult">>();
+  const { user } = useAuthStore();
   const { result } = route.params;
 
   const scoreDiff = result.balanceScore - result.previousBalanceScore;
   const tier = getScoreTier(result.balanceScore);
+
+  const handleMoodSelect = async (level: MoodLevel, note?: string) => {
+    if (!user) return;
+    try {
+      await saveMood(user.uid, level, note);
+    } catch (error) {
+      console.error("Failed to save mood:", error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -81,6 +95,11 @@ export function CheckInResultScreen() {
               </View>
             );
           })}
+        </Card>
+
+        {/* Mood Picker — natural moment to capture mood */}
+        <Card style={styles.moodCard}>
+          <MoodPicker onSelect={handleMoodSelect} />
         </Card>
 
         <Button
@@ -185,6 +204,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     minWidth: 30,
     textAlign: "right",
+  },
+  moodCard: {
+    width: "100%",
+    marginBottom: SPACING.xl,
   },
   button: {
     width: "100%",

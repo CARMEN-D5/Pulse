@@ -115,8 +115,21 @@ async function detectFeaturesUsedThisWeek(userId: string): Promise<FeatureKey[]>
     }
   }
 
+  // Mood: any mood entry this week?
+  const moodCurrent = new Date(monday);
+  let hasMood = false;
+  while (moodCurrent <= today) {
+    const moodSnap = await getDoc(doc(db, "users", userId, "moods", formatDate(moodCurrent)));
+    if (moodSnap.exists()) {
+      hasMood = true;
+      break;
+    }
+    moodCurrent.setDate(moodCurrent.getDate() + 1);
+  }
+  if (hasMood) features.push("mood");
+
   // Future features — add detection when implemented:
-  // journal, mood, budget, todos, activity, friends
+  // journal, budget, todos, activity, friends
 
   return features;
 }
