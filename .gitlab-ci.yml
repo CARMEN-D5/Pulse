@@ -1,0 +1,14 @@
+stages:
+  - test
+
+test:
+  stage: test
+  image: node:20
+  script:
+    - cd balanced-life
+    - npm ci
+    - npm test
+  only:
+    - dev
+    - main
+    - merge_requests
