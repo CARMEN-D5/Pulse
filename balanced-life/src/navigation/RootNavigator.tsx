@@ -3,7 +3,7 @@
  *
  * Unauthenticated → AuthStack
  * Authenticated, no assessment → OnboardingStack (assessment quiz)
- * Authenticated, has assessment → MainTabs
+ * Authenticated, has assessment → MainTabs + modal screens
  */
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -14,6 +14,8 @@ import { LoadingSpinner } from "../shared/components/LoadingSpinner";
 import { AuthStack } from "./AuthStack";
 import { OnboardingStack } from "./OnboardingStack";
 import { MainTabs } from "./MainTabs";
+import { CheckInScreen } from "../features/check-in/screens/CheckInScreen";
+import { CheckInResultScreen } from "../features/check-in/screens/CheckInResultScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -31,7 +33,19 @@ export function RootNavigator() {
       ) : !hasCompletedAssessment ? (
         <Stack.Screen name="Onboarding" component={OnboardingStack} />
       ) : (
-        <Stack.Screen name="Main" component={MainTabs} />
+        <>
+          <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen
+            name="CheckIn"
+            component={CheckInScreen}
+            options={{ animation: "slide_from_bottom" }}
+          />
+          <Stack.Screen
+            name="CheckInResult"
+            component={CheckInResultScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+        </>
       )}
     </Stack.Navigator>
   );

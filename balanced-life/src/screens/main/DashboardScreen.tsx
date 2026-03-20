@@ -1,11 +1,13 @@
 /**
  * DashboardScreen — Home tab. Shows Balance Score, domain summary, and quick actions.
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { auth, db } from "../../config/firebase";
 import { useAuthStore } from "../../features/auth/stores/authStore";
@@ -14,29 +16,36 @@ import { Card, Button, ScoreCircle } from "../../shared/components";
 import { DOMAINS, DOMAIN_IDS, DomainId } from "../../config/domains";
 import { getScoreTier } from "../../config/scoring";
 import { DomainScores } from "../../features/scoring/types/scoring.types";
+import { RootStackParamList } from "../../shared/types/navigation.types";
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function DashboardScreen() {
+  const navigation = useNavigation<Nav>();
   const { user } = useAuthStore();
   const displayName = user?.displayName || "there";
 
   const [balanceScore, setBalanceScore] = useState<number | null>(null);
   const [domainScores, setDomainScores] = useState<DomainScores | null>(null);
+  const [streak, setStreak] = useState(0);
 
-  useEffect(() => {
+  const fetchScores = useCallback(async () => {
     if (!user) return;
-    (async () => {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        if (data.latestBalanceScore != null) {
-          setBalanceScore(data.latestBalanceScore);
-        }
-        if (data.latestDomainScores) {
-          setDomainScores(data.latestDomainScores);
-        }
-      }
-    })();
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      if (data.latestBalanceScore != null) setBalanceScore(data.latestBalanceScore);
+      if (data.latestDomainScores) setDomainScores(data.latestDomainScores);
+      if (data.streakData?.currentStreak) setStreak(data.streakData.currentStreak);
+    }
   }, [user]);
+
+  // Refresh scores every time dashboard comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchScores();
+    }, [fetchScores])
+  );
 
   const hasScores = balanceScore != null && domainScores != null;
 
@@ -98,11 +107,14 @@ export function DashboardScreen() {
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
+          {streak > 0 && (
+            <View style={styles.streakRow}>
+              <Text style={styles.streakText}>🔥 {streak} day{streak !== 1 ? "s" : ""} streak</Text>
+            </View>
+          )}
           <Button
             title="Daily Check-In"
-            onPress={() => {
-              // TODO: Navigate to check-in modal
-            }}
+            onPress={() => navigation.navigate("CheckIn")}
             style={styles.checkInButton}
           />
         </View>
@@ -197,6 +209,15 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     marginTop: SPACING.lg,
+  },
+  streakRow: {
+    alignItems: "center",
+    marginBottom: SPACING.md,
+  },
+  streakText: {
+    fontSize: FONT_SIZES.bodyLarge,
+    fontWeight: "700",
+    color: "#EA580C",
   },
   checkInButton: {
     marginBottom: SPACING.sm,

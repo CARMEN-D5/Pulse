@@ -28,7 +28,7 @@ export const DOMAINS: Record<DomainId, DomainConfig> = {
     icon: "brain",
     color: "#8B5CF6",
     lightColor: "#EDE9FE",
-    checkInQuestion: "How's your mental state today?",
+    checkInQuestion: "Did you do something today that connected you to your values or sense of purpose?",
   },
   health: {
     id: "health",
@@ -37,7 +37,7 @@ export const DOMAINS: Record<DomainId, DomainConfig> = {
     icon: "heart-pulse",
     color: "#EF4444",
     lightColor: "#FEE2E2",
-    checkInQuestion: "How's your body feeling today?",
+    checkInQuestion: "Did you take care of your physical or mental health today?",
   },
   financial: {
     id: "financial",
@@ -46,7 +46,7 @@ export const DOMAINS: Record<DomainId, DomainConfig> = {
     icon: "wallet",
     color: "#10B981",
     lightColor: "#D1FAE5",
-    checkInQuestion: "How do you feel about your finances?",
+    checkInQuestion: "Did you make a positive financial decision today?",
   },
   social: {
     id: "social",
@@ -55,7 +55,7 @@ export const DOMAINS: Record<DomainId, DomainConfig> = {
     icon: "users",
     color: "#F59E0B",
     lightColor: "#FEF3C7",
-    checkInQuestion: "How connected do you feel today?",
+    checkInQuestion: "Did you connect with family or friends today?",
   },
   productivity: {
     id: "productivity",
@@ -64,7 +64,7 @@ export const DOMAINS: Record<DomainId, DomainConfig> = {
     icon: "target",
     color: "#3B82F6",
     lightColor: "#DBEAFE",
-    checkInQuestion: "How productive were you today?",
+    checkInQuestion: "Did you make meaningful progress in your work or responsibilities today?",
   },
 };
 
