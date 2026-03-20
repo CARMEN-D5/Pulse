@@ -62,6 +62,13 @@ const DAILY_ACTIONS: ActionItem[] = [
     color: "#10B981",
     onPress: (nav) => nav.navigate("Budget"),
   },
+  {
+    emoji: "📋",
+    title: "To-Do List",
+    subtitle: "Manage tasks & chores",
+    color: "#3B82F6",
+    onPress: (nav) => nav.navigate("Todos"),
+  },
 ];
 
 const WEEKLY_ACTIONS: ActionItem[] = [

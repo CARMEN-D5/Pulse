@@ -170,8 +170,15 @@ async function detectFeaturesUsedThisWeek(userId: string): Promise<FeatureKey[]>
   const journalSnap = await getDocs(journalQuery);
   if (!journalSnap.empty) features.push("journal");
 
-  // Future features — add detection when implemented:
-  // todos
+  // Todos: any todo created or completed this week?
+  const todoQuery = query(
+    collection(db, "users", userId, "todos"),
+    where("date", ">=", mondayStr),
+    where("date", "<=", todayStr),
+    limit(1)
+  );
+  const todoSnap = await getDocs(todoQuery);
+  if (!todoSnap.empty) features.push("todos");
 
   return features;
 }
