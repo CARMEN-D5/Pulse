@@ -1,54 +1,52 @@
 /**
- * Balance Score Calculator
+ * Balance Score Calculator — Geometric Mean
  *
- * Final formula: Balance Score = Wellness Level × Balance Factor
+ * Uses geometric mean of the 5 domain scores instead of arithmetic mean.
+ * This naturally penalises neglected domains:
+ *   - [80, 80, 80, 80, 20] arithmetic = 68, geometric ≈ 60.6
+ *   - [60, 60, 60, 60, 60] arithmetic = 60, geometric = 60
  *
- * Where:
- * - Wellness Level = average of 5 domain scores
- * - Balance Factor = 1 - (SD / 100) * 0.5
- *
- * See Scoring_System.docx Section 6 for worked examples.
+ * A floor of 1 is applied before multiplication to prevent zero-collapse
+ * (one domain at 0 would otherwise make the entire Balance Score 0).
  */
 
 import { DomainScores, BalanceScoreResult } from "../types/scoring.types";
 import { DOMAIN_IDS } from "../../../config/domains";
-import { calculateBalanceFactor, standardDeviation } from "./balanceFactor";
+import { GEO_MEAN_FLOOR } from "../../../config/scoring";
+import { standardDeviation } from "./balanceFactor";
 
 /**
- * Calculate the complete Balance Score from 5 domain scores.
+ * Calculate the Balance Score using geometric mean of 5 domain scores.
  *
  * @param domainScores - Object with scores for all 5 domains (each 0-100)
- * @returns Full result including wellness, SD, balance factor, and final score
+ * @returns Full result including geometric mean balance score and imbalance SD
  *
  * @example
  * calculateBalanceScore({
  *   spirituality: 70, health: 55, financial: 72, social: 48, productivity: 61
  * })
- * // { wellnessLevel: 61.2, balanceFactor: 0.955, balanceScore: 58, ... }
+ * // { balanceScore: 60, imbalanceSD: 9.2, ... }
  */
 export function calculateBalanceScore(
   domainScores: DomainScores
 ): BalanceScoreResult {
   const scores = DOMAIN_IDS.map((id) => domainScores[id]);
 
-  // Step 1: Wellness Level (simple average)
-  const wellnessLevel =
-    scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  // Apply floor to prevent zero-collapse
+  const floored = scores.map((s) => Math.max(s, GEO_MEAN_FLOOR));
 
-  // Step 2: Standard Deviation
+  // Geometric mean: (D1 × D2 × D3 × D4 × D5)^(1/5)
+  const product = floored.reduce((acc, s) => acc * s, 1);
+  const geoMean = Math.pow(product, 1 / scores.length);
+
+  // Imbalance indicator (for weekly insights, not used in score)
   const sd = standardDeviation(scores);
 
-  // Step 3: Balance Factor
-  const balanceFactor = calculateBalanceFactor(scores);
-
-  // Step 4: Final Balance Score
-  const balanceScore = Math.round(wellnessLevel * balanceFactor);
+  const balanceScore = Math.round(Math.max(0, Math.min(100, geoMean)));
 
   return {
     domainScores,
-    wellnessLevel: Math.round(wellnessLevel * 10) / 10,
-    standardDeviation: Math.round(sd * 10) / 10,
-    balanceFactor: Math.round(balanceFactor * 1000) / 1000,
-    balanceScore: Math.max(0, Math.min(100, balanceScore)),
+    balanceScore,
+    imbalanceSD: Math.round(sd * 10) / 10,
   };
 }

@@ -1,56 +1,72 @@
+/**
+ * Balance Score tests — Geometric Mean
+ */
 import { calculateBalanceScore } from "../engine/balanceScore";
+import { DomainScores } from "../types/scoring.types";
 
-describe("calculateBalanceScore", () => {
-  it("gives high score for balanced high domains", () => {
-    const result = calculateBalanceScore({
-      spirituality: 80, health: 80, financial: 80, social: 80, productivity: 80,
-    });
-    expect(result.balanceScore).toBe(80);
-    expect(result.balanceFactor).toBe(1.0);
-    expect(result.wellnessLevel).toBe(80);
+function makeScores(
+  sp: number, he: number, fi: number, so: number, pr: number
+): DomainScores {
+  return {
+    spirituality: sp,
+    health: he,
+    financial: fi,
+    social: so,
+    productivity: pr,
+  };
+}
+
+describe("calculateBalanceScore (geometric mean)", () => {
+  it("all equal domains → score equals that value", () => {
+    const result = calculateBalanceScore(makeScores(60, 60, 60, 60, 60));
+    expect(result.balanceScore).toBe(60);
   });
 
-  it("penalises unbalanced high domains", () => {
-    const result = calculateBalanceScore({
-      spirituality: 90, health: 10, financial: 90, social: 10, productivity: 50,
-    });
-    expect(result.balanceScore).toBeLessThan(50);
-    expect(result.balanceFactor).toBeLessThan(0.85);
+  it("one neglected domain → score drops significantly", () => {
+    // [80, 80, 80, 80, 20] → geometric mean ≈ 60.6
+    const result = calculateBalanceScore(makeScores(80, 80, 80, 80, 20));
+    expect(result.balanceScore).toBeLessThan(65);
+    expect(result.balanceScore).toBeGreaterThan(55);
   });
 
-  it("'good & balanced' beats 'high but unbalanced'", () => {
-    const balanced = calculateBalanceScore({
-      spirituality: 65, health: 55, financial: 70, social: 60, productivity: 60,
-    });
-    const unbalanced = calculateBalanceScore({
-      spirituality: 90, health: 10, financial: 90, social: 10, productivity: 50,
-    });
+  it("balanced beats unbalanced even with same arithmetic mean", () => {
+    // Both average to 60 arithmetically
+    const balanced = calculateBalanceScore(makeScores(60, 60, 60, 60, 60));
+    const unbalanced = calculateBalanceScore(makeScores(100, 100, 20, 20, 60));
     expect(balanced.balanceScore).toBeGreaterThan(unbalanced.balanceScore);
   });
 
-  it("low but balanced is honest", () => {
-    const result = calculateBalanceScore({
-      spirituality: 30, health: 35, financial: 30, social: 35, productivity: 30,
-    });
-    expect(result.balanceScore).toBeGreaterThan(30);
-    expect(result.balanceScore).toBeLessThan(35);
-    expect(result.balanceFactor).toBeGreaterThan(0.97);
+  it("all high domains → high score", () => {
+    const result = calculateBalanceScore(makeScores(85, 90, 80, 88, 82));
+    expect(result.balanceScore).toBeGreaterThanOrEqual(84);
   });
 
-  it("neglecting one domain creates noticeable drop", () => {
-    const allGood = calculateBalanceScore({
-      spirituality: 70, health: 70, financial: 70, social: 70, productivity: 70,
-    });
-    const oneNeglected = calculateBalanceScore({
-      spirituality: 70, health: 70, financial: 70, social: 70, productivity: 15,
-    });
-    expect(allGood.balanceScore - oneNeglected.balanceScore).toBeGreaterThan(5);
+  it("all low domains → low score", () => {
+    const result = calculateBalanceScore(makeScores(20, 15, 25, 18, 22));
+    expect(result.balanceScore).toBeLessThanOrEqual(25);
   });
 
-  it("clamps final score between 0 and 100", () => {
-    const result = calculateBalanceScore({
-      spirituality: 0, health: 0, financial: 0, social: 0, productivity: 0,
-    });
-    expect(result.balanceScore).toBe(0);
+  it("zero domain uses floor (no zero-collapse)", () => {
+    // Without floor: product = 0, geometric mean = 0
+    // With floor of 1: (80*80*80*80*1)^(1/5) ≈ 37
+    const result = calculateBalanceScore(makeScores(80, 80, 80, 80, 0));
+    expect(result.balanceScore).toBeGreaterThan(0);
+    expect(result.balanceScore).toBeGreaterThanOrEqual(30);
+  });
+
+  it("score is always clamped between 0 and 100", () => {
+    const low = calculateBalanceScore(makeScores(0, 0, 0, 0, 0));
+    const high = calculateBalanceScore(makeScores(100, 100, 100, 100, 100));
+    expect(low.balanceScore).toBeGreaterThanOrEqual(0);
+    expect(low.balanceScore).toBeLessThanOrEqual(100);
+    expect(high.balanceScore).toBe(100);
+  });
+
+  it("includes imbalanceSD in result", () => {
+    const result = calculateBalanceScore(makeScores(80, 80, 80, 80, 20));
+    expect(result.imbalanceSD).toBeGreaterThan(0);
+
+    const balanced = calculateBalanceScore(makeScores(60, 60, 60, 60, 60));
+    expect(balanced.imbalanceSD).toBe(0);
   });
 });

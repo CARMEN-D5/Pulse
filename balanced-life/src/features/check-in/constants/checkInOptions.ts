@@ -1,16 +1,27 @@
+/**
+ * Daily check-in answer options.
+ *
+ * 1-5 scale matching the assessment:
+ *   1 = Never → 0
+ *   2 = Rarely → 25
+ *   3 = Sometimes → 50
+ *   4 = Often → 75
+ *   5 = Always → 100
+ *
+ * Conversion formula: score = ((value - 1) / 4) * 100
+ */
+
 export const CHECK_IN_OPTIONS = [
-  { value: 0, label: "No", emoji: "😔" },
-  { value: 1, label: "A little", emoji: "😐" },
-  { value: 2, label: "Yes", emoji: "😊" },
+  { value: 1, label: "Not at all", emoji: "😔", score: 0 },
+  { value: 2, label: "A little", emoji: "😕", score: 25 },
+  { value: 3, label: "Somewhat", emoji: "😐", score: 50 },
+  { value: 4, label: "Mostly", emoji: "😊", score: 75 },
+  { value: 5, label: "Definitely", emoji: "😄", score: 100 },
 ] as const;
 
-export type CheckInValue = 0 | 1 | 2;
+export type CheckInValue = 1 | 2 | 3 | 4 | 5;
 
-/** Max points per domain per day */
-export const MAX_DAILY_POINTS = 2;
-
-/** Rolling window for score calculation */
-export const ROLLING_DAYS = 7;
-
-/** Max possible weekly total per domain (7 days × 2 points) */
-export const MAX_WEEKLY_TOTAL = ROLLING_DAYS * MAX_DAILY_POINTS;
+/** Convert a check-in answer (1-5) to a 0-100 signal */
+export function checkInValueToScore(value: CheckInValue): number {
+  return ((value - 1) / 4) * 100;
+}

@@ -8,10 +8,10 @@ export interface AssessmentQuestion {
 
 export const ANSWER_OPTIONS = [
   { value: 1, label: "Never", score: 0 },
-  { value: 2, label: "Rarely", score: 2.5 },
-  { value: 3, label: "Sometimes", score: 5 },
-  { value: 4, label: "Often", score: 7.5 },
-  { value: 5, label: "Always", score: 10 },
+  { value: 2, label: "Rarely", score: 25 },
+  { value: 3, label: "Sometimes", score: 50 },
+  { value: 4, label: "Often", score: 75 },
+  { value: 5, label: "Always", score: 100 },
 ] as const;
 
 export const ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [

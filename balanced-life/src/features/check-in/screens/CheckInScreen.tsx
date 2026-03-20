@@ -130,15 +130,15 @@ export function CheckInScreen() {
 
         <Text style={styles.questionText}>{domain.checkInQuestion}</Text>
 
-        {/* Answer options */}
-        <View style={styles.optionsList}>
+        {/* Answer options — 5 compact buttons */}
+        <View style={styles.optionsRow}>
           {CHECK_IN_OPTIONS.map((option) => {
             const isSelected = selectedValue === option.value;
             return (
               <TouchableOpacity
                 key={option.value}
                 style={[
-                  styles.option,
+                  styles.optionButton,
                   isSelected && {
                     borderColor: domain.color,
                     backgroundColor: domain.lightColor,
@@ -246,25 +246,30 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     marginBottom: SPACING.xl,
   },
-  optionsList: {
-    gap: SPACING.md,
-  },
-  option: {
+  optionsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.sm,
+    justifyContent: "center",
+  },
+  optionButton: {
     alignItems: "center",
-    padding: SPACING.lg,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    gap: SPACING.md,
+    minWidth: 62,
+    gap: 4,
   },
   optionEmoji: {
-    fontSize: 28,
+    fontSize: 24,
   },
   optionLabel: {
-    fontSize: FONT_SIZES.bodyLarge,
-    color: COLORS.textPrimary,
+    fontSize: FONT_SIZES.caption,
+    color: COLORS.textSecondary,
     fontWeight: "500",
+    textAlign: "center",
   },
   navButtons: {
     flexDirection: "row",

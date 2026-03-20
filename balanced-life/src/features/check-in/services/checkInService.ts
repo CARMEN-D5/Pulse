@@ -1,25 +1,34 @@
+/**
+ * Daily Check-In Service
+ *
+ * Flow:
+ * 1. User answers 5 questions (1 per domain, 1-5 scale)
+ * 2. Each answer maps to 0-100 signal via ((value-1)/4)*100
+ * 3. Signal updates domain score via daily EMA: new = α×signal + (1-α)×previous
+ * 4. Movement capped at ±3 points per domain per day
+ * 5. Balance Score recalculated via geometric mean
+ * 6. Streak updated
+ * 7. Results saved to Firestore
+ */
+
 import {
   doc,
   setDoc,
   getDoc,
-  getDocs,
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { DomainId, DOMAIN_IDS } from "../../../config/domains";
 import { DomainScores } from "../../scoring/types/scoring.types";
 import { calculateBalanceScore } from "../../scoring/engine/balanceScore";
-import { MAX_WEEKLY_TOTAL, ROLLING_DAYS } from "../constants/checkInOptions";
+import { dailyEmaStep, buildDailySignal } from "../../scoring/engine/emaCalculator";
+import { checkInValueToScore, CheckInValue } from "../constants/checkInOptions";
 
-export type CheckInAnswers = Record<DomainId, number>;
+export type CheckInAnswers = Record<DomainId, CheckInValue>;
 
 export interface CheckInResult {
   domainScores: DomainScores;
+  previousDomainScores: DomainScores;
   balanceScore: number;
   previousBalanceScore: number;
   streakCount: number;
@@ -45,76 +54,47 @@ export async function hasCheckedInToday(userId: string): Promise<boolean> {
   return snap.exists();
 }
 
-/** Save check-in and recalculate scores */
+/** Save check-in and recalculate scores using daily EMA */
 export async function saveCheckIn(
   userId: string,
   answers: CheckInAnswers
 ): Promise<CheckInResult> {
   const today = todayId();
 
-  // 1. Save today's check-in
+  // 1. Save today's raw check-in answers
   await setDoc(doc(db, "users", userId, "checkIns", today), {
     answers,
     date: today,
     createdAt: Timestamp.now(),
   });
 
-  // 2. Fetch last 7 days of check-ins (including today)
-  const weekTotals: Record<DomainId, number> = {} as Record<DomainId, number>;
-  let daysCheckedIn = 0;
-
-  for (const id of DOMAIN_IDS) {
-    weekTotals[id] = 0;
-  }
-
-  for (let i = 0; i < ROLLING_DAYS; i++) {
-    const dateId = daysAgoId(i);
-    const snap = await getDoc(doc(db, "users", userId, "checkIns", dateId));
-    if (snap.exists()) {
-      const data = snap.data();
-      daysCheckedIn++;
-      for (const id of DOMAIN_IDS) {
-        weekTotals[id] += data.answers[id] ?? 0;
-      }
-    }
-  }
-
-  // 3. Calculate domain scores using rolling 7-day average
-  // Formula: (weekly total / 14) × 10, scaled to 0-100
-  const domainScores = {} as DomainScores;
-  for (const id of DOMAIN_IDS) {
-    const rawScore = (weekTotals[id] / MAX_WEEKLY_TOTAL) * 10;
-    domainScores[id] = Math.round(rawScore * 10); // 0-10 → 0-100
-  }
-
-  // 4. Get previous scores for comparison and blend with assessment
+  // 2. Get previous scores from user profile
   const userDoc = await getDoc(doc(db, "users", userId));
   const userData = userDoc.data();
+  const previousDomainScores = (userData?.latestDomainScores ?? {}) as DomainScores;
   const previousBalanceScore = userData?.latestBalanceScore ?? 0;
-  const assessmentScores = userData?.latestDomainScores as DomainScores | undefined;
 
-  // 5. Blend: if fewer than 7 days of check-ins, weight assessment scores
-  if (assessmentScores && daysCheckedIn < ROLLING_DAYS) {
-    const checkInWeight = daysCheckedIn / ROLLING_DAYS;
-    const assessmentWeight = 1 - checkInWeight;
-    for (const id of DOMAIN_IDS) {
-      domainScores[id] = Math.round(
-        domainScores[id] * checkInWeight + assessmentScores[id] * assessmentWeight
-      );
-    }
+  // 3. Convert check-in answers to 0-100 signals and apply daily EMA
+  const newDomainScores = {} as DomainScores;
+  for (const id of DOMAIN_IDS) {
+    const checkInSignal = checkInValueToScore(answers[id]);
+    const todaySignal = buildDailySignal(checkInSignal);
+    const previousScore = previousDomainScores[id] ?? 50; // default 50 if no history
+
+    newDomainScores[id] = dailyEmaStep(todaySignal, previousScore);
   }
 
-  // 6. Calculate balance score
-  const result = calculateBalanceScore(domainScores);
+  // 4. Calculate new Balance Score using geometric mean
+  const result = calculateBalanceScore(newDomainScores);
 
-  // 7. Update streak
+  // 5. Update streak
   const yesterdaySnap = await getDoc(
     doc(db, "users", userId, "checkIns", daysAgoId(1))
   );
   const previousStreak = userData?.streakData?.currentStreak ?? 0;
   const streakCount = yesterdaySnap.exists() ? previousStreak + 1 : 1;
 
-  // 8. Save updated scores to user profile
+  // 6. Save updated scores to user profile
   await setDoc(
     doc(db, "users", userId),
     {
@@ -129,8 +109,18 @@ export async function saveCheckIn(
     { merge: true }
   );
 
+  // 7. Save daily snapshot for trend charts
+  await setDoc(doc(db, "users", userId, "dailySnapshots", today), {
+    date: today,
+    domainScores: result.domainScores,
+    balanceScore: result.balanceScore,
+    streakCount,
+    createdAt: Timestamp.now(),
+  });
+
   return {
     domainScores: result.domainScores,
+    previousDomainScores,
     balanceScore: result.balanceScore,
     previousBalanceScore,
     streakCount,

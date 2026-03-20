@@ -1,15 +1,13 @@
 import { DomainId } from "../../../config/domains";
 
-/** Scores for all 5 domains */
+/** Scores for all 5 domains (each 0-100) */
 export type DomainScores = Record<DomainId, number>;
 
 /** The complete balance score result */
 export interface BalanceScoreResult {
   domainScores: DomainScores;
-  wellnessLevel: number;
-  standardDeviation: number;
-  balanceFactor: number;
   balanceScore: number;
+  imbalanceSD: number;
 }
 
 /** A daily score snapshot (stored in Firestore) */
@@ -17,14 +15,14 @@ export interface DailyScoreSnapshot {
   date: string; // YYYY-MM-DD
   domainScores: DomainScores;
   balanceScore: number;
-  wellnessLevel: number;
-  balanceFactor: number;
   streakCount: number;
 }
 
-/** Raw weekly input for a single domain */
-export interface WeeklyDomainInput {
-  checkInAverage: number; // 0-100: average of daily check-in ratings scaled
-  actionCompletionRate: number; // 0-100: (completed / assigned) * 100
-  consistencyRate: number; // 0-100: (days engaged / 7) * 100
+/** Engagement score breakdown */
+export interface EngagementScore {
+  overall: number; // 0-100
+  checkInCompletion: number; // 0-100: days checked in / 7
+  actionCompletion: number; // 0-100: actions completed / assigned
+  streakStrength: number; // 0-100: based on current streak length
+  featureParticipation: number; // 0-100: features used
 }

@@ -1,39 +1,47 @@
+/**
+ * Assessment Service
+ *
+ * Converts the 25-question onboarding quiz into initial domain scores.
+ * Each answer (1-5) maps to 0-100: item_score = ((response - 1) / 4) * 100
+ * Domain baseline = average of its 5 item scores.
+ * Balance Score = geometric mean of the 5 domain baselines.
+ */
+
 import { doc, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { DomainId, DOMAIN_IDS } from "../../../config/domains";
-import { ASSESSMENT_QUESTIONS, ANSWER_OPTIONS } from "../constants/questions";
+import { ASSESSMENT_QUESTIONS } from "../constants/questions";
 import { DomainScores, BalanceScoreResult } from "../../scoring/types/scoring.types";
 import { calculateBalanceScore } from "../../scoring/engine/balanceScore";
 
-/** Convert raw answers (1-5 values) to 0-10 scores */
-function answersToScores(answers: Record<number, number>): number[] {
-  return ASSESSMENT_QUESTIONS.map((q) => {
-    const rawValue = answers[q.id];
-    const option = ANSWER_OPTIONS.find((o) => o.value === rawValue);
-    if (!option) return 0;
-    return option.score;
-  });
+/** Convert a raw answer (1-5) to a 0-100 score */
+function answerToScore(value: number): number {
+  return ((value - 1) / 4) * 100;
 }
 
 /** Calculate domain scores from raw answers */
 export function calculateAssessmentScores(answers: Record<number, number>): BalanceScoreResult {
-  const scores = answersToScores(answers);
-
-  // Group by domain and average
+  // Group scores by domain
   const domainTotals: Record<DomainId, number[]> = {} as Record<DomainId, number[]>;
   for (const id of DOMAIN_IDS) {
     domainTotals[id] = [];
   }
 
-  scores.forEach((score, index) => {
-    const domain = ASSESSMENT_QUESTIONS[index].domain;
-    domainTotals[domain].push(score);
+  ASSESSMENT_QUESTIONS.forEach((q) => {
+    const rawValue = answers[q.id];
+    if (rawValue != null) {
+      domainTotals[q.domain].push(answerToScore(rawValue));
+    }
   });
 
+  // Domain baseline = average of its 5 item scores
   const domainScores = {} as DomainScores;
   for (const id of DOMAIN_IDS) {
-    const avg = domainTotals[id].reduce((sum, s) => sum + s, 0) / domainTotals[id].length;
-    domainScores[id] = Math.round(avg * 10); // 0-10 avg → 0-100
+    const scores = domainTotals[id];
+    const avg = scores.length > 0
+      ? scores.reduce((sum, s) => sum + s, 0) / scores.length
+      : 0;
+    domainScores[id] = Math.round(avg);
   }
 
   return calculateBalanceScore(domainScores);
@@ -50,13 +58,11 @@ export async function saveAssessmentResults(
     answers,
     domainScores: result.domainScores,
     balanceScore: result.balanceScore,
-    wellnessLevel: result.wellnessLevel,
-    balanceFactor: result.balanceFactor,
-    standardDeviation: result.standardDeviation,
+    imbalanceSD: result.imbalanceSD,
     completedAt: Timestamp.now(),
   });
 
-  // Update user profile
+  // Update user profile with initial scores
   await setDoc(
     doc(db, "users", userId),
     {

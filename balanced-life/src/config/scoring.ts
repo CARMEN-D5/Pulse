@@ -1,32 +1,38 @@
 /**
  * Scoring system configuration constants.
- * See Scoring_System.docx for full derivation and documentation.
+ *
+ * Two-layer scoring architecture:
+ * - Daily layer: EMA-based immediate updates from check-ins + actions
+ * - Weekly layer: summaries, engagement analytics, mission generation
+ *
+ * Balance Score uses geometric mean to naturally penalise neglected domains.
  */
 
-/** Exponential Moving Average alpha — controls how much weight current week gets */
-export const EMA_ALPHA = 0.3;
+/** Daily EMA alpha — controls how much today's signal moves the score.
+ *  0.12 means 12% weight on today, 88% on history.
+ *  Gives meaningful daily movement without wild swings. */
+export const DAILY_ALPHA = 0.12;
 
-/** Domain score input weights — must sum to 1.0 */
-export const SCORE_WEIGHTS = {
-  checkIn: 0.3,
-  actionCompletion: 0.4,
-  consistency: 0.3,
+/** Blend weights for daily domain signal.
+ *  Check-in is the primary input; actions reinforce it. */
+export const DAILY_SIGNAL_WEIGHTS = {
+  checkIn: 0.7,
+  actions: 0.3,
 } as const;
 
-/** Balance Factor penalty multiplier (0.5 = max 50% penalty for extreme imbalance) */
-export const BALANCE_PENALTY_MULTIPLIER = 0.5;
+/** Maximum daily score movement per domain (anti-gaming protection) */
+export const MAX_DAILY_MOVEMENT = 3;
 
-/** Balance Factor normalisation divisor (SD divided by this) */
-export const BALANCE_SD_DIVISOR = 100;
+/** Floor value before geometric mean to prevent zero-collapse */
+export const GEO_MEAN_FLOOR = 1;
 
-/** Minimum Balance Factor (floor — prevents total score wipeout) */
-export const BALANCE_FACTOR_MIN = 0.5;
-
-/** Maximum Balance Factor (ceiling — perfect balance) */
-export const BALANCE_FACTOR_MAX = 1.0;
-
-/** Rolling window size for check-in average (days) */
-export const ROLLING_WINDOW_DAYS = 7;
+/** Engagement score weights */
+export const ENGAGEMENT_WEIGHTS = {
+  checkInCompletion: 0.4,
+  actionCompletion: 0.3,
+  streakStrength: 0.2,
+  featureParticipation: 0.1,
+} as const;
 
 /** Score tiers for display labels and colours */
 export const SCORE_TIERS = [

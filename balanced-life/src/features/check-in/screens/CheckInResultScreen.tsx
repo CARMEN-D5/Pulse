@@ -52,17 +52,25 @@ export function CheckInResultScreen() {
 
         <Text style={[styles.tierMessage, { color: tier.color }]}>{tier.message}</Text>
 
-        {/* Domain breakdown */}
+        {/* Domain breakdown with per-domain changes */}
         <Card style={styles.breakdownCard}>
+          <Text style={styles.breakdownTitle}>Domain Scores</Text>
           {DOMAIN_IDS.map((id) => {
             const domain = DOMAINS[id];
             const score = result.domainScores[id];
+            const prevScore = result.previousDomainScores[id] ?? score;
+            const domainDiff = Math.round((score - prevScore) * 10) / 10;
             const domainTier = getScoreTier(score);
 
             return (
               <View key={id} style={styles.domainRow}>
                 <View style={[styles.domainDot, { backgroundColor: domain.color }]} />
                 <Text style={styles.domainName}>{domain.label}</Text>
+                {domainDiff !== 0 && (
+                  <Text style={[styles.domainChange, { color: domainDiff > 0 ? COLORS.success : COLORS.error }]}>
+                    {domainDiff > 0 ? "+" : ""}{domainDiff}
+                  </Text>
+                )}
                 <Text style={[styles.domainScore, { color: domainTier.color }]}>{score}</Text>
               </View>
             );
@@ -140,6 +148,12 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     marginBottom: SPACING.xl,
   },
+  breakdownTitle: {
+    fontSize: FONT_SIZES.subtitle,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.xs,
+  },
   domainRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -156,9 +170,15 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontWeight: "500",
   },
+  domainChange: {
+    fontSize: FONT_SIZES.caption,
+    fontWeight: "600",
+  },
   domainScore: {
     fontSize: FONT_SIZES.bodyLarge,
     fontWeight: "700",
+    minWidth: 30,
+    textAlign: "right",
   },
   button: {
     width: "100%",

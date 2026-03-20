@@ -1,58 +1,71 @@
 /**
- * Exponential Moving Average (EMA) Calculator
+ * Daily EMA (Exponential Moving Average) Calculator
  *
- * Smoothly evolves domain scores over time.
- * New Score = (α × This Week's Score) + ((1 - α) × Previous Score)
+ * Updates a domain score using today's signal and the previous score.
  *
- * With α = 0.3:
- * - 30% weight on this week's data
- * - 70% weight on accumulated history
- * - Initial quiz fades to <6% influence after 8 weeks
+ * Formula: new_score = α × today_signal + (1 - α) × previous_score
  *
- * See Scoring_System.docx Section 7 for real-world examples.
+ * With α = 0.12:
+ *   - 12% weight on today's input
+ *   - 88% weight on accumulated history
+ *   - Score changes are immediate but gentle
+ *
+ * Anti-gaming: daily movement is capped at ±MAX_DAILY_MOVEMENT points per domain.
  */
 
-import { EMA_ALPHA } from "../../../config/scoring";
+import { DAILY_ALPHA, MAX_DAILY_MOVEMENT } from "../../../config/scoring";
 import { DomainScores } from "../types/scoring.types";
 import { DOMAIN_IDS, DomainId } from "../../../config/domains";
 
 /**
- * Calculate the new EMA value from a current input and previous score.
+ * Calculate the daily EMA step for a single domain.
  *
- * @param currentWeekScore - This week's raw domain score (0-100)
- * @param previousScore - The previous EMA score (0-100)
- * @param alpha - Smoothing factor (default 0.3)
- * @returns Updated EMA score (0-100)
+ * @param todaySignal - Today's domain signal (0-100)
+ * @param previousScore - The previous domain score (0-100)
+ * @param alpha - Smoothing factor (default DAILY_ALPHA = 0.12)
+ * @returns Updated score, clamped to [0, 100] and capped at ±MAX_DAILY_MOVEMENT
  *
  * @example
- * emaStep(75, 25, 0.3) // 40 — first week after quiz score of 25
- * emaStep(75, 40, 0.3) // 50.5 — second week
+ * dailyEmaStep(75, 62, 0.12)
+ * // raw = 0.12 × 75 + 0.88 × 62 = 63.56
+ * // movement = 1.56 (within ±3 cap)
+ * // result = 63.6
  */
-export function emaStep(
-  currentWeekScore: number,
+export function dailyEmaStep(
+  todaySignal: number,
   previousScore: number,
-  alpha: number = EMA_ALPHA
+  alpha: number = DAILY_ALPHA
 ): number {
-  const result = alpha * currentWeekScore + (1 - alpha) * previousScore;
-  return Math.round(result * 10) / 10; // 1 decimal place
+  const rawNew = alpha * todaySignal + (1 - alpha) * previousScore;
+
+  // Cap daily movement
+  const movement = rawNew - previousScore;
+  const cappedMovement = Math.max(
+    -MAX_DAILY_MOVEMENT,
+    Math.min(MAX_DAILY_MOVEMENT, movement)
+  );
+  const cappedScore = previousScore + cappedMovement;
+
+  // Clamp to [0, 100] and round to 1 decimal
+  return Math.round(Math.max(0, Math.min(100, cappedScore)) * 10) / 10;
 }
 
 /**
- * Update all 5 domain scores using EMA.
+ * Update all 5 domain scores using daily EMA.
  *
- * @param weeklyScores - This week's raw scores per domain (0-100)
- * @param previousScores - Previous EMA scores per domain (0-100)
+ * @param todaySignals - Today's signals per domain (0-100)
+ * @param previousScores - Previous domain scores (0-100)
  * @returns Updated domain scores
  */
-export function updateDomainScoresEMA(
-  weeklyScores: DomainScores,
+export function updateDomainScoresDaily(
+  todaySignals: DomainScores,
   previousScores: DomainScores
 ): DomainScores {
   const updated = {} as DomainScores;
 
   for (const domainId of DOMAIN_IDS) {
-    updated[domainId] = emaStep(
-      weeklyScores[domainId],
+    updated[domainId] = dailyEmaStep(
+      todaySignals[domainId],
       previousScores[domainId]
     );
   }
@@ -61,12 +74,18 @@ export function updateDomainScoresEMA(
 }
 
 /**
- * Calculate the effective weight of the initial quiz after N weeks.
- * Weight = (1 - alpha)^N
+ * Build today's domain signal by blending check-in and action signals.
+ * For MVP: actions default to 0 (not yet implemented), so check-in is the full signal.
  *
- * @param weeksElapsed - Number of weeks since the quiz
- * @returns Weight as a decimal (e.g. 0.34 after 3 weeks with α=0.3)
+ * @param checkInSignal - Check-in answer mapped to 0-100
+ * @param actionSignal - Action completion signal 0-100 (optional, defaults to check-in)
+ * @returns Blended signal 0-100
  */
-export function quizWeightAfterWeeks(weeksElapsed: number): number {
-  return Math.pow(1 - EMA_ALPHA, weeksElapsed);
+export function buildDailySignal(
+  checkInSignal: number,
+  actionSignal?: number
+): number {
+  // If no action data, just use check-in as the full signal
+  if (actionSignal == null) return checkInSignal;
+  return 0.7 * checkInSignal + 0.3 * actionSignal;
 }

@@ -1,37 +1,29 @@
 /**
- * Domain Score Calculator
+ * Domain Score Calculator (Weekly Layer)
  *
- * Calculates a single domain's weekly score from 3 input layers:
- * - Check-in responses (30%)
- * - Action completion rate (40%)
- * - Consistency / engagement rate (30%)
+ * Used in the weekly review process to summarise domain performance.
+ * Weekly domain signal = 0.5 × check-in average + 0.5 × action completion
  *
- * See Scoring_System.docx Section 3 for details.
+ * This is NOT used for daily score updates (those use EMA).
+ * It supports weekly insights, mission generation, and trend validation.
  */
 
-import { SCORE_WEIGHTS } from "../../../config/scoring";
-import { WeeklyDomainInput } from "../types/scoring.types";
+export interface WeeklyDomainSummary {
+  checkInAverage: number; // 0-100: average of daily check-in scores this week
+  actionCompletionScore: number; // 0-100: feature/action completion rate
+}
 
 /**
- * Calculate a single domain's weekly raw score (0-100).
+ * Calculate a domain's weekly summary signal.
  *
- * @param input - The three input layers for this domain
- * @returns Score between 0 and 100
+ * @param summary - Weekly check-in average and action completion
+ * @returns Weekly domain signal between 0 and 100
  *
  * @example
- * calculateDomainScore({
- *   checkInAverage: 80,      // user felt good (avg of daily ratings)
- *   actionCompletionRate: 66, // completed 2 of 3 actions
- *   consistencyRate: 71,      // engaged 5 of 7 days
- * })
- * // (80 * 0.3) + (66 * 0.4) + (71 * 0.3) = 24 + 26.4 + 21.3 = 71.7
+ * calculateWeeklyDomainSignal({ checkInAverage: 70, actionCompletionScore: 65 })
+ * // (0.5 × 70) + (0.5 × 65) = 67.5
  */
-export function calculateDomainScore(input: WeeklyDomainInput): number {
-  const score =
-    input.checkInAverage * SCORE_WEIGHTS.checkIn +
-    input.actionCompletionRate * SCORE_WEIGHTS.actionCompletion +
-    input.consistencyRate * SCORE_WEIGHTS.consistency;
-
-  // Clamp to 0-100 and round to 1 decimal
+export function calculateWeeklyDomainSignal(summary: WeeklyDomainSummary): number {
+  const score = 0.5 * summary.checkInAverage + 0.5 * summary.actionCompletionScore;
   return Math.round(Math.max(0, Math.min(100, score)) * 10) / 10;
 }
