@@ -1,19 +1,32 @@
 /**
- * ProfileScreen — User settings, preferences, and account management.
- * Placeholder for Phase 5 implementation.
+ * ProfileScreen — User profile, badge collection, settings, and account management.
  */
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "firebase/auth";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { auth } from "../../config/firebase";
 import { useAuthStore } from "../../features/auth/stores/authStore";
 import { COLORS, SPACING, FONT_SIZES } from "../../config/theme";
 import { Card, Button } from "../../shared/components";
+import { BadgeGrid } from "../../features/badges/components/BadgeGrid";
+import { fetchUnlockedBadges } from "../../features/badges/services/badgeService";
+import { UnlockedBadge } from "../../features/badges/types/badge.types";
 
 export function ProfileScreen() {
   const { user } = useAuthStore();
+  const [unlockedBadges, setUnlockedBadges] = useState<UnlockedBadge[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      fetchUnlockedBadges(user.uid)
+        .then(setUnlockedBadges)
+        .catch((e) => console.warn("Failed to load badges:", e));
+    }, [user])
+  );
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -42,7 +55,11 @@ export function ProfileScreen() {
           <Text style={styles.email}>{user?.email}</Text>
         </Card>
 
-        {/* Settings Sections — placeholder */}
+        {/* Badge Collection */}
+        <Text style={styles.sectionTitle}>Achievements</Text>
+        <BadgeGrid unlockedBadges={unlockedBadges} />
+
+        {/* Settings */}
         <Text style={styles.sectionTitle}>Settings</Text>
         <Card style={styles.settingsCard}>
           <SettingsRow label="Notifications" value="On" />

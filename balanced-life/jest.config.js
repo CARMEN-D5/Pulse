@@ -6,6 +6,7 @@ module.exports = {
       displayName: "unit",
       testMatch: [
         "<rootDir>/src/features/scoring/__tests__/**/*.test.ts",
+        "<rootDir>/src/features/badges/__tests__/**/*.test.ts",
         "<rootDir>/src/shared/**/__tests__/**/*.test.ts",
       ],
       transform: {

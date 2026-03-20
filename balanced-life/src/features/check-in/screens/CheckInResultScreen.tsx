@@ -12,6 +12,7 @@ import { COLORS, SPACING, FONT_SIZES } from "../../../config/theme";
 import { DOMAINS, DOMAIN_IDS } from "../../../config/domains";
 import { getScoreTier } from "../../../config/scoring";
 import { CheckInResult } from "../services/checkInService";
+import { BadgeUnlockBanner } from "../../badges/components/BadgeUnlockBanner";
 
 type CheckInResultParams = {
   CheckInResult: { result: CheckInResult };
@@ -37,6 +38,11 @@ export function CheckInResultScreen() {
         </View>
 
         <Text style={styles.title}>Check-In Complete!</Text>
+
+        {/* Newly unlocked badges */}
+        {result.newBadges && result.newBadges.length > 0 && (
+          <BadgeUnlockBanner badges={result.newBadges} />
+        )}
 
         {/* Score */}
         <ScoreCircle score={result.balanceScore} size={140} style={styles.scoreCircle} />

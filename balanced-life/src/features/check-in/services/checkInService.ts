@@ -23,6 +23,8 @@ import { DomainScores } from "../../scoring/types/scoring.types";
 import { calculateBalanceScore } from "../../scoring/engine/balanceScore";
 import { dailyEmaStep, buildDailySignal } from "../../scoring/engine/emaCalculator";
 import { checkInValueToScore, CheckInValue } from "../constants/checkInOptions";
+import { checkAndUnlockBadges } from "../../badges/services/badgeService";
+import { BadgeDefinition } from "../../badges/types/badge.types";
 
 export type CheckInAnswers = Record<DomainId, CheckInValue>;
 
@@ -32,6 +34,7 @@ export interface CheckInResult {
   balanceScore: number;
   previousBalanceScore: number;
   streakCount: number;
+  newBadges: BadgeDefinition[];
 }
 
 /** Get today's date as YYYY-MM-DD */
@@ -118,11 +121,20 @@ export async function saveCheckIn(
     createdAt: Timestamp.now(),
   });
 
+  // 8. Check for newly unlocked badges
+  let newBadges: BadgeDefinition[] = [];
+  try {
+    newBadges = await checkAndUnlockBadges(userId);
+  } catch (e) {
+    console.warn("Badge check failed:", e);
+  }
+
   return {
     domainScores: result.domainScores,
     previousDomainScores,
     balanceScore: result.balanceScore,
     previousBalanceScore,
     streakCount,
+    newBadges,
   };
 }
