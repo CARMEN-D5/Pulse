@@ -1,24 +1,142 @@
 /**
- * ProgressScreen — Shows score trends over time with charts.
- * Placeholder for Phase 4 implementation.
+ * ProgressScreen — Score trend charts over 7/30/90 days.
+ * Shows Balance Score line chart, domain-specific charts, and period stats.
  */
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { COLORS, SPACING, FONT_SIZES } from "../../config/theme";
+import { DOMAINS, DomainId, DOMAIN_IDS } from "../../config/domains";
 import { EmptyState } from "../../shared/components";
+import { useAuthStore } from "../../features/auth/stores/authStore";
+import { TimeRangeToggle } from "../../features/progress/components/TimeRangeToggle";
+import { DomainChips } from "../../features/progress/components/DomainChips";
+import { TrendLineChart } from "../../features/progress/components/TrendLineChart";
+import { StatsSummary } from "../../features/progress/components/StatsSummary";
+import {
+  TimeRange,
+  DailySnapshot,
+  fetchSnapshots,
+  toBalanceScoreData,
+  toDomainData,
+} from "../../features/progress/services/progressService";
 
 export function ProgressScreen() {
+  const { user } = useAuthStore();
+  const [range, setRange] = useState<TimeRange>("7d");
+  const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
+  const [snapshots, setSnapshots] = useState<DailySnapshot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const data = await fetchSnapshots(user.uid, range);
+      setSnapshots(data);
+    } catch (error) {
+      console.error("Failed to fetch progress data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, range]);
+
+  // Reload when screen is focused or range changes
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const hasData = snapshots.length > 0;
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
         <Text style={styles.title}>Progress</Text>
-      </View>
-      <EmptyState
-        title="No Progress Data Yet"
-        message="Complete your daily check-ins to start tracking your progress over time. Charts and insights will appear here."
-      />
+        <Text style={styles.subtitle}>Track your balance over time</Text>
+
+        {/* Time range toggle */}
+        <TimeRangeToggle selected={range} onSelect={setRange} />
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : !hasData ? (
+          <EmptyState
+            title="No Progress Data Yet"
+            message="Complete your daily check-ins to start tracking your progress over time. Charts and insights will appear here."
+          />
+        ) : (
+          <>
+            {/* Stats summary */}
+            <StatsSummary snapshots={snapshots} />
+
+            {/* Domain filter chips */}
+            <DomainChips selected={selectedDomain} onSelect={setSelectedDomain} />
+
+            {/* Charts */}
+            {selectedDomain === null ? (
+              /* Balance Score chart */
+              <TrendLineChart
+                title="Balance Score"
+                data={toBalanceScoreData(snapshots, range)}
+                color={COLORS.primary}
+                showArea
+              />
+            ) : (
+              /* Single domain chart */
+              <TrendLineChart
+                title={DOMAINS[selectedDomain].label}
+                data={toDomainData(snapshots, selectedDomain, range)}
+                color={DOMAINS[selectedDomain].color}
+                showArea
+              />
+            )}
+
+            {/* All domains overview (when Balance Score is selected) */}
+            {selectedDomain === null && (
+              <View style={styles.domainOverview}>
+                <Text style={styles.sectionTitle}>Domain Trends</Text>
+                {DOMAIN_IDS.map((id) => {
+                  const domain = DOMAINS[id];
+                  const data = toDomainData(snapshots, id, range);
+                  const latest = data.length > 0 ? data[data.length - 1].value : 0;
+                  const first = data.length > 0 ? data[0].value : 0;
+                  const change = latest - first;
+
+                  return (
+                    <View key={id} style={styles.domainMiniRow}>
+                      <View style={[styles.domainDot, { backgroundColor: domain.color }]} />
+                      <Text style={styles.domainName}>{domain.label}</Text>
+                      <Text style={[styles.domainScore, { color: domain.color }]}>
+                        {latest}
+                      </Text>
+                      {change !== 0 && (
+                        <Text
+                          style={[
+                            styles.domainChange,
+                            { color: change > 0 ? COLORS.success : COLORS.error },
+                          ]}
+                        >
+                          {change > 0 ? "+" : ""}{Math.round(change * 10) / 10}
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -28,13 +146,64 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
-  header: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
+  scrollContent: {
+    padding: SPACING.md,
+    paddingBottom: SPACING.xxl,
   },
   title: {
     fontSize: FONT_SIZES.heading,
     fontWeight: "700",
     color: COLORS.textPrimary,
+  },
+  subtitle: {
+    fontSize: FONT_SIZES.body,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.md,
+  },
+  loadingContainer: {
+    paddingVertical: SPACING.xxl * 2,
+    alignItems: "center",
+  },
+  sectionTitle: {
+    fontSize: FONT_SIZES.subtitle,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
+  domainOverview: {
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.lg,
+    gap: SPACING.md,
+  },
+  domainMiniRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  domainDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  domainName: {
+    flex: 1,
+    fontSize: FONT_SIZES.body,
+    fontWeight: "500",
+    color: COLORS.textPrimary,
+  },
+  domainScore: {
+    fontSize: FONT_SIZES.bodyLarge,
+    fontWeight: "700",
+    minWidth: 30,
+    textAlign: "right",
+  },
+  domainChange: {
+    fontSize: FONT_SIZES.caption,
+    fontWeight: "600",
+    minWidth: 35,
+    textAlign: "right",
   },
 });
