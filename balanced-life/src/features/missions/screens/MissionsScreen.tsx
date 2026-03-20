@@ -14,10 +14,8 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 
-import { RootStackParamList } from "../../../shared/types/navigation.types";
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from "../../../config/theme";
 import { DOMAINS } from "../../../config/domains";
 import { useAuthStore } from "../../auth/stores/authStore";
@@ -28,10 +26,7 @@ import {
   updateMissionStatus,
 } from "../services/missionService";
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-
 export function MissionsScreen() {
-  const navigation = useNavigation<Nav>();
   const { user } = useAuthStore();
   const [missionSet, setMissionSet] = useState<WeeklyMissionSet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,11 +89,7 @@ export function MissionsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.backButton} onPress={() => navigation.goBack()}>
-          ← Back
-        </Text>
         <Text style={styles.headerTitle}>Weekly Missions</Text>
-        <View style={{ width: 50 }} />
       </View>
 
       <ScrollView
@@ -187,21 +178,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
   },
-  backButton: {
-    fontSize: FONT_SIZES.body,
-    color: COLORS.primary,
-    fontWeight: "600",
-    width: 50,
-  },
   headerTitle: {
-    fontSize: FONT_SIZES.subtitle,
-    fontWeight: "600",
+    fontSize: FONT_SIZES.heading,
+    fontWeight: "700",
     color: COLORS.textPrimary,
   },
   scrollContent: {

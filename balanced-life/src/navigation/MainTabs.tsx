@@ -1,6 +1,6 @@
 /**
  * MainTabs — Bottom tab navigator for the main authenticated app.
- * Tabs: Dashboard, Progress, Wheel, Profile
+ * Tabs: Home, Progress, Missions, Profile
  */
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -9,7 +9,7 @@ import { COLORS } from "../config/theme";
 
 import { DashboardScreen } from "../screens/main/DashboardScreen";
 import { ProgressScreen } from "../screens/main/ProgressScreen";
-import { WheelScreen } from "../screens/main/WheelScreen";
+import { MissionsScreen } from "../features/missions/screens/MissionsScreen";
 import { ProfileScreen } from "../screens/main/ProfileScreen";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -38,7 +38,6 @@ export function MainTabs() {
         component={DashboardScreen}
         options={{
           tabBarLabel: "Home",
-          // TODO: Add icon — tabBarIcon: ({ color, size }) => <Icon name="home" ... />
         }}
       />
       <Tab.Screen
@@ -49,10 +48,10 @@ export function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Wheel"
-        component={WheelScreen}
+        name="Missions"
+        component={MissionsScreen}
         options={{
-          tabBarLabel: "Balance",
+          tabBarLabel: "Missions",
         }}
       />
       <Tab.Screen
