@@ -5,7 +5,7 @@ import { OnboardingScreen } from "@/features/onboarding/screens/onboarding-scree
 export default function OnboardingRoute() {
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <OnboardingScreen />
     </>
   );

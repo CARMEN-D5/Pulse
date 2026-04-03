@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
-import { theme } from "@/theme/tokens";
+import { createShadow, theme } from "@/theme/tokens";
 
 export default function AppTabsLayout() {
   return (
@@ -12,13 +12,19 @@ export default function AppTabsLayout() {
         tabBarActiveBackgroundColor: "rgba(156, 235, 232, 0.36)",
         tabBarInactiveTintColor: theme.colors.textSoft,
         tabBarStyle: {
+          ...createShadow("md"),
           backgroundColor: "rgba(255, 255, 255, 0.76)",
-          borderTopColor: "rgba(255,255,255,0.68)",
-          borderTopWidth: 1,
-          height: 84,
-          paddingBottom: 20,
+          borderTopColor: "transparent",
+          borderTopWidth: 0,
+          borderRadius: theme.radii.xl,
+          bottom: 12,
+          height: 86,
+          left: 16,
           paddingHorizontal: 12,
-          paddingTop: 10
+          paddingTop: 10,
+          paddingBottom: 20,
+          position: "absolute",
+          right: 16
         },
         tabBarItemStyle: {
           borderRadius: 24,

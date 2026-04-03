@@ -1,21 +1,22 @@
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
-import { DOMAIN_KEYS, DOMAIN_LABELS, type DomainKey } from "@velora/shared";
+import { DOMAIN_KEYS, type DomainKey } from "@velora/shared";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DomainBadge } from "@/components/ui/domain-badge";
 import { RatingPicker } from "@/components/ui/rating-picker";
 import { Screen } from "@/components/ui/screen";
+import { SectionHeader } from "@/components/ui/section-header";
 import { StatusCard } from "@/components/ui/status-card";
 import { TextField } from "@/components/ui/text-field";
 import { completeOnboarding } from "@/features/onboarding/services/onboarding-service";
 import { getDeviceTimeZone } from "@/lib/date-time";
 import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useProfile } from "@/providers/profile-provider";
-import { domainTheme, theme } from "@/theme/tokens";
+import { theme } from "@/theme/tokens";
 
 type RatingsState = Partial<Record<DomainKey, number>>;
 
@@ -67,14 +68,11 @@ export function OnboardingScreen() {
 
   return (
     <Screen scrollable>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Personalized growth</Text>
-        <Text style={styles.title}>Build your first VELORA baseline.</Text>
-        <Text style={styles.copy}>
-          These ratings give you a starting point for the first two weeks while the app collects real
-          check-ins and actions.
-        </Text>
-      </View>
+      <SectionHeader
+        eyebrow="Personalized Growth"
+        subtitle="These starting ratings guide your first two weeks while VELORA gathers real check-ins and actions."
+        title="Build your first baseline."
+      />
 
       <Card variant="highlight">
         <TextField
@@ -97,24 +95,10 @@ export function OnboardingScreen() {
       {DOMAIN_KEYS.map((domainKey) => (
         <Card key={domainKey}>
           <View style={styles.domainHeader}>
-            <View
-              style={[
-                styles.domainIcon,
-                { backgroundColor: domainTheme[domainKey].soft }
-              ]}
-            >
-              <MaterialCommunityIcons
-                color={domainTheme[domainKey].accent}
-                name={domainTheme[domainKey].icon as never}
-                size={18}
-              />
-            </View>
-            <View style={styles.domainHeaderCopy}>
-              <Text style={styles.domainTitle}>{DOMAIN_LABELS[domainKey]}</Text>
-              <Text style={styles.domainCopy}>
-                Rate where this area feels right now on a scale from 1 to 5.
-              </Text>
-            </View>
+            <DomainBadge domainKey={domainKey} />
+            <Text style={styles.domainCopy}>
+              Rate where this area feels right now on a scale from 1 to 5.
+            </Text>
           </View>
           <RatingPicker
             onChange={(ratingValue) =>
@@ -139,54 +123,8 @@ export function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: 12,
-    marginBottom: 4
-  },
-  eyebrow: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(156, 235, 232, 0.42)",
-    borderRadius: 999,
-    color: theme.colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    overflow: "hidden",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    textTransform: "uppercase"
-  },
-  title: {
-    color: theme.colors.text,
-    fontSize: 34,
-    fontWeight: "800",
-    lineHeight: 40
-  },
-  copy: {
-    color: theme.colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24
-  },
   domainHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12
-  },
-  domainHeaderCopy: {
-    flex: 1,
-    gap: 4
-  },
-  domainIcon: {
-    alignItems: "center",
-    borderRadius: 16,
-    height: 40,
-    justifyContent: "center",
-    width: 40
-  },
-  domainTitle: {
-    color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: "700"
+    gap: 8
   },
   domainCopy: {
     color: theme.colors.textMuted,

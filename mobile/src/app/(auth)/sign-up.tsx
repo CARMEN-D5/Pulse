@@ -5,7 +5,7 @@ import { SignUpScreen } from "@/features/auth/screens/sign-up-screen";
 export default function SignUpRoute() {
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <SignUpScreen />
     </>
   );

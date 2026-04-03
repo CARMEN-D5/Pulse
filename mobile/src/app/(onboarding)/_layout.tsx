@@ -3,6 +3,7 @@ import { Redirect, Stack } from "expo-router";
 import { LoadingState } from "@/components/ui/loading-state";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
+import { theme } from "@/theme/tokens";
 
 export default function OnboardingLayout() {
   const { isLoading: isAuthLoading, user } = useAuthSession();
@@ -25,7 +26,7 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: {
-          backgroundColor: "#0f1117"
+          backgroundColor: theme.colors.background
         }
       }}
     />
