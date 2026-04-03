@@ -67,6 +67,11 @@ export function HomeScreen() {
     snapshot?.lifeSummary && snapshot.previousLifeSummary
       ? snapshot.lifeSummary.balancedLifeScore - snapshot.previousLifeSummary.balancedLifeScore
       : null;
+  const currentStreakDays = profile?.currentStreakDays ?? 0;
+  const streakCopy =
+    currentStreakDays > 0
+      ? "Keep your daily check-ins moving to protect your current rhythm."
+      : "Your first streak starts with today’s check-in.";
 
   return (
     <Screen scrollable>
@@ -118,6 +123,23 @@ export function HomeScreen() {
           </Text>
         </Card>
       </View>
+
+      <Card style={styles.streakCard}>
+        <View style={styles.streakHeader}>
+          <View style={styles.streakTextWrap}>
+            <Text style={styles.quickTitle}>Current streak</Text>
+            <Text style={styles.streakValue}>
+              {currentStreakDays} day{currentStreakDays === 1 ? "" : "s"}
+            </Text>
+          </View>
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakBadgeText}>
+              {currentStreakDays >= 7 ? "Locked in" : "Build it"}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.streakCopy}>{streakCopy}</Text>
+      </Card>
 
       <Card>
         <Text style={styles.sectionTitle}>Balance visual</Text>
@@ -246,6 +268,43 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     lineHeight: 24
+  },
+  streakBadge: {
+    backgroundColor: "#10141d",
+    borderColor: "#2a3140",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  streakBadgeText: {
+    color: "#8ba3ff",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  streakCard: {
+    gap: 10,
+    marginBottom: 16
+  },
+  streakCopy: {
+    color: "#aeb8d2",
+    fontSize: 14,
+    lineHeight: 20
+  },
+  streakHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  streakTextWrap: {
+    flex: 1,
+    gap: 6
+  },
+  streakValue: {
+    color: "#ffffff",
+    fontSize: 26,
+    fontWeight: "800",
+    lineHeight: 32
   },
   sectionTitle: {
     color: "#ffffff",
