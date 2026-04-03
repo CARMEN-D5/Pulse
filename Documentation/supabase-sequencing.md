@@ -162,6 +162,51 @@ Current progress:
 - first same-day journal entry produced an `accepted` action event with `50` awarded points
 - second same-day journal entry produced a `capped` action event with `0` awarded points
 - direct authenticated inserts into `action_events` remained blocked by RLS as intended
+- `tasks` feature table created for the `work_productivity` module with pending/completed/cancelled status
+- task completion fields are derived from the user's `scoring_timezone` and guarded against unreasonable future timestamps
+- completed tasks are intentionally immutable for score integrity: completion cannot be removed or have its timestamp rewritten once set
+- `important_task_completed` normalization trigger now creates backend-owned `action_events` from task completion
+- local verification confirmed that a pending task can be completed and produces one `accepted` action event with `25` awarded points
+- editing the title of a completed task did not create a duplicate normalized event
+- attempting to mark a completed task back to `pending` was rejected by the completion-integrity trigger as intended
+- `focus_sessions` feature table created for `work_productivity` with `in_progress`, `completed`, and `cancelled` status
+- focus session completion derives `duration_minutes` and `local_event_date` from backend timestamps and the user's `scoring_timezone`
+- completed focus sessions are immutable for score integrity: timing cannot be rewritten once the session is completed
+- `focus_session` normalization trigger now creates backend-owned `action_events` from completed sessions
+- local verification confirmed that an in-progress session can be completed and produces one `accepted` action event with `25` awarded points
+- local verification also exercised the daily cap: four same-day focus sessions were accepted and the fifth same-day session was capped at `0`
+- attempting to edit the timing of a completed focus session was rejected by the completion-integrity trigger as intended
+- `activity_logs` feature table created for the Health domain with backend-derived `local_event_date`
+- activity-log validation currently requires a non-empty `activity_type`; minimum duration or distance remains a future enhancement
+- `exercise_log` normalization uses an upsert pattern on insert or update so a corrected log stays mapped to a single normalized action event
+- local verification confirmed that a valid activity log produced one `accepted` action event with `50` awarded points
+- local verification also exercised the Health-domain daily cap: two same-day activity logs were accepted and the third same-day log was capped at `0`
+- updating an existing activity log changed the payload in the existing normalized action event without creating a duplicate score input
+- `sleep_logs` feature table created for the Health domain with backend-derived `duration_minutes` and `local_event_date`
+- for MVP, sleep logs are assigned to the wake-up day: `local_event_date` is derived from `sleep_end_utc` in the user's `scoring_timezone`
+- `sleep_log` normalization uses an upsert pattern on insert or update so a corrected sleep record stays mapped to a single normalized action event
+- local verification confirmed that a valid sleep log produced one `accepted` action event with `50` awarded points
+- local verification also exercised the Health-domain sleep cap: one same-day sleep log was accepted and the second same-day sleep log was capped at `0`
+- updating an existing sleep log changed the payload in the existing normalized action event without creating a duplicate score input
+- `expense_logs` feature table created for the Financial Wellbeing domain with backend-derived `local_event_date`
+- expense-log validation currently requires a positive `amount`, a 3-letter uppercase `currency_code`, and a non-empty `category`
+- `expense_log` normalization uses an upsert pattern on insert or update so a corrected expense entry stays mapped to a single normalized action event
+- local verification confirmed that a valid expense log produced one `accepted` action event with `25` awarded points
+- local verification also exercised the Financial Wellbeing daily cap: five same-day expense logs were accepted and the sixth same-day log was capped at `0`
+- updating an existing expense log changed the payload in the existing normalized action event without creating a duplicate score input
+- `financial_actions` feature table created for budget review and savings actions in the Financial Wellbeing domain
+- financial-action validation currently requires a non-empty `action_kind`; `amount` is optional but must be positive if provided
+- `budget_review_or_savings_action` normalization uses an upsert pattern on insert or update so a corrected financial action stays mapped to a single normalized action event
+- local verification confirmed that a valid financial action produced one `accepted` action event with `50` awarded points
+- local verification also exercised the Financial Wellbeing daily cap: one same-day financial action was accepted and the second same-day action was capped at `0`
+- updating an existing financial action changed the payload in the existing normalized action event without creating a duplicate score input
+- `connection_logs` feature table created for the Family/Friends domain with backend-derived `local_event_date`
+- meaningful-connection validation currently requires at least one meaningful signal: `connection_type`, `contact_label`, or `note`
+- `contact_label` was added as an optional field because it matches the locked scoring rule and helps capture meaningful social interactions without forcing a long note
+- `meaningful_connection_log` normalization uses an upsert pattern on insert or update so a corrected connection log stays mapped to a single normalized action event
+- local verification confirmed that a valid connection log produced one `accepted` action event with `50` awarded points
+- local verification also exercised the Family/Friends daily cap: two same-day connection logs were accepted and the third same-day log was capped at `0`
+- updating an existing connection log changed the payload in the existing normalized action event without creating a duplicate score input
 
 ### Phase S5: Adapt the mobile app from Firebase client flows to Supabase client flows
 
