@@ -138,7 +138,6 @@ Implemented on the current branch:
 Still pending:
 - richer trend and chart presentation
 - more refined edit/delete flows for user-created content
-- final production scheduling and deployment wiring for weekly summary generation
 
 ## 7. Backend Architecture
 
@@ -166,6 +165,11 @@ Still pending:
 - protects user-owned data
 - restricts client access to their own records
 - keeps summary writes backend-owned
+
+5. Scheduled orchestration
+- `pg_cron` runs an hourly backend-only job named `velora-weekly-summary-hourly`
+- the job calls `public.run_weekly_summary_scheduler()`
+- the scheduler wrapper delegates to the existing weekly batch helper so closed weeks are finalized without client involvement
 
 ## 7.2 Current Backend Workflow Layers
 

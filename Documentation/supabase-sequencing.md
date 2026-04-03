@@ -17,12 +17,12 @@ Completed so far:
 - local Supabase project scaffold and migration workflow
 - scoring backbone tables, summary tables, and RLS policies
 - onboarding RPC, daily check-in RPC, normalization triggers, and weekly summary SQL helpers
+- hourly `pg_cron` scheduling for weekly summary orchestration through backend-only SQL functions
 - local verification of the backend scoring pipeline with the Supabase local stack
 - mobile Supabase client, auth session boundary, profile boundary, onboarding flow, tab navigation, dashboard reads, summary reads, settings, and daily check-ins
 - V1 action module UI for journal, connection logs, tasks, focus sessions, activity logs, sleep logs, expense logs, and financial actions
 
 Still open for V1:
-- production scheduling for weekly summary orchestration
 - action-module polish for richer edit/delete flows and stronger UX feedback
 - summary/history visualization upgrades
 - release hardening and cross-document cleanup
@@ -150,6 +150,7 @@ Tasks:
 - implement daily check-in write flow
 - implement action normalization
 - implement weekly score generation pipeline
+- add production-safe scheduling for closed-week summary generation
 
 Recommended split:
 - database constraints for hard integrity rules
@@ -307,6 +308,14 @@ Tasks:
 
 Recommendation:
 - authoritative weekly summary computation should live in the backend
+- `run_weekly_summary_scheduler(...)` now wraps the batch helper in a backend-only SQL scheduler entrypoint
+- `ensure_weekly_summary_cron_job()` now registers an hourly `pg_cron` job named `velora-weekly-summary-hourly`
+- the cron job runs `select public.run_weekly_summary_scheduler();` at minute `11` of every hour so users across timezones are finalized within at most one hour of week close
+- local verification confirmed:
+  - the `pg_cron` extension is enabled
+  - the cron job is present and active in `cron.job`
+  - the scheduler wrapper successfully processed the previously closed week in the local stack
+  - authenticated clients do not have `EXECUTE` privileges on the scheduler function
 - `shared/` should still be used for provisional client-side preview logic and test alignment
 
 Exit criteria:
