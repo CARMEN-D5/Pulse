@@ -7,7 +7,9 @@ function getRequiredEnv(name: "EXPO_PUBLIC_SUPABASE_URL" | "EXPO_PUBLIC_SUPABASE
   const value = process.env[name];
 
   if (!value) {
-    throw new Error(`Missing ${name}. Add the EXPO_PUBLIC_SUPABASE_* variables to run the mobile app.`);
+    throw new Error(
+      `Missing ${name}. Copy mobile/.env.example to .env and add the EXPO_PUBLIC_SUPABASE_* values before running the mobile app.`
+    );
   }
 
   return value;

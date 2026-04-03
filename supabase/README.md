@@ -18,3 +18,8 @@ Current V1 scheduler path:
 - `public.ensure_weekly_summary_cron_job()` registers the hourly cron job
 - the active cron job name is `velora-weekly-summary-hourly`
 - the job runs `select public.run_weekly_summary_scheduler();`
+
+Useful local commands:
+- `npm run supabase:start`
+- `npm run supabase:db:push:local`
+- `npm run qa:v1:local`

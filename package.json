@@ -16,13 +16,16 @@
     "typecheck:mobile": "npm run typecheck --workspace mobile",
     "typecheck:functions": "npm run typecheck --workspace functions",
     "typecheck:shared": "npm run typecheck --workspace shared",
+    "typecheck:v1": "npm run typecheck:shared && npm run typecheck:mobile",
+    "qa:v1:local": "sh scripts/check_v1_release.sh",
     "supabase:init": "supabase init",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "supabase:migration:new": "supabase migration new",
-    "firebase:emulators": "firebase emulators:start",
-    "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage"
+    "supabase:db:push:local": "npx supabase db push --local",
+    "legacy:firebase:emulators": "firebase emulators:start",
+    "legacy:firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage"
   },
   "devDependencies": {
     "firebase-tools": "14.14.0",

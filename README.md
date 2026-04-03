@@ -8,20 +8,20 @@ VELORA is a cross-platform mobile application for helping users understand and i
 - Health
 - Financial Wellbeing
 
-This repository is now organized around a mobile-first Firebase architecture.
+This repository is now organized around a mobile-first, Supabase-first architecture.
 
 Backend direction note:
-- the current intended backend direction is shifting toward `Supabase` because VELORA prioritizes scoring quality, analytics, and long-term advice generation
-- Firebase scaffold files currently remain in the repo as temporary reference only during the pivot
+- `Supabase` is the active backend source of truth for Version 1
+- Firebase scaffold files currently remain in the repo only as legacy reference during cleanup
 
 ## Repository layout
 
 ```text
 Documentation/  Product, scoring, and architecture decisions
 mobile/         Expo + React Native + TypeScript app
-functions/      Temporary Firebase Functions scaffold kept during pivot
+functions/      Legacy Firebase Functions scaffold kept temporarily
 shared/         Shared TypeScript domain and scoring utilities
-supabase/       Supabase local project scaffold
+supabase/       Supabase local project scaffold, migrations, and scheduler setup
 pulse/          Legacy Create React App scaffold kept for reference only
 ```
 
@@ -33,14 +33,11 @@ pulse/          Legacy Create React App scaffold kept for reference only
 
 ## Phase 0 status
 
-Phase 0 scaffolding is in place:
+Current V1 implementation highlights:
 
-- root npm workspace config
-- Expo mobile workspace scaffold
-- Firebase config and rules placeholders kept temporarily
-- Firebase Functions TypeScript scaffold kept temporarily
-- Supabase CLI project scaffold
-- shared TypeScript package scaffold
+- Supabase schema, RLS, RPCs, normalization triggers, and weekly summary scheduler are in place
+- Expo mobile app now has auth, onboarding, dashboard, check-in, summary, settings, and action-module foundations
+- shared TypeScript score utilities mirror the backend formulas
 
 ## Install
 
@@ -50,21 +47,33 @@ From the repository root:
 npm install
 ```
 
+## Mobile environment setup
+
+Create a local Expo environment file from the example in [mobile/.env.example](/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/mobile/.env.example).
+
+For local Supabase development:
+- `EXPO_PUBLIC_SUPABASE_URL` should usually be `http://127.0.0.1:54321`
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` should be copied from the output of `npm run supabase:start`
+
 ## Useful commands
 
 ```bash
 npm run dev:mobile
+npm run typecheck:v1
+npm run qa:v1:local
 npm run build:shared
 npm run build:functions
 npm run typecheck:mobile
 npm run typecheck:functions
 npm run typecheck:shared
-npm run firebase:emulators
+npm run supabase:start
+npm run supabase:db:push:local
 ```
 
 ## Notes
 
 - The mobile app foundation lives in `mobile/`, not `pulse/`.
 - Official score generation is backend-authoritative.
-- The current backend pivot target is Supabase.
+- The active backend is Supabase.
 - `shared/` is intended for scoring formulas, domain constants, and date utilities used by both mobile and backend code.
+- Firebase commands are now legacy-only and are not part of the active V1 workflow.
