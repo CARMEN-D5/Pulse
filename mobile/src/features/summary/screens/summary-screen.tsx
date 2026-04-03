@@ -5,6 +5,8 @@ import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
+import { ScoreProgressBar } from "@/features/summary/components/score-progress-bar";
 import {
   fetchWeeklyDomainSummaries,
   fetchWeeklyLifeSummaries,
@@ -90,6 +92,15 @@ export function SummaryScreen() {
 
   const selectedLifeSummary =
     lifeSummaries.find((summary) => summary.weekStartLocalDate === selectedWeekStart) ?? null;
+  const selectedSummaryIndex = lifeSummaries.findIndex(
+    (summary) => summary.weekStartLocalDate === selectedWeekStart
+  );
+  const previousLifeSummary =
+    selectedSummaryIndex >= 0 ? lifeSummaries[selectedSummaryIndex + 1] ?? null : null;
+  const scoreDelta =
+    selectedLifeSummary && previousLifeSummary
+      ? selectedLifeSummary.balancedLifeScore - previousLifeSummary.balancedLifeScore
+      : null;
 
   return (
     <Screen scrollable>
@@ -113,9 +124,13 @@ export function SummaryScreen() {
         <Card>
           <Text style={styles.sectionTitle}>{formatWeekRange(selectedLifeSummary.weekStartLocalDate)}</Text>
           <Text style={styles.heroScore}>{selectedLifeSummary.balancedLifeScore.toFixed(1)}</Text>
+          <ScoreChangePill change={scoreDelta} />
           <Text style={styles.helper}>
             Life strength {selectedLifeSummary.lifeStrength.toFixed(1)} • Evenness{" "}
             {selectedLifeSummary.evenness.toFixed(1)}
+          </Text>
+          <Text style={styles.helper}>
+            {selectedLifeSummary.isProvisional ? "Provisional week" : "Official weekly summary"}
           </Text>
           <Text style={styles.helper}>
             Strongest: {selectedLifeSummary.strongestDomainKey ? DOMAIN_LABELS[selectedLifeSummary.strongestDomainKey] : "N/A"}
@@ -130,9 +145,30 @@ export function SummaryScreen() {
         <Card>
           <Text style={styles.sectionTitle}>Domain breakdown</Text>
           {domainSummaries.map((summary) => (
-            <View key={summary.domainKey} style={styles.metricRow}>
-              <Text style={styles.metricLabel}>{DOMAIN_LABELS[summary.domainKey]}</Text>
-              <Text style={styles.metricValue}>{summary.displayedScore.toFixed(1)}</Text>
+            <View key={summary.domainKey} style={styles.domainBlock}>
+              <ScoreProgressBar
+                detail={
+                  summary.isProvisional
+                    ? "Provisional domain score"
+                    : `Reflection ${summary.reflectionScore?.toFixed(1) ?? "N/A"} • Action ${summary.actionScore.toFixed(1)} • Consistency ${summary.consistencyScore.toFixed(1)}`
+                }
+                label={DOMAIN_LABELS[summary.domainKey]}
+                score={summary.displayedScore}
+              />
+              <View style={styles.metricPillRow}>
+                <View style={styles.metricPill}>
+                  <Text style={styles.metricPillLabel}>Active days</Text>
+                  <Text style={styles.metricPillValue}>{summary.activeDaysInWindow}</Text>
+                </View>
+                <View style={styles.metricPill}>
+                  <Text style={styles.metricPillLabel}>Reflection days</Text>
+                  <Text style={styles.metricPillValue}>{summary.reflectionDaysCount}</Text>
+                </View>
+                <View style={styles.metricPill}>
+                  <Text style={styles.metricPillLabel}>Current score</Text>
+                  <Text style={styles.metricPillValue}>{summary.currentComputedScore.toFixed(1)}</Text>
+                </View>
+              </View>
             </View>
           ))}
         </Card>
@@ -141,7 +177,7 @@ export function SummaryScreen() {
       <Card>
         <Text style={styles.sectionTitle}>History</Text>
         {lifeSummaries.length ? (
-          lifeSummaries.map((summary) => {
+          lifeSummaries.map((summary, index) => {
             const isSelected = summary.weekStartLocalDate === selectedWeekStart;
 
             return (
@@ -156,7 +192,23 @@ export function SummaryScreen() {
                     {summary.isProvisional ? "Provisional" : "Official"} weekly score
                   </Text>
                 </View>
-                <Text style={styles.historyValue}>{summary.balancedLifeScore.toFixed(1)}</Text>
+                <View style={styles.historyRight}>
+                  <Text style={styles.historyValue}>{summary.balancedLifeScore.toFixed(1)}</Text>
+                  <Text style={styles.historyDelta}>
+                    {(() => {
+                      const nextSummary = lifeSummaries[index + 1];
+
+                      if (!nextSummary) {
+                        return "No prior week";
+                      }
+
+                      const delta = summary.balancedLifeScore - nextSummary.balancedLifeScore;
+                      const rounded = Math.round(delta * 10) / 10;
+                      const sign = rounded > 0 ? "+" : "";
+                      return `${sign}${rounded.toFixed(1)}`;
+                    })()}
+                  </Text>
+                </View>
               </Pressable>
             );
           })
@@ -212,20 +264,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20
   },
-  metricRow: {
-    alignItems: "center",
+  domainBlock: {
+    gap: 12
+  },
+  metricPillRow: {
     flexDirection: "row",
-    justifyContent: "space-between"
+    gap: 10
   },
-  metricLabel: {
-    color: "#d8def0",
+  metricPill: {
+    backgroundColor: "#10141d",
+    borderColor: "#293040",
+    borderRadius: 14,
+    borderWidth: 1,
     flex: 1,
-    fontSize: 15,
-    lineHeight: 22
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10
   },
-  metricValue: {
+  metricPillLabel: {
+    color: "#93a0bf",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase"
+  },
+  metricPillValue: {
     color: "#ffffff",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700"
   },
   historyItem: {
@@ -252,10 +316,19 @@ const styles = StyleSheet.create({
     color: "#95a1be",
     fontSize: 13
   },
+  historyRight: {
+    alignItems: "flex-end",
+    gap: 4
+  },
   historyValue: {
     color: "#8ba3ff",
     fontSize: 18,
     fontWeight: "800"
+  },
+  historyDelta: {
+    color: "#9cb0da",
+    fontSize: 12,
+    fontWeight: "700"
   },
   error: {
     color: "#ff9ea4",

@@ -2,11 +2,14 @@ import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { DOMAIN_LABELS, type DomainKey } from "@velora/shared";
+import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
+import { ScoreProgressBar } from "@/features/summary/components/score-progress-bar";
 import { fetchLatestDashboardSnapshot, type DashboardSnapshot } from "@/features/summary/services/summary-service";
+import { formatWeekRange } from "@/lib/date-time";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
 
@@ -59,6 +62,10 @@ export function HomeScreen() {
   }, [user?.id]);
 
   const greetingName = profile?.displayName ?? "there";
+  const scoreDelta =
+    snapshot?.lifeSummary && snapshot.previousLifeSummary
+      ? snapshot.lifeSummary.balancedLifeScore - snapshot.previousLifeSummary.balancedLifeScore
+      : null;
 
   return (
     <Screen scrollable>
@@ -79,8 +86,12 @@ export function HomeScreen() {
             <Text style={styles.scoreValue}>
               {snapshot.lifeSummary.balancedLifeScore.toFixed(1)}
             </Text>
-            <Text style={styles.scoreMeta}>
-              Week of {snapshot.lifeSummary.weekStartLocalDate}
+            <Text style={styles.scoreMeta}>{formatWeekRange(snapshot.lifeSummary.weekStartLocalDate)}</Text>
+            <ScoreChangePill change={scoreDelta} />
+            <Text style={styles.scoreSubMeta}>
+              {snapshot.lifeSummary.isProvisional ? "Provisional week" : "Official weekly score"} •
+              Life strength {snapshot.lifeSummary.lifeStrength.toFixed(1)} • Evenness{" "}
+              {snapshot.lifeSummary.evenness.toFixed(1)}
             </Text>
           </>
         ) : (
@@ -108,14 +119,20 @@ export function HomeScreen() {
       </View>
 
       <Card>
-        <Text style={styles.sectionTitle}>Latest domain scores</Text>
+        <Text style={styles.sectionTitle}>Balance visual</Text>
         {isLoading ? <Text style={styles.itemCopy}>Loading domain summaries...</Text> : null}
         {!isLoading && snapshot?.domainSummaries.length
           ? snapshot.domainSummaries.map((summary) => (
-              <View key={summary.domainKey} style={styles.metricRow}>
-                <Text style={styles.itemLabel}>{DOMAIN_LABELS[summary.domainKey]}</Text>
-                <Text style={styles.itemValue}>{summary.displayedScore.toFixed(1)}</Text>
-              </View>
+              <ScoreProgressBar
+                key={summary.domainKey}
+                detail={
+                  summary.isProvisional
+                    ? "Provisional domain score"
+                    : `Reflection ${summary.reflectionScore?.toFixed(1) ?? "N/A"} • Action ${summary.actionScore.toFixed(1)} • Consistency ${summary.consistencyScore.toFixed(1)}`
+                }
+                label={DOMAIN_LABELS[summary.domainKey]}
+                score={summary.displayedScore}
+              />
             ))
           : null}
         {!isLoading && !snapshot?.domainSummaries.length ? (
@@ -187,6 +204,12 @@ const styles = StyleSheet.create({
     color: "#8f99b3",
     fontSize: 14
   },
+  scoreSubMeta: {
+    color: "#aeb8d2",
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: "center"
+  },
   emptyCopy: {
     color: "#ccd4ea",
     fontSize: 15,
@@ -216,22 +239,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: "#ffffff",
     fontSize: 18,
-    fontWeight: "700"
-  },
-  metricRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-  itemLabel: {
-    color: "#d8def0",
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  itemValue: {
-    color: "#ffffff",
-    fontSize: 16,
     fontWeight: "700"
   },
   itemCopy: {

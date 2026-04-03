@@ -44,6 +44,7 @@ type WeeklyDomainSummaryRow = {
 export type WeeklyLifeSummary = {
   balancedLifeScore: number;
   evenness: number;
+  finalizedAt: string | null;
   lifeStrength: number;
   strongestDomainKey: DomainKey | null;
   isProvisional: boolean;
@@ -71,12 +72,14 @@ export type WeeklyDomainSummary = {
 export type DashboardSnapshot = {
   domainSummaries: WeeklyDomainSummary[];
   lifeSummary: WeeklyLifeSummary | null;
+  previousLifeSummary: WeeklyLifeSummary | null;
 };
 
 function mapWeeklyLifeSummary(row: WeeklyLifeSummaryRow): WeeklyLifeSummary {
   return {
     balancedLifeScore: Number(row.balanced_life_score),
     evenness: Number(row.evenness),
+    finalizedAt: row.finalized_at,
     isProvisional: row.is_provisional,
     lifeStrength: Number(row.life_strength),
     strongestDomainKey: row.strongest_domain_key,
@@ -136,12 +139,13 @@ export async function fetchWeeklyDomainSummaries(userId: string, weekStartLocalD
 }
 
 export async function fetchLatestDashboardSnapshot(userId: string): Promise<DashboardSnapshot> {
-  const [lifeSummary] = await fetchWeeklyLifeSummaries(userId, 1);
+  const [lifeSummary, previousLifeSummary] = await fetchWeeklyLifeSummaries(userId, 2);
 
   if (!lifeSummary) {
     return {
       domainSummaries: [],
-      lifeSummary: null
+      lifeSummary: null,
+      previousLifeSummary: null
     };
   }
 
@@ -149,6 +153,7 @@ export async function fetchLatestDashboardSnapshot(userId: string): Promise<Dash
 
   return {
     domainSummaries,
-    lifeSummary
+    lifeSummary,
+    previousLifeSummary: previousLifeSummary ?? null
   };
 }
