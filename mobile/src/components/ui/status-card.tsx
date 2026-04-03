@@ -16,22 +16,22 @@ const TONE_STYLES: Record<StatusTone, { accent: string; track: string; text: str
   error: {
     accent: theme.colors.danger,
     text: "#7D2727",
-    track: "rgba(172, 52, 52, 0.10)"
+    track: "rgba(172, 52, 52, 0.09)"
   },
   info: {
     accent: theme.colors.secondary,
     text: "#405271",
-    track: "rgba(214, 227, 255, 0.58)"
+    track: "rgba(214, 227, 255, 0.52)"
   },
   neutral: {
     accent: theme.colors.textSoft,
     text: theme.colors.textMuted,
-    track: "rgba(255, 255, 255, 0.48)"
+    track: "rgba(255, 255, 255, 0.44)"
   },
   success: {
     accent: theme.colors.success,
     text: "#1F6449",
-    track: "rgba(47, 140, 104, 0.12)"
+    track: "rgba(47, 140, 104, 0.10)"
   }
 };
 
@@ -49,7 +49,7 @@ export function StatusCard({
         styles.card,
         {
           backgroundColor: toneStyles.track,
-          borderColor: toneStyles.accent
+          borderColor: `${toneStyles.accent}33`
         }
       ]}
     >

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { theme } from "@/theme/tokens";
+import { createShadow, theme } from "@/theme/tokens";
 
 type RatingPickerProps = {
   onChange: (value: number) => void;
@@ -19,7 +19,11 @@ export function RatingPicker({ onChange, value }: RatingPickerProps) {
             accessibilityState={{ selected: isSelected }}
             accessibilityRole="button"
             onPress={() => onChange(ratingValue)}
-            style={[styles.choice, isSelected ? styles.choiceSelected : null]}
+            style={({ pressed }) => [
+              styles.choice,
+              isSelected ? styles.choiceSelected : null,
+              pressed ? styles.choicePressed : null
+            ]}
           >
             <Text style={[styles.choiceLabel, isSelected ? styles.choiceLabelSelected : null]}>
               {ratingValue}
@@ -43,11 +47,16 @@ const styles = StyleSheet.create({
     borderColor: "rgba(118, 125, 112, 0.18)",
     borderRadius: 18,
     borderWidth: 1,
-    height: 48,
+    height: 52,
     justifyContent: "center",
-    width: 48
+    width: 52
+  },
+  choicePressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.985 }]
   },
   choiceSelected: {
+    ...createShadow("sm"),
     backgroundColor: theme.colors.primarySoft,
     borderColor: theme.colors.primary
   },
