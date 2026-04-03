@@ -226,6 +226,19 @@ Current progress:
   - `work_productivity` with reflection missing and reweighting applied
 - local verification also confirmed `upsert_weekly_domain_summary(...)` persisted summary rows into `weekly_domain_summaries`
 - authenticated clients do not have `EXECUTE` privileges on the weekly-summary helper functions; weekly summary writes remain backend-owned
+- weekly life-summary helper functions now exist for:
+  - evenness calculation
+  - weekly life-score aggregation
+  - weekly life-summary upsert
+- the life helper orchestrates the five active domain upserts first, then aggregates their `displayed_score` values into:
+  - `life_strength`
+  - `evenness`
+  - `balanced_life_score`
+  - `strongest_domain_key`
+  - `weakest_domain_key`
+- local verification confirmed `upsert_weekly_life_summary(...)` produced a coherent weekly aggregate for the throwaway user and persisted it into `weekly_life_summaries`
+- local verification confirmed the aggregate aligned with the underlying domain summaries, with `health` as strongest and `spirituality` as weakest for the tested week
+- authenticated clients do not have `EXECUTE` privileges on the weekly life-summary helper functions; life summary writes also remain backend-owned
 
 ### Phase S5: Adapt the mobile app from Firebase client flows to Supabase client flows
 
