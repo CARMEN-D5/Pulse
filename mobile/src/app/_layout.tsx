@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 
 import { AuthSessionProvider } from "@/providers/auth-session-provider";
 import { ProfileProvider } from "@/providers/profile-provider";
+import { theme } from "@/theme/tokens";
 
 export default function RootLayout() {
   return (
@@ -11,7 +12,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: {
-              backgroundColor: "#0f1117"
+              backgroundColor: theme.colors.background
             }
           }}
         />

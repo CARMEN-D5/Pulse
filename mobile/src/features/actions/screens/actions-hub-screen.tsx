@@ -1,20 +1,49 @@
 import { router } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { StatusCard } from "@/components/ui/status-card";
 import { ACTION_MODULES, type ActionModuleKey } from "@/features/actions/action-modules";
+import { theme } from "@/theme/tokens";
 
-const MODULE_ORDER: ActionModuleKey[] = [
-  "journal",
-  "connection",
-  "task",
-  "focus",
-  "activity",
-  "sleep",
-  "expense",
-  "financial"
+const MODULE_GROUPS: Array<{
+  accent: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  moduleKeys: ActionModuleKey[];
+  title: string;
+}> = [
+  {
+    accent: "#086A69",
+    icon: "star-outline",
+    moduleKeys: ["journal"],
+    title: "Spirituality"
+  },
+  {
+    accent: "#4E607F",
+    icon: "account-group-outline",
+    moduleKeys: ["connection"],
+    title: "Family and Friends"
+  },
+  {
+    accent: "#50624C",
+    icon: "briefcase-outline",
+    moduleKeys: ["task", "focus"],
+    title: "Work/Productivity"
+  },
+  {
+    accent: "#1E8E82",
+    icon: "heart-pulse",
+    moduleKeys: ["activity", "sleep"],
+    title: "Health"
+  },
+  {
+    accent: "#983F72",
+    icon: "cash-multiple",
+    moduleKeys: ["expense", "financial"],
+    title: "Financial Wellbeing"
+  }
 ];
 
 export function ActionsHubScreen() {
@@ -24,23 +53,33 @@ export function ActionsHubScreen() {
         <Text style={styles.eyebrow}>Action Modules</Text>
         <Text style={styles.title}>Capture score-driving actions across all five domains.</Text>
         <Text style={styles.copy}>
-          Each module writes to a dedicated Supabase table and the backend normalizes those records
-          into the score ledger automatically.
+          Choose the part of life you want to support today, then log one concrete action.
         </Text>
       </View>
 
-      {MODULE_ORDER.map((moduleKey) => (
-        <Pressable
-          key={moduleKey}
-          onPress={() => router.push(`/(app)/actions/${moduleKey}`)}
-          style={styles.pressable}
-        >
-          <Card>
-            <Text style={styles.cardTitle}>{ACTION_MODULES[moduleKey].title}</Text>
-            <Text style={styles.cardSummary}>{ACTION_MODULES[moduleKey].description}</Text>
-            <Text style={styles.cardStatus}>Open module</Text>
-          </Card>
-        </Pressable>
+      {MODULE_GROUPS.map((group) => (
+        <View key={group.title} style={styles.group}>
+          <View style={styles.groupHeader}>
+            <View style={[styles.groupIcon, { backgroundColor: `${group.accent}18` }]}>
+              <MaterialCommunityIcons color={group.accent} name={group.icon} size={18} />
+            </View>
+            <Text style={styles.groupTitle}>{group.title}</Text>
+          </View>
+
+          {group.moduleKeys.map((moduleKey) => (
+            <Pressable
+              key={moduleKey}
+              onPress={() => router.push(`/(app)/actions/${moduleKey}`)}
+              style={styles.pressable}
+            >
+              <Card>
+                <Text style={styles.cardTitle}>{ACTION_MODULES[moduleKey].title}</Text>
+                <Text style={styles.cardSummary}>{ACTION_MODULES[moduleKey].description}</Text>
+                <Text style={[styles.cardStatus, { color: group.accent }]}>Open module</Text>
+              </Card>
+            </Pressable>
+          ))}
+        </View>
       ))}
 
       <StatusCard
@@ -50,10 +89,10 @@ export function ActionsHubScreen() {
       />
 
       <Card>
-        <Text style={styles.cardTitle}>Current V1 focus</Text>
+        <Text style={styles.cardTitle}>Today’s rhythm</Text>
         <Text style={styles.cardSummary}>
-          You can now navigate from the hub into real V1 score-input flows. The next remaining work
-          is polish, edit/delete refinement, and release hardening.
+          The fastest way to feel progress is to log one small action in the domain that needs the
+          most care this week.
         </Text>
       </Card>
     </Screen>
@@ -63,38 +102,57 @@ export function ActionsHubScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: 12,
-    marginBottom: 24
+    marginBottom: 4
   },
   eyebrow: {
-    color: "#8ba3ff",
-    fontSize: 13,
+    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase"
   },
   title: {
-    color: "#ffffff",
-    fontSize: 28,
-    fontWeight: "700",
-    lineHeight: 34
+    color: theme.colors.text,
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 40
   },
   copy: {
-    color: "#b8c2dc",
+    color: theme.colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   },
+  group: {
+    gap: 12
+  },
+  groupHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10
+  },
+  groupIcon: {
+    alignItems: "center",
+    borderRadius: 16,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  groupTitle: {
+    color: theme.colors.text,
+    fontSize: 17,
+    fontWeight: "700"
+  },
   cardTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 18,
     fontWeight: "700"
   },
   cardSummary: {
-    color: "#ccd4ea",
+    color: theme.colors.textMuted,
     fontSize: 15,
     lineHeight: 22
   },
   cardStatus: {
-    color: "#8ba3ff",
     fontSize: 13,
     fontWeight: "600"
   },

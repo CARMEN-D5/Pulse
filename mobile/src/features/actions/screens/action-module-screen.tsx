@@ -52,6 +52,7 @@ import {
 import { formatTimestampLocal } from "@/lib/date-time";
 import { withOfflineHint } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
+import { theme } from "@/theme/tokens";
 
 export function ActionModuleScreen() {
   const params = useLocalSearchParams<{ module?: string }>();
@@ -1479,25 +1480,25 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   eyebrow: {
-    color: "#8ba3ff",
-    fontSize: 13,
+    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase"
   },
   title: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "700",
-    lineHeight: 36
+    color: theme.colors.text,
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 40
   },
   copy: {
-    color: "#bcc6df",
+    color: theme.colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   },
   sectionTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 18,
     fontWeight: "700"
   },
@@ -1505,17 +1506,17 @@ const styles = StyleSheet.create({
     minHeight: 120
   },
   helper: {
-    color: "#a7b2cd",
+    color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 20
   },
   error: {
-    color: "#ff9ea4",
+    color: theme.colors.danger,
     fontSize: 14,
     lineHeight: 20
   },
   success: {
-    color: "#a9f2c2",
+    color: theme.colors.success,
     fontSize: 14,
     lineHeight: 20
   },
@@ -1524,17 +1525,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   listTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 15,
     fontWeight: "700"
   },
   listCopy: {
-    color: "#d0d8ee",
+    color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 20
   },
   listMeta: {
-    color: "#8f99b3",
+    color: theme.colors.textSoft,
     fontSize: 13
   },
   inlineActions: {
@@ -1547,12 +1548,12 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   invalidTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 28,
     fontWeight: "700"
   },
   invalidCopy: {
-    color: "#b9c3de",
+    color: theme.colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   }

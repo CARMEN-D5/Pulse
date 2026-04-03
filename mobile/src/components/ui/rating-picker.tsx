@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { theme } from "@/theme/tokens";
+
 type RatingPickerProps = {
   onChange: (value: number) => void;
   value?: number | null;
@@ -14,6 +16,7 @@ export function RatingPicker({ onChange, value }: RatingPickerProps) {
         return (
           <Pressable
             key={ratingValue}
+            accessibilityState={{ selected: isSelected }}
             accessibilityRole="button"
             onPress={() => onChange(ratingValue)}
             style={[styles.choice, isSelected ? styles.choiceSelected : null]}
@@ -31,28 +34,29 @@ export function RatingPicker({ onChange, value }: RatingPickerProps) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    gap: 10
+    gap: 10,
+    justifyContent: "space-between"
   },
   choice: {
     alignItems: "center",
-    backgroundColor: "#10141d",
-    borderColor: "#293040",
-    borderRadius: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.54)",
+    borderColor: "rgba(118, 125, 112, 0.18)",
+    borderRadius: 18,
     borderWidth: 1,
-    height: 44,
+    height: 48,
     justifyContent: "center",
-    width: 44
+    width: 48
   },
   choiceSelected: {
-    backgroundColor: "#7a94ff",
-    borderColor: "#7a94ff"
+    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.primary
   },
   choiceLabel: {
-    color: "#d9e0f4",
+    color: theme.colors.textMuted,
     fontSize: 15,
     fontWeight: "700"
   },
   choiceLabelSelected: {
-    color: "#ffffff"
+    color: theme.colors.primary
   }
 });

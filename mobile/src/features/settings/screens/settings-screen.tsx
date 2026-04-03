@@ -7,6 +7,7 @@ import { Screen } from "@/components/ui/screen";
 import { signOut } from "@/features/auth/services/auth-service";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
+import { theme } from "@/theme/tokens";
 
 export function SettingsScreen() {
   const { user } = useAuthSession();
@@ -23,12 +24,11 @@ export function SettingsScreen() {
         <Text style={styles.eyebrow}>Settings</Text>
         <Text style={styles.title}>Account and scoring setup</Text>
         <Text style={styles.copy}>
-          Your fixed scoring timezone and onboarding baseline are what make the weekly summaries
-          consistent over time.
+          Keep your profile clear and your reminders predictable so the weekly review stays meaningful.
         </Text>
       </View>
 
-      <Card>
+      <Card variant="highlight">
         <Text style={styles.sectionTitle}>Profile</Text>
         <Text style={styles.rowLabel}>Display name</Text>
         <Text style={styles.rowValue}>{profile?.displayName ?? "Not set"}</Text>
@@ -58,39 +58,39 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: 12,
-    marginBottom: 24
+    marginBottom: 4
   },
   eyebrow: {
-    color: "#8ba3ff",
-    fontSize: 13,
+    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase"
   },
   title: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "700",
-    lineHeight: 36
+    color: theme.colors.text,
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 40
   },
   copy: {
-    color: "#b8c2dc",
+    color: theme.colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   },
   sectionTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 18,
     fontWeight: "700"
   },
   rowLabel: {
-    color: "#8f99b3",
-    fontSize: 13,
+    color: theme.colors.textSoft,
+    fontSize: 12,
     fontWeight: "600",
     textTransform: "uppercase"
   },
   rowValue: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 16,
     lineHeight: 24
   }

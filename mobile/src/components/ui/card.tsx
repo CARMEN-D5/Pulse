@@ -1,21 +1,44 @@
 import { PropsWithChildren } from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+
+import { createShadow, theme } from "@/theme/tokens";
 
 type CardProps = PropsWithChildren<{
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  variant?: "default" | "highlight" | "muted";
 }>;
 
-export function Card({ children, style }: CardProps) {
-  return <View style={[styles.card, style]}>{children}</View>;
+export function Card({ children, style, variant = "default" }: CardProps) {
+  return (
+    <View
+      style={[
+        styles.card,
+        variant === "highlight" ? styles.highlight : null,
+        variant === "muted" ? styles.muted : null,
+        style
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#171a22",
-    borderColor: "#272c38",
-    borderRadius: 20,
+    ...createShadow("sm"),
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    gap: 12,
-    padding: 20
+    gap: theme.spacing.md,
+    padding: theme.spacing.xl
+  },
+  highlight: {
+    ...createShadow("md"),
+    backgroundColor: theme.colors.surfaceStrong
+  },
+  muted: {
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.borderMuted
   }
 });

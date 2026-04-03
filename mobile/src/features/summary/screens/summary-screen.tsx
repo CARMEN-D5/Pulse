@@ -1,26 +1,21 @@
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { DOMAIN_LABELS, DOMAIN_KEYS, type DomainKey } from "@velora/shared";
+import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { StatusCard } from "@/components/ui/status-card";
-import { BalanceWheel } from "@/features/summary/components/balance-wheel";
-import { DomainTrendCard } from "@/features/summary/components/domain-trend-card";
-import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
-import { ScoreProgressBar } from "@/features/summary/components/score-progress-bar";
 import {
-  fetchDomainTrendSeries,
   fetchWeeklyDomainSummaries,
   fetchWeeklyLifeSummaries,
-  type DomainTrendSeries,
   type WeeklyDomainSummary,
   type WeeklyLifeSummary
 } from "@/features/summary/services/summary-service";
 import { formatWeekRange } from "@/lib/date-time";
 import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
+import { domainTheme, theme } from "@/theme/tokens";
 
 export function SummaryScreen() {
   const { user } = useAuthSession();
@@ -29,7 +24,6 @@ export function SummaryScreen() {
   const [lifeSummaries, setLifeSummaries] = useState<WeeklyLifeSummary[]>([]);
   const [selectedWeekStart, setSelectedWeekStart] = useState<string | null>(null);
   const [domainSummaries, setDomainSummaries] = useState<WeeklyDomainSummary[]>([]);
-  const [domainTrendSeries, setDomainTrendSeries] = useState<DomainTrendSeries[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,16 +49,6 @@ export function SummaryScreen() {
 
         const nextSelectedWeek = nextLifeSummaries[0]?.weekStartLocalDate ?? null;
         setSelectedWeekStart(nextSelectedWeek);
-        const trendWeeks = nextLifeSummaries
-          .map((summary) => summary.weekStartLocalDate)
-          .slice(0, 6);
-        const nextTrendSeries = await fetchDomainTrendSeries(user.id, trendWeeks);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setDomainTrendSeries(nextTrendSeries);
 
         if (nextSelectedWeek) {
           const nextDomainSummaries = await fetchWeeklyDomainSummaries(user.id, nextSelectedWeek);
@@ -109,18 +93,6 @@ export function SummaryScreen() {
 
   const selectedLifeSummary =
     lifeSummaries.find((summary) => summary.weekStartLocalDate === selectedWeekStart) ?? null;
-  const selectedSummaryIndex = lifeSummaries.findIndex(
-    (summary) => summary.weekStartLocalDate === selectedWeekStart
-  );
-  const previousLifeSummary =
-    selectedSummaryIndex >= 0 ? lifeSummaries[selectedSummaryIndex + 1] ?? null : null;
-  const scoreDelta =
-    selectedLifeSummary && previousLifeSummary
-      ? selectedLifeSummary.balancedLifeScore - previousLifeSummary.balancedLifeScore
-      : null;
-  const domainSummaryByKey = new Map<DomainKey, WeeklyDomainSummary>(
-    domainSummaries.map((summary) => [summary.domainKey, summary])
-  );
 
   return (
     <Screen scrollable>
@@ -128,8 +100,7 @@ export function SummaryScreen() {
         <Text style={styles.eyebrow}>Weekly Summary</Text>
         <Text style={styles.title}>Review your official score history.</Text>
         <Text style={styles.copy}>
-          This screen reads directly from the persisted weekly summary tables, not from temporary
-          client-side calculations.
+          Weekly reviews help you see whether your attention is becoming more balanced over time.
         </Text>
       </View>
 
@@ -143,10 +114,9 @@ export function SummaryScreen() {
       ) : null}
 
       {!isLoading && selectedLifeSummary ? (
-        <Card>
+        <Card variant="highlight">
           <Text style={styles.sectionTitle}>{formatWeekRange(selectedLifeSummary.weekStartLocalDate)}</Text>
           <Text style={styles.heroScore}>{selectedLifeSummary.balancedLifeScore.toFixed(1)}</Text>
-          <ScoreChangePill change={scoreDelta} />
           <Text style={styles.helper}>
             Life strength {selectedLifeSummary.lifeStrength.toFixed(1)} • Evenness{" "}
             {selectedLifeSummary.evenness.toFixed(1)}
@@ -155,10 +125,16 @@ export function SummaryScreen() {
             {selectedLifeSummary.isProvisional ? "Provisional week" : "Official weekly summary"}
           </Text>
           <Text style={styles.helper}>
-            Strongest: {selectedLifeSummary.strongestDomainKey ? DOMAIN_LABELS[selectedLifeSummary.strongestDomainKey] : "N/A"}
+            Strongest:{" "}
+            {selectedLifeSummary.strongestDomainKey
+              ? DOMAIN_LABELS[selectedLifeSummary.strongestDomainKey]
+              : "N/A"}
           </Text>
           <Text style={styles.helper}>
-            Weakest: {selectedLifeSummary.weakestDomainKey ? DOMAIN_LABELS[selectedLifeSummary.weakestDomainKey] : "N/A"}
+            Weakest:{" "}
+            {selectedLifeSummary.weakestDomainKey
+              ? DOMAIN_LABELS[selectedLifeSummary.weakestDomainKey]
+              : "N/A"}
           </Text>
         </Card>
       ) : null}
@@ -166,94 +142,32 @@ export function SummaryScreen() {
       {!isLoading && selectedLifeSummary ? (
         <Card>
           <Text style={styles.sectionTitle}>Domain breakdown</Text>
-          <BalanceWheel
-            centerCaption="Balance"
-            centerValue={selectedLifeSummary.balancedLifeScore.toFixed(1)}
-            items={domainSummaries.map((summary) => ({
-              domainKey: summary.domainKey,
-              score: summary.displayedScore
-            }))}
-            size={220}
-          />
           {domainSummaries.map((summary) => (
-            <View key={summary.domainKey} style={styles.domainBlock}>
-              <ScoreProgressBar
-                detail={
-                  summary.isProvisional
-                    ? "Provisional domain score"
-                    : `Reflection ${summary.reflectionScore?.toFixed(1) ?? "N/A"} • Action ${summary.actionScore.toFixed(1)} • Consistency ${summary.consistencyScore.toFixed(1)}`
-                }
-                label={DOMAIN_LABELS[summary.domainKey]}
-                score={summary.displayedScore}
-              />
-              <View style={styles.metricPillRow}>
-                <View style={styles.metricPill}>
-                  <Text style={styles.metricPillLabel}>Active days</Text>
-                  <Text style={styles.metricPillValue}>{summary.activeDaysInWindow}</Text>
-                </View>
-                <View style={styles.metricPill}>
-                  <Text style={styles.metricPillLabel}>Reflection days</Text>
-                  <Text style={styles.metricPillValue}>{summary.reflectionDaysCount}</Text>
-                </View>
-                <View style={styles.metricPill}>
-                  <Text style={styles.metricPillLabel}>Current score</Text>
-                  <Text style={styles.metricPillValue}>{summary.currentComputedScore.toFixed(1)}</Text>
-                </View>
+            <View key={summary.domainKey} style={styles.metricRow}>
+              <View style={styles.metricHeader}>
+                <Text style={styles.metricLabel}>{DOMAIN_LABELS[summary.domainKey]}</Text>
+                <Text style={styles.metricValue}>{summary.displayedScore.toFixed(0)}</Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      backgroundColor: domainTheme[summary.domainKey].accent,
+                      width: `${Math.max(8, Math.min(100, summary.displayedScore))}%`
+                    }
+                  ]}
+                />
               </View>
             </View>
           ))}
         </Card>
       ) : null}
 
-      {!isLoading && domainTrendSeries.some((series) => series.summaries.length) ? (
-        <Card>
-          <Text style={styles.sectionTitle}>Recent domain trends</Text>
-          <Text style={styles.helper}>
-            Each trend card shows displayed domain scores across your last few official weeks.
-          </Text>
-          <View style={styles.trendGrid}>
-            {DOMAIN_KEYS.map((domainKey) => {
-              const currentSummary = domainSummaryByKey.get(domainKey);
-              const trendSeries = domainTrendSeries.find((series) => series.domainKey === domainKey);
-              const trendScores = trendSeries?.summaries.map((summary) => summary.displayedScore) ?? [];
-              const selectedTrendIndex = trendSeries?.summaries.findIndex(
-                (summary) => summary.weekStartLocalDate === selectedWeekStart
-              ) ?? -1;
-              const resolvedTrendIndex =
-                selectedTrendIndex >= 0 ? selectedTrendIndex : Math.max(trendScores.length - 1, 0);
-              const resolvedCurrentScore =
-                trendScores[resolvedTrendIndex] ?? currentSummary?.displayedScore ?? 0;
-              const previousTrend = resolvedTrendIndex > 0 ? trendScores[resolvedTrendIndex - 1] : null;
-              const trendDelta =
-                previousTrend == null
-                  ? null
-                  : Math.round((resolvedCurrentScore - previousTrend) * 10) / 10;
-              const changeLabel =
-                !trendScores.length
-                  ? "No official data yet"
-                  : trendDelta == null
-                  ? "No prior week yet"
-                  : `${trendDelta > 0 ? "+" : ""}${trendDelta.toFixed(1)} vs prior week`;
-
-              return (
-                <DomainTrendCard
-                  key={domainKey}
-                  changeLabel={changeLabel}
-                  currentScore={currentSummary?.displayedScore ?? resolvedCurrentScore}
-                  highlightIndex={trendScores.length ? resolvedTrendIndex : undefined}
-                  label={DOMAIN_LABELS[domainKey]}
-                  scores={trendScores}
-                />
-              );
-            })}
-          </View>
-        </Card>
-      ) : null}
-
       <Card>
         <Text style={styles.sectionTitle}>History</Text>
         {lifeSummaries.length ? (
-          lifeSummaries.map((summary, index) => {
+          lifeSummaries.map((summary) => {
             const isSelected = summary.weekStartLocalDate === selectedWeekStart;
 
             return (
@@ -268,23 +182,7 @@ export function SummaryScreen() {
                     {summary.isProvisional ? "Provisional" : "Official"} weekly score
                   </Text>
                 </View>
-                <View style={styles.historyRight}>
-                  <Text style={styles.historyValue}>{summary.balancedLifeScore.toFixed(1)}</Text>
-                  <Text style={styles.historyDelta}>
-                    {(() => {
-                      const nextSummary = lifeSummaries[index + 1];
-
-                      if (!nextSummary) {
-                        return "No prior week";
-                      }
-
-                      const delta = summary.balancedLifeScore - nextSummary.balancedLifeScore;
-                      const rounded = Math.round(delta * 10) / 10;
-                      const sign = rounded > 0 ? "+" : "";
-                      return `${sign}${rounded.toFixed(1)}`;
-                    })()}
-                  </Text>
-                </View>
+                <Text style={styles.historyValue}>{summary.balancedLifeScore.toFixed(1)}</Text>
               </Pressable>
             );
           })
@@ -307,78 +205,76 @@ export function SummaryScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: 12,
-    marginBottom: 24
+    marginBottom: 4
   },
   eyebrow: {
-    color: "#8ba3ff",
-    fontSize: 13,
+    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase"
   },
   title: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "700",
-    lineHeight: 36
+    color: theme.colors.text,
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 40
   },
   copy: {
-    color: "#b8c2dc",
+    color: theme.colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   },
   sectionTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 18,
     fontWeight: "700"
   },
   heroScore: {
-    color: "#ffffff",
+    color: theme.colors.primary,
     fontSize: 42,
     fontWeight: "800",
     lineHeight: 50
   },
   helper: {
-    color: "#a7b2cd",
+    color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 20
   },
-  domainBlock: {
-    gap: 12
+  metricRow: {
+    gap: 8
   },
-  metricPillRow: {
+  metricHeader: {
+    alignItems: "center",
     flexDirection: "row",
-    gap: 10
+    justifyContent: "space-between"
   },
-  trendGrid: {
-    gap: 12
-  },
-  metricPill: {
-    backgroundColor: "#10141d",
-    borderColor: "#293040",
-    borderRadius: 14,
-    borderWidth: 1,
+  metricLabel: {
+    color: theme.colors.text,
     flex: 1,
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10
-  },
-  metricPillLabel: {
-    color: "#93a0bf",
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase"
-  },
-  metricPillValue: {
-    color: "#ffffff",
     fontSize: 15,
+    lineHeight: 22
+  },
+  metricValue: {
+    color: theme.colors.text,
+    fontSize: 16,
     fontWeight: "700"
+  },
+  progressTrack: {
+    backgroundColor: "rgba(8, 106, 105, 0.08)",
+    borderRadius: 999,
+    height: 8,
+    overflow: "hidden"
+  },
+  progressFill: {
+    borderRadius: 999,
+    height: "100%"
   },
   historyItem: {
     alignItems: "center",
-    backgroundColor: "#10141d",
-    borderColor: "#2a3140",
-    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.48)",
+    borderColor: "rgba(255,255,255,0.72)",
+    borderRadius: 20,
     borderWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -386,30 +282,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14
   },
   historyItemSelected: {
-    borderColor: "#7a94ff",
-    backgroundColor: "#131b2a"
+    borderColor: "rgba(8, 106, 105, 0.24)",
+    backgroundColor: "rgba(156, 235, 232, 0.34)"
   },
   historyTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 15,
     fontWeight: "700"
   },
   historyMeta: {
-    color: "#95a1be",
+    color: theme.colors.textSoft,
     fontSize: 13
   },
-  historyRight: {
-    alignItems: "flex-end",
-    gap: 4
-  },
   historyValue: {
-    color: "#8ba3ff",
+    color: theme.colors.primary,
     fontSize: 18,
     fontWeight: "800"
-  },
-  historyDelta: {
-    color: "#9cb0da",
-    fontSize: 12,
-    fontWeight: "700"
-  },
+  }
 });

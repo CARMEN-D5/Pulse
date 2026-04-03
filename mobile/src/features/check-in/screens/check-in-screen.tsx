@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
 import { DOMAIN_KEYS, DOMAIN_LABELS, type DomainKey } from "@velora/shared";
@@ -17,6 +18,7 @@ import { getLocalDateInTimeZone } from "@/lib/date-time";
 import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
+import { domainTheme, theme } from "@/theme/tokens";
 
 type RatingsState = Partial<Record<DomainKey, number>>;
 
@@ -37,6 +39,8 @@ export function CheckInScreen() {
 
     return getLocalDateInTimeZone(profile.scoringTimezone);
   }, [profile?.scoringTimezone]);
+
+  const completedCount = DOMAIN_KEYS.filter((domainKey) => Boolean(ratings[domainKey])).length;
 
   useEffect(() => {
     let isMounted = true;
@@ -131,11 +135,18 @@ export function CheckInScreen() {
         <Text style={styles.eyebrow}>Daily Check-In</Text>
         <Text style={styles.title}>Capture how each life area feels today.</Text>
         <Text style={styles.copy}>
-          Reflection feeds your weekly balance score. Missing days are ignored, so today’s signal is
-          only about today.
+          A quick daily reflection keeps your weekly score grounded in how life actually feels.
         </Text>
         {localDate ? <Text style={styles.dateBadge}>Local scoring date: {localDate}</Text> : null}
       </View>
+
+      <Card variant="highlight">
+        <Text style={styles.summaryLabel}>Today&apos;s progress</Text>
+        <Text style={styles.summaryValue}>{completedCount}/5 domains rated</Text>
+        <Text style={styles.helper}>
+          Missing days are ignored, so you only need to answer for how today feels.
+        </Text>
+      </Card>
 
       {!localDate ? (
         <StatusCard
@@ -160,12 +171,28 @@ export function CheckInScreen() {
 
             return (
               <Card key={domainKey}>
-                <Text style={styles.cardTitle}>{DOMAIN_LABELS[domainKey]}</Text>
-                <Text style={styles.helper}>
-                  {existingEntry
-                    ? `Saved today as ${existingEntry.ratingValue}/5. You can update it before the day ends.`
-                    : "No check-in saved yet for today."}
-                </Text>
+                <View style={styles.cardHeader}>
+                  <View
+                    style={[
+                      styles.cardIcon,
+                      { backgroundColor: domainTheme[domainKey].soft }
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      color={domainTheme[domainKey].accent}
+                      name={domainTheme[domainKey].icon as never}
+                      size={18}
+                    />
+                  </View>
+                  <View style={styles.cardHeaderCopy}>
+                    <Text style={styles.cardTitle}>{DOMAIN_LABELS[domainKey]}</Text>
+                    <Text style={styles.helper}>
+                      {existingEntry
+                        ? `Saved today as ${existingEntry.ratingValue}/5. You can update it before the day ends.`
+                        : "No check-in saved yet for today."}
+                    </Text>
+                  </View>
+                </View>
                 <RatingPicker
                   onChange={(ratingValue) =>
                     setRatings((currentState) => ({
@@ -199,46 +226,73 @@ export function CheckInScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: 12,
-    marginBottom: 24
+    marginBottom: 4
   },
   eyebrow: {
-    color: "#8ba3ff",
-    fontSize: 13,
+    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase"
   },
   title: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "700",
-    lineHeight: 36
+    color: theme.colors.text,
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 40
   },
   copy: {
-    color: "#bcc6df",
+    color: theme.colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   },
   dateBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#131a25",
-    borderColor: "#2c3548",
+    backgroundColor: "rgba(156, 235, 232, 0.34)",
+    borderColor: "rgba(8, 106, 105, 0.16)",
     borderRadius: 999,
     borderWidth: 1,
-    color: "#dbe3fa",
-    fontSize: 13,
+    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: "600",
     paddingHorizontal: 12,
     paddingVertical: 8
   },
+  summaryLabel: {
+    color: theme.colors.textSoft,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase"
+  },
+  summaryValue: {
+    color: theme.colors.text,
+    fontSize: 26,
+    fontWeight: "800"
+  },
+  cardHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12
+  },
+  cardHeaderCopy: {
+    flex: 1,
+    gap: 4
+  },
+  cardIcon: {
+    alignItems: "center",
+    borderRadius: 16,
+    height: 40,
+    justifyContent: "center",
+    width: 40
+  },
   cardTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 17,
     fontWeight: "700"
   },
   helper: {
-    color: "#a7b2cd",
+    color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 20
-  },
+  }
 });
