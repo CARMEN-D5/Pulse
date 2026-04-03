@@ -207,6 +207,25 @@ Current progress:
 - local verification confirmed that a valid connection log produced one `accepted` action event with `50` awarded points
 - local verification also exercised the Family/Friends daily cap: two same-day connection logs were accepted and the third same-day log was capped at `0`
 - updating an existing connection log changed the payload in the existing normalized action event without creating a duplicate score input
+- weekly domain helper functions now exist for:
+  - score clamping
+  - per-domain weekly action targets
+  - onboarding blend weights
+  - weekly domain-score calculation
+  - weekly domain-summary upsert
+- the weekly domain helper computes:
+  - reflection score from `daily_checkins`
+  - action score from accepted `action_events`
+  - consistency score from daily check-in days
+  - current computed score with missing-reflection reweighting
+  - onboarding blend
+  - displayed score smoothing
+  - partial first-week and current open-week provisional status
+- local verification confirmed the helper returned sensible values for:
+  - `health` with reflection present
+  - `work_productivity` with reflection missing and reweighting applied
+- local verification also confirmed `upsert_weekly_domain_summary(...)` persisted summary rows into `weekly_domain_summaries`
+- authenticated clients do not have `EXECUTE` privileges on the weekly-summary helper functions; weekly summary writes remain backend-owned
 
 ### Phase S5: Adapt the mobile app from Firebase client flows to Supabase client flows
 
