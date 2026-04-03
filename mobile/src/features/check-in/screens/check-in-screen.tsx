@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { DOMAIN_KEYS, DOMAIN_LABELS, type DomainKey } from "@velora/shared";
 
@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RatingPicker } from "@/components/ui/rating-picker";
 import { Screen } from "@/components/ui/screen";
+import { StatusCard } from "@/components/ui/status-card";
 import {
   fetchDailyCheckinsForLocalDate,
   submitDailyCheckin,
   type DailyCheckin
 } from "@/features/check-in/services/check-in-service";
 import { getLocalDateInTimeZone } from "@/lib/date-time";
+import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
 
@@ -67,7 +69,7 @@ export function CheckInScreen() {
           return;
         }
 
-        setErrorMessage(error instanceof Error ? error.message : "Unable to load today’s check-ins.");
+        setErrorMessage(toHelpfulErrorMessage(error, "Unable to load today’s check-ins."));
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -117,7 +119,7 @@ export function CheckInScreen() {
       setCheckins(currentCheckins);
       setSuccessMessage("Today’s check-ins were saved.");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to save the check-ins.");
+      setErrorMessage(toHelpfulErrorMessage(error, "Unable to save the check-ins."));
     } finally {
       setIsSaving(false);
     }
@@ -135,11 +137,21 @@ export function CheckInScreen() {
         {localDate ? <Text style={styles.dateBadge}>Local scoring date: {localDate}</Text> : null}
       </View>
 
+      {!localDate ? (
+        <StatusCard
+          message="Set your scoring timezone in onboarding or settings before using daily check-ins."
+          title="Timezone required"
+          tone="error"
+        />
+      ) : null}
+
       {isLoading ? (
-        <Card>
-          <ActivityIndicator color="#8ba3ff" />
-          <Text style={styles.helper}>Loading today’s check-ins...</Text>
-        </Card>
+        <StatusCard
+          loading
+          message="Pulling today’s saved check-ins from Supabase."
+          title="Loading today’s check-ins"
+          tone="info"
+        />
       ) : null}
 
       {!isLoading
@@ -168,8 +180,14 @@ export function CheckInScreen() {
           })
         : null}
 
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-      {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
+      {errorMessage ? <StatusCard message={errorMessage} title="Could not save check-ins" tone="error" /> : null}
+      {successMessage ? (
+        <StatusCard
+          message={successMessage}
+          title="Check-ins synced"
+          tone="success"
+        />
+      ) : null}
 
       <Button disabled={isLoading} loading={isSaving} onPress={handleSave}>
         Save today&apos;s check-ins
@@ -223,14 +241,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20
   },
-  error: {
-    color: "#ff9ea4",
-    fontSize: 14,
-    lineHeight: 20
-  },
-  success: {
-    color: "#a9f2c2",
-    fontSize: 14,
-    lineHeight: 20
-  }
 });

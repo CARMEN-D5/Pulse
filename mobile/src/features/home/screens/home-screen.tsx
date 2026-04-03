@@ -6,11 +6,13 @@ import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { StatusCard } from "@/components/ui/status-card";
 import { BalanceWheel } from "@/features/summary/components/balance-wheel";
 import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
 import { ScoreProgressBar } from "@/features/summary/components/score-progress-bar";
 import { fetchLatestDashboardSnapshot, type DashboardSnapshot } from "@/features/summary/services/summary-service";
 import { formatWeekRange } from "@/lib/date-time";
+import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
 
@@ -47,7 +49,7 @@ export function HomeScreen() {
           return;
         }
 
-        setErrorMessage(error instanceof Error ? error.message : "Unable to load the dashboard.");
+        setErrorMessage(toHelpfulErrorMessage(error, "Unable to load the dashboard."));
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -101,7 +103,11 @@ export function HomeScreen() {
             </Text>
           </>
         ) : (
-          <Text style={styles.emptyCopy}>Your first official weekly summary will appear here.</Text>
+          <StatusCard
+            message="Keep using check-ins and action logs so your first official week can be finalized."
+            title="No official summary yet"
+            tone="neutral"
+          />
         )}
       </Card>
 
@@ -189,7 +195,9 @@ export function HomeScreen() {
         </Link>
       </Card>
 
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+      {errorMessage ? (
+        <StatusCard message={errorMessage} title="Dashboard unavailable" tone="error" />
+      ) : null}
     </Screen>
   );
 }
@@ -241,12 +249,6 @@ const styles = StyleSheet.create({
     color: "#aeb8d2",
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "center"
-  },
-  emptyCopy: {
-    color: "#ccd4ea",
-    fontSize: 15,
-    lineHeight: 22,
     textAlign: "center"
   },
   quickGrid: {
@@ -321,9 +323,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700"
   },
-  error: {
-    color: "#ff9ea4",
-    fontSize: 14,
-    lineHeight: 20
-  }
 });

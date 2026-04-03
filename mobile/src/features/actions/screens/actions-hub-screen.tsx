@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { StatusCard } from "@/components/ui/status-card";
 import { ACTION_MODULES, type ActionModuleKey } from "@/features/actions/action-modules";
 
 const MODULE_ORDER: ActionModuleKey[] = [
@@ -41,6 +42,12 @@ export function ActionsHubScreen() {
           </Card>
         </Pressable>
       ))}
+
+      <StatusCard
+        message="If a save fails while you are offline, reopen the module once your connection returns and retry the entry."
+        title="Offline-tolerant behavior"
+        tone="info"
+      />
 
       <Card>
         <Text style={styles.cardTitle}>Current V1 focus</Text>

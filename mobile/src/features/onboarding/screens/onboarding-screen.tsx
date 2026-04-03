@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
 import { DOMAIN_KEYS, DOMAIN_LABELS, type DomainKey } from "@velora/shared";
@@ -8,10 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RatingPicker } from "@/components/ui/rating-picker";
 import { Screen } from "@/components/ui/screen";
+import { StatusCard } from "@/components/ui/status-card";
 import { TextField } from "@/components/ui/text-field";
 import { completeOnboarding } from "@/features/onboarding/services/onboarding-service";
 import { getDeviceTimeZone } from "@/lib/date-time";
+import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useProfile } from "@/providers/profile-provider";
+import { domainTheme, theme } from "@/theme/tokens";
 
 type RatingsState = Partial<Record<DomainKey, number>>;
 
@@ -55,9 +59,7 @@ export function OnboardingScreen() {
       await refreshProfile();
       router.replace("/(app)/(tabs)/home");
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to complete onboarding right now."
-      );
+      setErrorMessage(toHelpfulErrorMessage(error, "Unable to complete onboarding right now."));
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +68,7 @@ export function OnboardingScreen() {
   return (
     <Screen scrollable>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Onboarding</Text>
+        <Text style={styles.eyebrow}>Personalized growth</Text>
         <Text style={styles.title}>Build your first VELORA baseline.</Text>
         <Text style={styles.copy}>
           These ratings give you a starting point for the first two weeks while the app collects real
@@ -74,7 +76,7 @@ export function OnboardingScreen() {
         </Text>
       </View>
 
-      <Card>
+      <Card variant="highlight">
         <TextField
           autoCapitalize="words"
           label="Display name"
@@ -94,10 +96,26 @@ export function OnboardingScreen() {
 
       {DOMAIN_KEYS.map((domainKey) => (
         <Card key={domainKey}>
-          <Text style={styles.domainTitle}>{DOMAIN_LABELS[domainKey]}</Text>
-          <Text style={styles.domainCopy}>
-            Rate where this area feels right now on a scale from 1 to 5.
-          </Text>
+          <View style={styles.domainHeader}>
+            <View
+              style={[
+                styles.domainIcon,
+                { backgroundColor: domainTheme[domainKey].soft }
+              ]}
+            >
+              <MaterialCommunityIcons
+                color={domainTheme[domainKey].accent}
+                name={domainTheme[domainKey].icon as never}
+                size={18}
+              />
+            </View>
+            <View style={styles.domainHeaderCopy}>
+              <Text style={styles.domainTitle}>{DOMAIN_LABELS[domainKey]}</Text>
+              <Text style={styles.domainCopy}>
+                Rate where this area feels right now on a scale from 1 to 5.
+              </Text>
+            </View>
+          </View>
           <RatingPicker
             onChange={(ratingValue) =>
               setRatings((currentState) => ({
@@ -110,7 +128,9 @@ export function OnboardingScreen() {
         </Card>
       ))}
 
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+      {errorMessage ? (
+        <StatusCard message={errorMessage} title="Onboarding not saved" tone="error" />
+      ) : null}
       <Button loading={isSubmitting} onPress={handleCompleteOnboarding}>
         Complete onboarding
       </Button>
@@ -121,38 +141,55 @@ export function OnboardingScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: 12,
-    marginBottom: 24
+    marginBottom: 4
   },
   eyebrow: {
-    color: "#8ba3ff",
-    fontSize: 13,
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(156, 235, 232, 0.42)",
+    borderRadius: 999,
+    color: theme.colors.primary,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1.2,
+    overflow: "hidden",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     textTransform: "uppercase"
   },
   title: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "700",
-    lineHeight: 36
+    color: theme.colors.text,
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 40
   },
   copy: {
-    color: "#b9c3de",
+    color: theme.colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   },
+  domainHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12
+  },
+  domainHeaderCopy: {
+    flex: 1,
+    gap: 4
+  },
+  domainIcon: {
+    alignItems: "center",
+    borderRadius: 16,
+    height: 40,
+    justifyContent: "center",
+    width: 40
+  },
   domainTitle: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 18,
     fontWeight: "700"
   },
   domainCopy: {
-    color: "#aeb9d4",
-    fontSize: 14,
-    lineHeight: 20
-  },
-  error: {
-    color: "#ff9ea4",
+    color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 20
   }

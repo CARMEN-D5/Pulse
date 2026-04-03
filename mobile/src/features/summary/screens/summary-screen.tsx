@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { DOMAIN_LABELS, DOMAIN_KEYS, type DomainKey } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { StatusCard } from "@/components/ui/status-card";
 import { BalanceWheel } from "@/features/summary/components/balance-wheel";
 import { DomainTrendCard } from "@/features/summary/components/domain-trend-card";
 import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
@@ -18,6 +19,7 @@ import {
   type WeeklyLifeSummary
 } from "@/features/summary/services/summary-service";
 import { formatWeekRange } from "@/lib/date-time";
+import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
 
 export function SummaryScreen() {
@@ -80,7 +82,7 @@ export function SummaryScreen() {
           return;
         }
 
-        setErrorMessage(error instanceof Error ? error.message : "Unable to load summary history.");
+        setErrorMessage(toHelpfulErrorMessage(error, "Unable to load summary history."));
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -132,10 +134,12 @@ export function SummaryScreen() {
       </View>
 
       {isLoading ? (
-        <Card>
-          <ActivityIndicator color="#8ba3ff" />
-          <Text style={styles.helper}>Loading official weekly summaries...</Text>
-        </Card>
+        <StatusCard
+          loading
+          message="Fetching official weekly summaries and domain history."
+          title="Loading summary history"
+          tone="info"
+        />
       ) : null}
 
       {!isLoading && selectedLifeSummary ? (
@@ -285,14 +289,17 @@ export function SummaryScreen() {
             );
           })
         ) : (
-          <Text style={styles.helper}>
-            No official summary history is available yet. Your first closed week will appear here
-            after backend finalization.
-          </Text>
+          <StatusCard
+            message="Your first closed week will appear here after backend finalization."
+            title="No official history yet"
+            tone="neutral"
+          />
         )}
       </Card>
 
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+      {errorMessage ? (
+        <StatusCard message={errorMessage} title="Summary unavailable" tone="error" />
+      ) : null}
     </Screen>
   );
 }
@@ -405,9 +412,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700"
   },
-  error: {
-    color: "#ff9ea4",
-    fontSize: 14,
-    lineHeight: 20
-  }
 });

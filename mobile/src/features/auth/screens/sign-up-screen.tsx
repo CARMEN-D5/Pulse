@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { StatusCard } from "@/components/ui/status-card";
 import { TextField } from "@/components/ui/text-field";
 import { signUpWithEmail } from "@/features/auth/services/auth-service";
 import { AuthShell } from "@/features/auth/screens/auth-shell";
+import { toHelpfulErrorMessage } from "@/lib/errors";
 
 export function SignUpScreen() {
   const [email, setEmail] = useState("");
@@ -34,7 +35,7 @@ export function SignUpScreen() {
 
       setSuccessMessage("Account created. Confirm the email if your Supabase project requires it.");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to create your account.");
+      setErrorMessage(toHelpfulErrorMessage(error, "Unable to create your account."));
     } finally {
       setIsSubmitting(false);
     }
@@ -46,6 +47,7 @@ export function SignUpScreen() {
       footerCopy="Already have an account?"
       footerHref="/(auth)/sign-in"
       footerLabel="Sign in"
+      iconName="sprout"
       subtitle="Create your account first. After that, we’ll build your baseline across the five balance domains."
       title="Create your VELORA account"
     >
@@ -74,24 +76,19 @@ export function SignUpScreen() {
         secureTextEntry
         value={confirmPassword}
       />
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-      {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
+      {errorMessage ? (
+        <StatusCard message={errorMessage} title="Account creation failed" tone="error" />
+      ) : null}
+      {successMessage ? (
+        <StatusCard
+          message={successMessage}
+          title="Account created"
+          tone="success"
+        />
+      ) : null}
       <Button loading={isSubmitting} onPress={handleSignUp}>
         Create account
       </Button>
     </AuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  error: {
-    color: "#ff9ea4",
-    fontSize: 14,
-    lineHeight: 20
-  },
-  success: {
-    color: "#a9f2c2",
-    fontSize: 14,
-    lineHeight: 20
-  }
-});

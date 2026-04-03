@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { StatusCard } from "@/components/ui/status-card";
 import { TextField } from "@/components/ui/text-field";
 import { signInWithEmail } from "@/features/auth/services/auth-service";
 import { AuthShell } from "@/features/auth/screens/auth-shell";
+import { toHelpfulErrorMessage } from "@/lib/errors";
 
 export function SignInScreen() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ export function SignInScreen() {
       await signInWithEmail(email.trim(), password);
       router.replace("/");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to sign in right now.");
+      setErrorMessage(toHelpfulErrorMessage(error, "Unable to sign in right now."));
     } finally {
       setIsSubmitting(false);
     }
@@ -32,6 +33,7 @@ export function SignInScreen() {
       footerCopy="Need an account?"
       footerHref="/(auth)/sign-up"
       footerLabel="Create one"
+      iconName="hand-heart"
       subtitle="Sign in to continue your balance tracking, check-ins, and weekly summaries."
       title="VELORA"
     >
@@ -52,18 +54,12 @@ export function SignInScreen() {
         secureTextEntry
         value={password}
       />
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+      {errorMessage ? (
+        <StatusCard message={errorMessage} title="Sign-in failed" tone="error" />
+      ) : null}
       <Button loading={isSubmitting} onPress={handleSignIn}>
         Sign in
       </Button>
     </AuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  error: {
-    color: "#ff9ea4",
-    fontSize: 14,
-    lineHeight: 20
-  }
-});

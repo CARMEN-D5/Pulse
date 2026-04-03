@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { StatusCard } from "@/components/ui/status-card";
 import { TextField } from "@/components/ui/text-field";
 import { ACTION_MODULES, isActionModuleKey, type ActionModuleKey } from "@/features/actions/action-modules";
 import {
@@ -49,6 +50,7 @@ import {
   type Task
 } from "@/features/actions/services/action-service";
 import { formatTimestampLocal } from "@/lib/date-time";
+import { withOfflineHint } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
 
 export function ActionModuleScreen() {
@@ -120,15 +122,15 @@ function ModuleShell({
 }
 
 function EmptyState({ message }: { message: string }) {
-  return <Text style={styles.helper}>{message}</Text>;
+  return <StatusCard message={message} title="Nothing here yet" tone="neutral" />;
 }
 
 function ErrorBanner({ message }: { message: string | null }) {
-  return message ? <Text style={styles.error}>{message}</Text> : null;
+  return message ? <StatusCard message={withOfflineHint(message)} title="Action failed" tone="error" /> : null;
 }
 
 function SuccessBanner({ message }: { message: string | null }) {
-  return message ? <Text style={styles.success}>{message}</Text> : null;
+  return message ? <StatusCard message={message} title="Saved to VELORA" tone="success" /> : null;
 }
 
 function useEntryActionState() {
