@@ -6,6 +6,7 @@ import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { BalanceWheel } from "@/features/summary/components/balance-wheel";
 import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
 import { ScoreProgressBar } from "@/features/summary/components/score-progress-bar";
 import { fetchLatestDashboardSnapshot, type DashboardSnapshot } from "@/features/summary/services/summary-service";
@@ -121,8 +122,17 @@ export function HomeScreen() {
       <Card>
         <Text style={styles.sectionTitle}>Balance visual</Text>
         {isLoading ? <Text style={styles.itemCopy}>Loading domain summaries...</Text> : null}
-        {!isLoading && snapshot?.domainSummaries.length
-          ? snapshot.domainSummaries.map((summary) => (
+        {!isLoading && snapshot?.domainSummaries.length ? (
+          <>
+            <BalanceWheel
+              centerCaption={snapshot.lifeSummary?.isProvisional ? "Provisional" : "Official"}
+              centerValue={snapshot.lifeSummary?.balancedLifeScore.toFixed(1) ?? undefined}
+              items={snapshot.domainSummaries.map((summary) => ({
+                domainKey: summary.domainKey,
+                score: summary.displayedScore
+              }))}
+            />
+            {snapshot.domainSummaries.map((summary) => (
               <ScoreProgressBar
                 key={summary.domainKey}
                 detail={
@@ -133,8 +143,9 @@ export function HomeScreen() {
                 label={DOMAIN_LABELS[summary.domainKey]}
                 score={summary.displayedScore}
               />
-            ))
-          : null}
+            ))}
+          </>
+        ) : null}
         {!isLoading && !snapshot?.domainSummaries.length ? (
           <Text style={styles.itemCopy}>
             There is no official weekly domain summary yet. Keep using check-ins and action logs so

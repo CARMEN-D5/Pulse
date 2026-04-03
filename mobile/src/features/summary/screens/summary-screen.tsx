@@ -5,6 +5,7 @@ import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { BalanceWheel } from "@/features/summary/components/balance-wheel";
 import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
 import { ScoreProgressBar } from "@/features/summary/components/score-progress-bar";
 import {
@@ -144,6 +145,15 @@ export function SummaryScreen() {
       {!isLoading && selectedLifeSummary ? (
         <Card>
           <Text style={styles.sectionTitle}>Domain breakdown</Text>
+          <BalanceWheel
+            centerCaption="Balance"
+            centerValue={selectedLifeSummary.balancedLifeScore.toFixed(1)}
+            items={domainSummaries.map((summary) => ({
+              domainKey: summary.domainKey,
+              score: summary.displayedScore
+            }))}
+            size={220}
+          />
           {domainSummaries.map((summary) => (
             <View key={summary.domainKey} style={styles.domainBlock}>
               <ScoreProgressBar
