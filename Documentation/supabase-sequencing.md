@@ -272,6 +272,8 @@ Current progress:
   - `@react-native-async-storage/async-storage`
   - `react-native-url-polyfill`
 - the Supabase mobile client is configured for React Native session persistence with AsyncStorage and app-state-driven token refresh
+- the Expo app shell is now wrapped in an `AuthSessionProvider` backed by Supabase auth
+- the placeholder home screen reads and displays the current Supabase session state, so the app has a working session boundary before dedicated auth screens exist
 - the mobile workspace installs cleanly and `npm run typecheck:mobile` still passes after the client-layer pivot
 
 ### Phase S6: Implement the shared scoring core and validate with SQL outputs

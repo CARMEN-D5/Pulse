@@ -3,17 +3,28 @@ import { Text, View, StyleSheet } from "react-native";
 import { DOMAIN_KEYS, DOMAIN_LABELS } from "@velora/shared";
 
 import { Screen } from "@/components/ui/screen";
+import { useAuthSession } from "@/providers/auth-session-provider";
 
 export function HomeScreen() {
+  const { isLoading, user } = useAuthSession();
+
+  const authStatus = isLoading ? "Checking Supabase session..." : user ? "Signed in" : "Signed out";
+
   return (
     <Screen scrollable>
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>VELORA Phase 0</Text>
         <Text style={styles.title}>Mobile, backend, and shared workspaces are scaffolded.</Text>
         <Text style={styles.copy}>
-          This screen is only a placeholder shell for the new Expo app. The next phase is wiring
-          Firebase auth, onboarding, and the daily check-in flow.
+          This screen is still a placeholder shell, but the mobile app now has a Supabase session
+          boundary. The next phase is wiring auth screens, onboarding, and the daily check-in flow.
         </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Session status</Text>
+        <Text style={styles.listItem}>{authStatus}</Text>
+        {user ? <Text style={styles.listItem}>{user.email ?? user.id}</Text> : null}
       </View>
 
       <View style={styles.card}>
