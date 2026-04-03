@@ -1,0 +1,67 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "dailyCheckins",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "weekStartLocalDate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "domainKey",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "actionEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "weekStartLocalDate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "domainKey",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "actionEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "localEventDate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "actionType",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "weeklyDomainSummaries",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "weekStartLocalDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "weeklyLifeSummaries",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "weekStartLocalDate",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

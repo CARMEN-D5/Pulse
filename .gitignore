@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+.expo-shared/
+.firebase/
+dist/
+lib/
+coverage/
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+mobile/.expo/
+mobile/.expo-shared/
+functions/lib/
+shared/dist/
