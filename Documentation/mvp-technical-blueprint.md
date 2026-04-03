@@ -1,32 +1,39 @@
 # VELORA MVP Technical Blueprint
 
-Last updated: 2026-04-02
+Last updated: 2026-04-03
 
 This document turns the agreed scoring and product decisions into an implementation blueprint for the MVP.
 
-Important note:
-- this blueprint currently contains a Firebase-first backend implementation path from earlier planning
-- the project is now pivoting toward a Supabase-first backend because scoring and analytics have become the higher priority
-- use `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/Documentation/supabase-sequencing.md` as the active backend sequencing reference until this blueprint is fully rewritten around Supabase
+Active implementation direction:
+- VELORA is now a Supabase-first project
+- the backend source of truth is the SQL schema, RLS policies, triggers, RPCs, and summary helpers in `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/supabase/migrations`
+- the mobile app now has working auth, onboarding, dashboard, daily check-in, summary, settings, and action-module foundations in `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/mobile/src`
+- use `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/Documentation/supabase-sequencing.md` and `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/Documentation/technical-architecture-document.md` as the active backend references
 
 Reference sources:
 - `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/Documentation/Balanced Life.docx`
 - `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/Documentation/Scenarios&UserStory.md`
 - `/Users/phamvietan/Desktop/Sem1_2026/COMP8715/VELORA/Documentation/scoring-architecture-decisions.md`
 
-## Progress
+## Current Implementation Status
 
-Locked in this document:
-- Step 1: backend architecture and schema blueprint
-- Step 2: API contracts
-- Step 3: scoring computation flow and background jobs
-- Step 4: cross-platform mobile module map
-- Step 5: implementation sequencing, task breakdown, and repository setup
+Implemented on the current branch:
+- Supabase schema backbone for profiles, baselines, daily check-ins, feature tables, normalized action events, and weekly summaries
+- RLS and backend-authoritative write paths for onboarding and daily check-ins
+- normalization triggers for journal, connection, task, focus session, activity, sleep, expense, and financial-action modules
+- weekly domain and life summary helper functions plus orchestration helpers
+- shared TypeScript score-parity utilities in `@velora/shared`
+- mobile auth flow, onboarding flow, tab navigation, dashboard, check-in, summary, settings, and V1 action module screens
 
-Planned next:
-- repository scaffolding and Phase 1 execution
+Still pending for V1 completion:
+- production scheduling/deployment configuration for weekly summary orchestration
+- edit/delete polish and UX refinement across action modules
+- stronger summary visualization and trend presentation
+- release hardening, QA, and documentation cleanup across all active product docs
 
-## Step 1: Backend Architecture and Schema Blueprint
+## Historical Note: Firebase Blueprint (Archived)
+
+The remainder of this document contains early Firebase-first planning that is now retained only for historical reference. Do not use the sections below as the active implementation source of truth.
 
 ### Recommended backend choice
 

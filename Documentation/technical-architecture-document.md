@@ -125,6 +125,21 @@ VELORA V1 is offline-tolerant:
 - user input can be queued or retried
 - official weekly summaries remain server-confirmed
 
+### 6.5 Current Implementation Status
+
+Implemented on the current branch:
+- auth session restoration through Supabase in `mobile/src/providers`
+- profile loading and onboarding gating before main app access
+- main tab navigation for Home, Check-In, Actions, Summary, and Settings
+- dashboard reads from persisted weekly summary tables
+- daily check-in submission through `submit_daily_checkin(...)`
+- action-module create/list flows over the existing Supabase feature tables
+
+Still pending:
+- richer trend and chart presentation
+- more refined edit/delete flows for user-created content
+- final production scheduling and deployment wiring for weekly summary generation
+
 ## 7. Backend Architecture
 
 ## 7.1 Core Backend Components

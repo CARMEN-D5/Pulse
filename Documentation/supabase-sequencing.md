@@ -11,6 +11,22 @@ This document defines the recommended implementation sequence for VELORA if the 
 
 Under that priority, Supabase is the recommended backend direction.
 
+## Current implementation snapshot
+
+Completed so far:
+- local Supabase project scaffold and migration workflow
+- scoring backbone tables, summary tables, and RLS policies
+- onboarding RPC, daily check-in RPC, normalization triggers, and weekly summary SQL helpers
+- local verification of the backend scoring pipeline with the Supabase local stack
+- mobile Supabase client, auth session boundary, profile boundary, onboarding flow, tab navigation, dashboard reads, summary reads, settings, and daily check-ins
+- V1 action module UI for journal, connection logs, tasks, focus sessions, activity logs, sleep logs, expense logs, and financial actions
+
+Still open for V1:
+- production scheduling for weekly summary orchestration
+- action-module polish for richer edit/delete flows and stronger UX feedback
+- summary/history visualization upgrades
+- release hardening and cross-document cleanup
+
 ## Why this sequence exists
 
 The repository currently contains:
@@ -97,7 +113,7 @@ Exit criteria:
 Current progress:
 - initial scoring backbone migration created
 - weekly summary tables migration created
-- local application has not yet been verified because Docker is required for `supabase start` and is not available in the current environment
+- local Supabase stack was started successfully and the core schema was verified locally
 
 ### Phase S3: Add Row Level Security and auth-safe access
 
