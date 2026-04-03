@@ -285,6 +285,22 @@ Recommendation:
 Exit criteria:
 - mobile preview logic and backend official logic agree on known examples
 
+Current progress:
+- `shared/src/scoring.ts` now mirrors the backend formulas for:
+  - weekly action targets
+  - onboarding blend weights
+  - action score
+  - consistency score
+  - missing-reflection reweighting
+  - blended domain score
+  - displayed score smoothing
+  - evenness and life-level aggregation
+- the shared package builds and typechecks successfully
+- local parity verification confirmed the shared helpers matched the backend outputs for:
+  - `health` weekly domain summary
+  - `work_productivity` weekly domain summary
+  - the corresponding weekly life summary aggregate
+
 ### Phase S7: Build product features in the same product order as before
 
 Goal:
