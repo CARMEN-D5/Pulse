@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign In - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container": "#ebefe3",
+              "surface-tint": "#086a69",
+              "error-dim": "#70030f",
+              "tertiary-fixed": "#ff98cd",
+              "on-primary-fixed-variant": "#006362",
+              "secondary-dim": "#425472",
+              "on-primary-container": "#005857",
+              "surface-container-high": "#e5eadd",
+              "on-secondary-container": "#405271",
+              "on-surface-variant": "#5b6156",
+              "secondary-fixed": "#d6e3ff",
+              "on-primary-fixed": "#004343",
+              "primary-fixed-dim": "#8edcda",
+              "inverse-on-surface": "#9b9e96",
+              "primary-container": "#9cebe8",
+              "tertiary-fixed-dim": "#f289c0",
+              "on-secondary": "#f8f8ff",
+              "secondary-fixed-dim": "#c2d5f9",
+              "on-tertiary-fixed-variant": "#711e51",
+              "tertiary": "#983f72",
+              "surface-container-lowest": "#ffffff",
+              "outline": "#767d70",
+              "secondary": "#4e607f",
+              "on-tertiary-fixed": "#45002e",
+              "on-error-container": "#65000b",
+              "error-container": "#f56965",
+              "surface": "#f8faf1",
+              "on-tertiary": "#fff7f8",
+              "primary": "#086a69",
+              "surface-container-highest": "#dfe5d6",
+              "on-secondary-fixed": "#2e405d",
+              "error": "#ac3434",
+              "background": "#f8faf1",
+              "inverse-primary": "#adfcfa",
+              "surface-bright": "#f8faf1",
+              "on-primary": "#e0fffd",
+              "primary-dim": "#005d5c",
+              "on-error": "#fff7f6",
+              "tertiary-container": "#ff98cd",
+              "surface-container-low": "#f2f5ea",
+              "on-background": "#2e342a",
+              "inverse-surface": "#0c0f0a",
+              "tertiary-dim": "#893365",
+              "outline-variant": "#aeb4a6",
+              "secondary-container": "#d6e3ff",
+              "on-tertiary-container": "#661447",
+              "on-surface": "#2e342a",
+              "surface-dim": "#d5dccd",
+              "primary-fixed": "#9cebe8",
+              "surface-variant": "#dfe5d6",
+              "on-secondary-fixed-variant": "#4a5c7b"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .mesh-bg {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, #9cebe8 0px, transparent 50%),
+                radial-gradient(at 100% 0%, #ff98cd 0px, transparent 50%),
+                radial-gradient(at 100% 100%, #d6e3ff 0px, transparent 50%),
+                radial-gradient(at 0% 100%, #8edcda 0px, transparent 50%);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col items-center justify-center p-4 mesh-bg">
+<!-- Decorative Elements -->
+<div class="fixed top-20 left-10 w-32 h-32 bg-primary-container/30 rounded-full blur-3xl -z-10"></div>
+<div class="fixed bottom-20 right-10 w-48 h-48 bg-tertiary-container/20 rounded-full blur-3xl -z-10"></div>
+<main class="w-full max-w-md flex flex-col items-center space-y-8">
+<!-- Header Section -->
+<header class="text-center space-y-4">
+<div class="inline-flex items-center justify-center w-20 h-20 bg-white/40 rounded-3xl shadow-xl backdrop-blur-sm border border-white/60">
+<span class="material-symbols-outlined text-5xl text-primary" style="font-variation-settings: 'FILL' 1;">
+                    self_care
+                </span>
+</div>
+<div class="space-y-1">
+<h1 class="text-3xl font-extrabold tracking-tight text-on-surface">Sign In</h1>
+<p class="text-on-surface-variant font-medium">Welcome back to Balanced Life</p>
+</div>
+</header>
+<!-- Main Form Container -->
+<section class="glass-card w-full p-8 rounded-lg shadow-2xl space-y-6">
+<form class="space-y-5">
+<!-- Email Field -->
+<div class="space-y-2">
+<label class="block text-sm font-bold text-on-surface-variant px-1">Email Address</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-outline" data-icon="email">email</span>
+<input class="w-full pl-12 pr-4 py-4 bg-white/50 border-white/30 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-outline/60 text-on-surface" placeholder="yourname@email.com" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-2">
+<label class="block text-sm font-bold text-on-surface-variant px-1">Password</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-outline" data-icon="lock">lock</span>
+<input class="w-full pl-12 pr-12 py-4 bg-white/50 border-white/30 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-outline/60 text-on-surface" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+<div class="flex justify-end px-1">
+<a class="text-sm font-bold text-primary hover:text-primary-dim transition-colors" href="#">Forgot Password?</a>
+</div>
+</div>
+<!-- Action Button -->
+<div class="pt-4">
+<button class="w-full py-4 px-6 bg-gradient-to-r from-primary to-primary-dim text-on-primary font-bold rounded-full shadow-lg shadow-primary/20 flex items-center justify-center space-x-2 hover:opacity-90 active:scale-[0.98] transition-all group">
+<span>Sign In</span>
+<span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</form>
+<!-- Social/Divider (Optional Aesthetic Enhancement) -->
+<div class="relative py-2">
+<div class="absolute inset-0 flex items-center"><div class="w-full border-t border-outline-variant/30"></div></div>
+<div class="relative flex justify-center text-xs uppercase tracking-widest font-bold text-outline-variant/80 bg-transparent px-2">
+<span class="bg-white/20 px-2 rounded-full backdrop-blur-sm">OR</span>
+</div>
+</div>
+<!-- Social Sign In Links -->
+<div class="flex justify-center space-x-6">
+<button class="w-12 h-12 rounded-full bg-white/40 border border-white/60 flex items-center justify-center hover:bg-white/60 transition-all">
+<img alt="" class="w-6 h-6" data-alt="Google logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCm_IvqAbEi9-2co56_vkv5qmO6XgNS6S7X6A6nBiUMaVyoPqINdx0_ssnpbq5naHorWbZ-xwPp2mpc6ywlZ8YacvwXVGErszve0H2HnRiMs6yu2Ir9jQE7yUR0rAZaUmw5ybb8tPpVxhuiDgst6aiUauJ-p4gaCm_YLzce_fAAUAmcV6pkOCKbyAqIGjmq-T8uDx83eHwkhsQ8POeoMfZb8LAHpPLwv1E-P-UpUCE6fIWw_3gM56A6eBrlc8AKBDIuYnUdUdViJp4"/>
+</button>
+<button class="w-12 h-12 rounded-full bg-white/40 border border-white/60 flex items-center justify-center hover:bg-white/60 transition-all">
+<span class="material-symbols-outlined text-on-surface" data-icon="apple" style="font-variation-settings: 'FILL' 1;">ios</span>
+</button>
+</div>
+</section>
+<!-- Footer -->
+<footer class="text-center">
+<p class="text-on-surface-variant font-medium">
+                Don't have an account? 
+                <a class="text-primary font-extrabold hover:underline ml-1" href="#">Sign Up</a>
+</p>
+</footer>
+</main>
+<!-- Content Separation Tonal Shift -->
+<div class="fixed bottom-0 left-0 w-full h-1/4 bg-gradient-to-t from-white/20 to-transparent pointer-events-none -z-10"></div>
+</body></html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Progress Analytics - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed": "#9cebe8",
+                        "primary": "#086a69",
+                        "inverse-surface": "#0c0f0a",
+                        "inverse-primary": "#adfcfa",
+                        "on-tertiary-fixed-variant": "#711e51",
+                        "surface-container-low": "#f2f5ea",
+                        "surface-container-highest": "#dfe5d6",
+                        "tertiary-container": "#ff98cd",
+                        "on-secondary": "#f8f8ff",
+                        "surface-container-high": "#e5eadd",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#fff7f6",
+                        "on-secondary-fixed-variant": "#4a5c7b",
+                        "background": "#f8faf1",
+                        "secondary": "#4e607f",
+                        "surface-dim": "#d5dccd",
+                        "inverse-on-surface": "#9b9e96",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-surface": "#2e342a",
+                        "error-dim": "#70030f",
+                        "on-primary": "#e0fffd",
+                        "on-tertiary": "#fff7f8",
+                        "outline": "#767d70",
+                        "error-container": "#f56965",
+                        "surface-container": "#ebefe3",
+                        "error": "#ac3434",
+                        "on-tertiary-container": "#661447",
+                        "on-primary-container": "#005857",
+                        "tertiary-fixed": "#ff98cd",
+                        "surface-variant": "#dfe5d6",
+                        "surface": "#f8faf1",
+                        "tertiary-dim": "#893365",
+                        "secondary-container": "#d6e3ff",
+                        "surface-tint": "#086a69",
+                        "on-tertiary-fixed": "#45002e",
+                        "surface-bright": "#f8faf1",
+                        "on-secondary-container": "#405271",
+                        "on-background": "#2e342a",
+                        "tertiary": "#983f72",
+                        "on-primary-fixed-variant": "#006362",
+                        "primary-fixed-dim": "#8edcda",
+                        "on-error-container": "#65000b",
+                        "on-primary-fixed": "#004343",
+                        "secondary-dim": "#425472",
+                        "primary-dim": "#005d5c",
+                        "secondary-fixed-dim": "#c2d5f9",
+                        "on-secondary-fixed": "#2e405d",
+                        "tertiary-fixed-dim": "#f289c0",
+                        "outline-variant": "#aeb4a6",
+                        "primary-container": "#9cebe8",
+                        "on-surface-variant": "#5b6156"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        .mesh-gradient {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(179,56%,92%,1) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(329,56%,92%,1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(218,33%,92%,1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(88,23%,92%,1) 0px, transparent 50%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="mesh-gradient font-body text-on-background antialiased min-h-screen flex flex-col overflow-x-hidden">
+<!-- Top App Bar -->
+<div class="flex items-center bg-surface/40 p-4 justify-between sticky top-0 z-50 backdrop-blur-xl border-b border-white/20">
+<a class="text-on-surface flex size-12 shrink-0 items-center justify-center hover:bg-surface-variant rounded-full transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</a>
+<h2 class="text-on-surface text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12 font-headline">Progress Analytics</h2>
+</div>
+<main class="flex-1 flex flex-col max-w-4xl mx-auto w-full @container pb-24">
+<!-- Range Toggles -->
+<div class="flex px-4 py-4">
+<div class="flex h-12 flex-1 items-center justify-center rounded-full bg-surface-container-highest/50 backdrop-blur-md p-1 shadow-sm border border-white/30">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-full px-4 has-[:checked]:bg-primary has-[:checked]:text-on-primary text-on-surface-variant text-sm font-medium leading-normal transition-all">
+<span class="truncate">7 Days</span>
+<input class="invisible w-0" name="date-range" type="radio" value="7 Days"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-full px-4 has-[:checked]:bg-primary has-[:checked]:text-on-primary text-on-surface-variant text-sm font-medium leading-normal transition-all">
+<span class="truncate">30 Days</span>
+<input checked="" class="invisible w-0" name="date-range" type="radio" value="30 Days"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-full px-4 has-[:checked]:bg-primary has-[:checked]:text-on-primary text-on-surface-variant text-sm font-medium leading-normal transition-all">
+<span class="truncate">90 Days</span>
+<input class="invisible w-0" name="date-range" type="radio" value="90 Days"/>
+</label>
+</div>
+</div>
+<!-- Overall Score Card -->
+<section class="px-4 py-4">
+<div class="bg-gradient-to-br from-primary to-primary-dim rounded-2xl p-6 shadow-xl text-on-primary flex flex-col @md:flex-row @md:items-center justify-between gap-6 relative overflow-hidden">
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
+<div class="absolute -bottom-10 -left-10 w-32 h-32 bg-secondary opacity-20 rounded-full blur-xl"></div>
+<div class="z-10 flex flex-col gap-2">
+<h3 class="text-on-primary font-bold text-xl font-headline">Overall Balance Score</h3>
+<p class="text-on-primary/80 text-sm">Your average across all life domains over the last 30 days.</p>
+</div>
+<div class="z-10 flex items-center gap-4 bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-inner">
+<div class="flex flex-col items-center">
+<span class="text-4xl font-bold">78</span>
+<span class="text-[10px] uppercase tracking-widest text-on-primary/70 mt-1">Current</span>
+</div>
+<div class="w-px h-12 bg-white/20"></div>
+<div class="flex flex-col items-center">
+<div class="flex items-center text-inverse-primary">
+<span class="material-symbols-outlined text-sm font-bold" data-icon="trending_up">trending_up</span>
+<span class="text-lg font-bold ml-1">+5%</span>
+</div>
+<span class="text-[10px] uppercase tracking-widest text-on-primary/70 mt-1">Growth</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Comprehensive Trends Section -->
+<section class="px-4 py-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-on-surface text-lg font-bold leading-tight tracking-[-0.015em] font-headline">Detailed Performance Trends</h3>
+</div>
+<!-- Main Trend Card with Domain Selector -->
+<div class="bg-white/40 backdrop-blur-xl rounded-2xl shadow-sm border border-white/60 p-6">
+<div class="flex justify-between items-start mb-6">
+<div>
+<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block">Selected Metric</span>
+<h4 class="text-2xl font-bold text-on-surface">Balance Score History</h4>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-primary">
+<span class="material-symbols-outlined text-sm font-bold" data-icon="arrow_upward">arrow_upward</span>
+<span class="text-xs font-bold">1.2 pts avg.</span>
+</div>
+</div>
+<!-- Main Chart Area -->
+<div class="relative w-full h-56 flex items-end justify-between border-b border-l border-outline-variant/30 pl-2 pb-2 mb-8">
+<div class="absolute left-2 right-0 bottom-[33%] border-t border-outline-variant/10 h-px"></div>
+<div class="absolute left-2 right-0 bottom-[66%] border-t border-outline-variant/10 h-px"></div>
+<svg class="absolute inset-0 w-full h-full pl-2 pb-2 overflow-visible" preserveaspectratio="none">
+<defs>
+<lineargradient id="mainTrendGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#086a69" stop-opacity="0.25"></stop>
+<stop offset="100%" stop-color="#086a69" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path class="text-primary opacity-20" d="M0,160 C30,140 60,170 90,120 C120,80 150,140 180,100 C210,70 240,110 270,60 C300,20 330,90 360,40 L360,200 L0,200 Z" fill="url(#mainTrendGradient)"></path>
+<path class="text-primary" d="M0,160 C30,140 60,170 90,120 C120,80 150,140 180,100 C210,70 240,110 270,60 C300,20 330,90 360,40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" vector-effect="non-scaling-stroke"></path>
+<!-- High-fidelity data points -->
+<circle class="fill-white stroke-primary stroke-2" cx="0%" cy="160" r="4" vector-effect="non-scaling-stroke"></circle>
+<circle class="fill-white stroke-primary stroke-2" cx="25%" cy="120" r="4" vector-effect="non-scaling-stroke"></circle>
+<circle class="fill-white stroke-primary stroke-2" cx="50%" cy="100" r="4" vector-effect="non-scaling-stroke"></circle>
+<circle class="fill-white stroke-primary stroke-2" cx="75%" cy="60" r="4" vector-effect="non-scaling-stroke"></circle>
+<circle class="fill-primary stroke-white stroke-2 shadow-lg" cx="100%" cy="40" r="5" vector-effect="non-scaling-stroke"></circle>
+</svg>
+<div class="absolute -bottom-6 w-full flex justify-between text-[10px] font-bold text-on-surface-variant/60 pr-2">
+<span>WEEK 1</span>
+<span>WEEK 2</span>
+<span>WEEK 3</span>
+<span>WEEK 4</span>
+</div>
+</div>
+<!-- Domain Selector (Horizontal Scrollable) -->
+<div class="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar -mx-2 px-2">
+<button class="flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-full shadow-md transition-all whitespace-nowrap shrink-0">
+<span class="material-symbols-outlined text-lg" data-icon="dashboard">dashboard</span>
+<span class="text-sm font-bold">Overall</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2.5 bg-white/50 text-on-surface-variant hover:bg-white/80 rounded-full border border-white/60 transition-all whitespace-nowrap shrink-0">
+<span class="material-symbols-outlined text-lg" data-icon="favorite">favorite</span>
+<span class="text-sm font-bold">Health</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2.5 bg-white/50 text-on-surface-variant hover:bg-white/80 rounded-full border border-white/60 transition-all whitespace-nowrap shrink-0">
+<span class="material-symbols-outlined text-lg" data-icon="psychology">psychology</span>
+<span class="text-sm font-bold">Mind</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2.5 bg-white/50 text-on-surface-variant hover:bg-white/80 rounded-full border border-white/60 transition-all whitespace-nowrap shrink-0">
+<span class="material-symbols-outlined text-lg" data-icon="auto_awesome">auto_awesome</span>
+<span class="text-sm font-bold">Spirit</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2.5 bg-white/50 text-on-surface-variant hover:bg-white/80 rounded-full border border-white/60 transition-all whitespace-nowrap shrink-0">
+<span class="material-symbols-outlined text-lg" data-icon="groups">groups</span>
+<span class="text-sm font-bold">Social</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2.5 bg-white/50 text-on-surface-variant hover:bg-white/80 rounded-full border border-white/60 transition-all whitespace-nowrap shrink-0">
+<span class="material-symbols-outlined text-lg" data-icon="work">work</span>
+<span class="text-sm font-bold">Work</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Domain Insights -->
+<section class="px-4 py-4 mb-6">
+<h3 class="text-on-surface text-lg font-bold leading-tight tracking-[-0.015em] font-headline mb-4">Strategic Insights</h3>
+<div class="flex flex-col gap-4">
+<!-- Insight Card 1 -->
+<div class="bg-white/30 backdrop-blur-md rounded-2xl p-4 border border-white/40 shadow-sm relative overflow-hidden group hover:bg-white/40 transition-colors">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full group-hover:bg-primary/10 transition-colors"></div>
+<div class="flex items-start gap-4 relative z-10">
+<div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-on-surface">Health &amp; Fitness</h4>
+<p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Your consistency in morning workouts has improved your overall health score by 15%. This is your primary growth driver.</p>
+<div class="mt-3 bg-surface-variant/30 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary w-[85%] h-full rounded-full"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">
+<span>Current: 8.5/10</span>
+<span class="text-primary">+1.5 Trend</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Insight Card 2 -->
+<div class="bg-white/30 backdrop-blur-md rounded-2xl p-4 border border-white/40 shadow-sm relative overflow-hidden group hover:bg-white/40 transition-colors">
+<div class="absolute top-0 right-0 w-24 h-24 bg-tertiary/5 rounded-bl-full group-hover:bg-tertiary/10 transition-colors"></div>
+<div class="flex items-start gap-4 relative z-10">
+<div class="w-12 h-12 rounded-xl bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" data-icon="work">work</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-on-surface">Career &amp; Work</h4>
+<p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Slight dip in work satisfaction identified in week 3. Reviewing task loads or environment might be beneficial.</p>
+<div class="mt-3 bg-surface-variant/30 h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary w-[60%] h-full rounded-full"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">
+<span>Current: 6.0/10</span>
+<span class="text-error">-0.5 Trend</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>

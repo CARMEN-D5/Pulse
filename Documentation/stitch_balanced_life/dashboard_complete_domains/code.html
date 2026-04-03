@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Equilibrium | Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#2e342a",
+                        "on-primary-fixed": "#004343",
+                        "on-error-container": "#65000b",
+                        "primary-container": "#9cebe8",
+                        "on-primary-fixed-variant": "#006362",
+                        "primary": "#086a69",
+                        "secondary-dim": "#425472",
+                        "surface-variant": "#dfe5d6",
+                        "surface-tint": "#086a69",
+                        "secondary": "#4e607f",
+                        "inverse-surface": "#0c0f0a",
+                        "outline": "#767d70",
+                        "on-secondary-fixed-variant": "#4a5c7b",
+                        "surface-container": "#ebefe3",
+                        "on-tertiary-fixed-variant": "#711e51",
+                        "tertiary": "#983f72",
+                        "on-secondary": "#f8f8ff",
+                        "inverse-primary": "#adfcfa",
+                        "outline-variant": "#aeb4a6",
+                        "tertiary-fixed": "#ff98cd",
+                        "error-dim": "#70030f",
+                        "surface-dim": "#d5dccd",
+                        "background": "#f8faf1",
+                        "primary-fixed": "#9cebe8",
+                        "on-tertiary-fixed": "#45002e",
+                        "tertiary-dim": "#893365",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#005857",
+                        "on-error": "#fff7f6",
+                        "on-surface-variant": "#5b6156",
+                        "primary-dim": "#005d5c",
+                        "surface-container-highest": "#dfe5d6",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-secondary-fixed": "#2e405d",
+                        "inverse-on-surface": "#9b9e96",
+                        "on-background": "#2e342a",
+                        "secondary-fixed-dim": "#c2d5f9",
+                        "surface-bright": "#f8faf1",
+                        "tertiary-fixed-dim": "#f289c0",
+                        "secondary-container": "#d6e3ff",
+                        "error-container": "#f56965",
+                        "error": "#ac3434",
+                        "on-tertiary": "#fff7f8",
+                        "tertiary-container": "#ff98cd",
+                        "surface-container-high": "#e5eadd",
+                        "surface": "#f8faf1",
+                        "primary-fixed-dim": "#8edcda",
+                        "on-primary": "#e0fffd",
+                        "on-tertiary-container": "#661447",
+                        "on-secondary-container": "#405271",
+                        "surface-container-low": "#f2f5ea"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5)
+        }
+        .bg-main-image {
+            background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCbkiAbFpIapEp_edytQnmYgUwxVPSzCH60Fx7l22DJHc_8G7ZL3n7RZ0IANGq6OKQ_nUqAO2cguYE2fHBMHmR6NDf6ERRtUwnqTcS5g8NRDDdzHP_4Lg2DuU6tLv7CKJiEEYzt1x6E1p7akvM4nLBkskjKwiclFz8ZJ6cI0vJi3y-OUxVZNsVSE4iz1SzwXLzBklT_VhH4wQA5ymKxRr6_bSxmMAVGTQIEsiIVN6Y-nSscu9ZNtfynIXtwmjqAb8f4VlXJH2P9AAI);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed
+        }
+    </style>
+</head>
+<body class="bg-main-image text-on-background font-body min-h-screen pb-28 relative" data-mode="connect">
+<!-- Overlay to ensure readability while keeping background visible -->
+<div class="fixed inset-0 bg-white/10 pointer-events-none z-0"></div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/40 backdrop-blur-lg border-b border-white/20 shadow-sm flex justify-between items-center px-6 h-16 font-manrope antialiased">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full overflow-hidden border border-white/60">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxJlgMlrKrP-XYvKOncsQrV2EHaEvIBz6DaFRXKvB3MsFqrn5XgvO075zlpVyKwa02BdAqWNa7u8PpAFp-IAIAw9t8kmSplf2zpWUTf094o4_GnXJPQAPgNwM5Jl8bSnSFLmT3FqjR_nROhxzQv7A7rSJozzkqSqopOU5oPix4jM_i8iHXHIbwFJDPQgxkZm9ECv7u8mdbdZ45VfGM9y90-eosdxNfMAWi9fBrwiFLJ383dCZTQGS9f4RgiHkniKTWH1gUjE-47bk"/>
+</div>
+<span class="text-lg font-bold tracking-tight text-primary">Welcome User<br/></span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="relative z-10 pt-20 px-4 max-w-lg mx-auto space-y-6">
+<!-- Minimal Hero: Integrated Balance Score -->
+<section class="flex flex-col items-center py-4">
+<div class="relative w-48 h-48 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="opacity-20 text-white" cx="96" cy="96" fill="transparent" r="84" stroke="currentColor" stroke-width="6"></circle>
+<circle class="drop-shadow-sm" cx="96" cy="96" fill="transparent" r="84" stroke="url(#scoreGradient)" stroke-dasharray="528" stroke-dashoffset="116" stroke-linecap="round" stroke-width="8"></circle>
+<defs>
+<lineargradient id="scoreGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#086a69"></stop>
+<stop offset="100%" stop-color="#9cebe8"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-5xl font-extrabold text-on-primary-fixed tracking-tighter">78</span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-primary-fixed/60">Balance</span>
+</div>
+</div>
+<div class="mt-2 text-center">
+<div class="text-sm font-bold text-primary flex items-center justify-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                Excellent Status
+            </div>
+</div>
+</section>
+<!-- High-Fidelity Radar Chart (Balance Wheel) -->
+<section class="glass-card rounded-3xl p-6 shadow-sm overflow-hidden border border-white/40">
+<div class="relative w-full aspect-square max-w-[300px] mx-auto flex items-center justify-center">
+<!-- Glassmorphic Background Circles -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="w-full h-full rounded-full border border-white/40 bg-white/5 backdrop-blur-[4px]"></div>
+<div class="absolute w-[80%] h-[80%] rounded-full border border-white/20"></div>
+<div class="absolute w-[60%] h-[60%] rounded-full border border-white/15"></div>
+<div class="absolute w-[40%] h-[40%] rounded-full border border-white/10"></div>
+<div class="absolute w-[20%] h-[20%] rounded-full border border-white/5"></div>
+</div>
+<!-- Enhanced SVG Radar Chart -->
+<svg class="w-full h-full relative z-10" viewbox="0 0 100 100">
+<defs>
+<!-- Vibrant Mesh Gradient for Data Area -->
+<radialgradient cx="50%" cy="50%" fx="50%" fy="50%" id="vibrantGradient" r="50%">
+<stop offset="0%" stop-color="#9cebe8" stop-opacity="0.8"></stop>
+<stop offset="60%" stop-color="#086a69" stop-opacity="0.5"></stop>
+<stop offset="100%" stop-color="#086a69" stop-opacity="0.1"></stop>
+</radialgradient>
+<!-- Shadow Filter for Data Points -->
+<filter height="200%" id="pointGlow" width="200%" x="-50%" y="-50%">
+<fegaussianblur result="blur" stddeviation="1.2"></fegaussianblur>
+<fecomposite in="SourceGraphic" in2="blur" operator="over"></fecomposite>
+</filter>
+<!-- Subtle Inner Glow for Polygon -->
+<filter id="polyGlow">
+<fegaussianblur result="blur" stddeviation="2"></fegaussianblur>
+<feflood flood-color="#086a69" flood-opacity="0.3" result="color"></feflood>
+<fecomposite in="color" in2="blur" operator="in" result="glow"></fecomposite>
+<femerge>
+<femergenode in="glow"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+</defs>
+<!-- Axis Lines -->
+<g stroke="white" stroke-dasharray="2,2" stroke-opacity="0.15" stroke-width="0.4">
+<line x1="50" x2="50" y1="50" y2="15"></line> <!-- Spirit -->
+<line x1="50" x2="80" y1="50" y2="38"></line> <!-- Family -->
+<line x1="50" x2="72" y1="50" y2="82"></line> <!-- Finance -->
+<line x1="50" x2="28" y1="50" y2="82"></line> <!-- Health -->
+<line x1="50" x2="20" y1="50" y2="38"></line> <!-- Work -->
+</g>
+<!-- Data Polygon -->
+<!-- Spirit(88), Family(90), Finance(65), Health(82), Work(74) -->
+<!-- Scaled points: Spirit(50,19.2), Family(78,39.6), Finance(63,65.5), Health(33.6,66.1), Work(29,39.6) -->
+<polygon class="transition-all duration-700 ease-in-out" fill="url(#vibrantGradient)" filter="url(#polyGlow)" points="50,19 78,40 64,74 34,75 28,41" stroke="#086a69" stroke-linejoin="round" stroke-width="1.2"></polygon>
+<!-- Data Markers -->
+<circle cx="50" cy="19" fill="#086a69" filter="url(#pointGlow)" r="1.8" stroke="white" stroke-width="0.5"></circle> <!-- Spirit -->
+<circle cx="78" cy="40" fill="#4e607f" filter="url(#pointGlow)" r="1.8" stroke="white" stroke-width="0.5"></circle> <!-- Family -->
+<circle cx="64" cy="74" fill="#983f72" filter="url(#pointGlow)" r="1.8" stroke="white" stroke-width="0.5"></circle> <!-- Finance -->
+<circle cx="34" cy="75" fill="#086a69" filter="url(#pointGlow)" r="1.8" stroke="white" stroke-width="0.5"></circle> <!-- Health -->
+<circle cx="28" cy="41" fill="#2e342a" filter="url(#pointGlow)" r="1.8" stroke="white" stroke-width="0.5"></circle> <!-- Work -->
+<!-- Labels -->
+<g class="font-bold text-[3.5px] tracking-[0.1em] uppercase fill-on-surface/80" style="font-family: 'Manrope', sans-serif;">
+<text class="fill-primary font-extrabold" text-anchor="middle" x="50" y="10">Spirituality</text>
+<text class="fill-secondary" text-anchor="start" x="85" y="38">Family</text>
+<text class="fill-tertiary" text-anchor="middle" x="75" y="90">Finance</text>
+<text class="fill-primary" text-anchor="middle" x="25" y="90">Health</text>
+<text class="fill-on-surface" text-anchor="end" x="15" y="38">Work</text>
+</g>
+</svg>
+</div>
+</section>
+<!-- Domain Grid -->
+<section class="grid grid-cols-2 gap-3">
+<!-- Spirit summary card (newly added) -->
+<div class="glass-card p-4 rounded-2xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<div class="text-xs font-bold text-on-surface/60 uppercase tracking-tighter">Spirituality</div>
+<div class="flex items-baseline gap-1">
+<span class="text-lg font-extrabold text-on-surface">88</span>
+<span class="text-[10px] font-bold text-primary">Peaceful</span>
+</div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div>
+<div class="text-xs font-bold text-on-surface/60 uppercase tracking-tighter">Health</div>
+<div class="text-lg font-extrabold text-on-surface">82</div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">groups</span>
+</div>
+<div>
+<div class="text-xs font-bold text-on-surface/60 uppercase tracking-tighter">Family</div>
+<div class="text-lg font-extrabold text-on-surface">90</div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">payments</span>
+</div>
+<div>
+<div class="text-xs font-bold text-on-surface/60 uppercase tracking-tighter">Finance</div>
+<div class="text-lg font-extrabold text-on-surface">65</div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl flex items-center gap-3 col-span-2">
+<div class="w-10 h-10 rounded-xl bg-on-surface/5 flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">business_center</span>
+</div>
+<div>
+<div class="text-xs font-bold text-on-surface/60 uppercase tracking-tighter">Work &amp; Productivity</div>
+<div class="text-lg font-extrabold text-on-surface">74</div>
+</div>
+</div>
+</section>
+<!-- Simplified Mission Banner -->
+<section class="bg-on-primary-fixed rounded-3xl p-6 text-on-primary shadow-xl overflow-hidden relative">
+<div class="absolute -right-12 -top-12 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
+<div class="relative z-10 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="px-2 py-0.5 bg-primary-container/20 text-primary-fixed-dim rounded-md text-[10px] font-bold tracking-widest uppercase">Focus</span>
+<span class="material-symbols-outlined text-primary-fixed-dim opacity-50">self_improvement</span>
+</div>
+<div>
+<h2 class="text-xl font-bold mb-1">Focus on Mindfulness</h2>
+<p class="text-sm text-primary-fixed-dim/80 leading-snug">Boost mental clarity with a 10-minute meditation session.</p>
+</div>
+<button class="w-full bg-primary-container text-on-primary-container py-3 rounded-2xl font-bold text-sm shadow-md active:scale-[0.98] transition-all">
+                Start Session
+            </button>
+</div>
+</section>
+<!-- Core Insight Only -->
+<section class="glass-card p-5 rounded-3xl">
+<h4 class="font-bold text-sm text-on-surface/70 uppercase tracking-widest mb-4">Daily Momentum</h4>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">directions_walk</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface">8,432 Steps</p>
+<div class="w-full bg-white/30 h-1 rounded-full mt-1.5 overflow-hidden">
+<div class="bg-primary h-full w-[84%]"></div>
+</div>
+</div>
+<span class="text-xs font-bold text-primary">+12%</span>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-4 bg-white/60 backdrop-blur-xl border-t border-white/20 shadow-lg rounded-t-[32px] font-manrope text-[10px] font-bold uppercase tracking-wider">
+<a class="flex flex-col items-center justify-center text-primary" href="#">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/40 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="fitness_center">fitness_center</span>
+<span class="mt-1">Act</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/40 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="mt-1">Stats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/40 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="mt-1">Me</span>
+</a>
+</nav>
+</body></html>

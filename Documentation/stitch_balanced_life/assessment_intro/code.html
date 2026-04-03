@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Balanced Life - Wellbeing Journey</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary": "#983f72",
+              "primary-dim": "#005d5c",
+              "error-dim": "#70030f",
+              "background": "#f8faf1",
+              "on-primary-fixed-variant": "#006362",
+              "on-primary": "#e0fffd",
+              "surface-container-high": "#e5eadd",
+              "on-tertiary-container": "#661447",
+              "surface-container": "#ebefe3",
+              "secondary": "#4e607f",
+              "secondary-dim": "#425472",
+              "primary-fixed": "#9cebe8",
+              "primary": "#086a69",
+              "surface": "#f8faf1",
+              "outline": "#767d70",
+              "tertiary-dim": "#893365",
+              "surface-container-lowest": "#ffffff",
+              "error": "#ac3434",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "secondary-container": "#d6e3ff",
+              "on-secondary": "#f8f8ff",
+              "on-surface": "#2e342a",
+              "secondary-fixed": "#d6e3ff",
+              "on-primary-container": "#005857",
+              "surface-container-highest": "#dfe5d6",
+              "on-tertiary-fixed-variant": "#711e51",
+              "tertiary-fixed": "#ff98cd",
+              "on-secondary-container": "#405271",
+              "surface-bright": "#f8faf1",
+              "inverse-surface": "#0c0f0a",
+              "on-surface-variant": "#5b6156",
+              "tertiary-fixed-dim": "#f289c0",
+              "on-primary-fixed": "#004343",
+              "on-error-container": "#65000b",
+              "secondary-fixed-dim": "#c2d5f9",
+              "surface-tint": "#086a69",
+              "outline-variant": "#aeb4a6",
+              "on-tertiary-fixed": "#45002e",
+              "surface-dim": "#d5dccd",
+              "on-background": "#2e342a",
+              "surface-container-low": "#f2f5ea",
+              "on-secondary-fixed": "#2e405d",
+              "inverse-primary": "#adfcfa",
+              "surface-variant": "#dfe5d6",
+              "error-container": "#f56965",
+              "primary-container": "#9cebe8",
+              "primary-fixed-dim": "#8edcda",
+              "on-tertiary": "#fff7f8",
+              "on-error": "#fff7f6",
+              "inverse-on-surface": "#9b9e96",
+              "tertiary-container": "#ff98cd"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .mesh-gradient {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(156, 235, 232, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(255, 152, 205, 0.2) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(156, 235, 232, 0.3) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(242, 137, 192, 0.1) 0px, transparent 50%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col mesh-gradient">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-white dark:bg-stone-950 border-b border-stone-100 dark:border-stone-800 docked full-width top-0 z-50">
+<div class="flex items-center gap-4">
+<button class="text-teal-800 dark:text-teal-400 hover:opacity-80 transition-opacity Active: scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-teal-900 dark:text-teal-200 font-bold text-xl tracking-tight">Wellbeing Journey</h1>
+</div>
+<div class="hidden md:flex gap-8">
+<nav class="flex gap-6 items-center">
+<a class="text-teal-700 dark:text-teal-300 font-semibold font-manrope text-lg tracking-tight hover:opacity-80 transition-opacity" href="#">Assess</a>
+<a class="text-stone-400 dark:text-stone-600 font-semibold font-manrope text-lg tracking-tight hover:opacity-80 transition-opacity" href="#">Insights</a>
+<a class="text-stone-400 dark:text-stone-600 font-semibold font-manrope text-lg tracking-tight hover:opacity-80 transition-opacity" href="#">Profile</a>
+</nav>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow flex flex-col items-center justify-center px-6 py-12 max-w-7xl mx-auto w-full">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+<!-- Hero Content -->
+<div class="lg:col-span-7 flex flex-col space-y-8">
+<div class="inline-flex items-center gap-2 px-4 py-2 bg-primary-container/30 text-on-primary-container rounded-full w-fit border border-primary-container/50">
+<span class="material-symbols-outlined text-sm" data-icon="auto_awesome">auto_awesome</span>
+<span class="text-xs font-bold uppercase tracking-widest font-label">Personalized Growth</span>
+</div>
+<div class="space-y-4">
+<h2 class="text-5xl lg:text-7xl font-extrabold text-on-surface leading-[1.1] tracking-tight">
+                        Discover Your <span class="text-primary italic">Balance</span>
+</h2>
+<p class="text-xl text-on-surface-variant max-w-xl leading-relaxed font-body">
+                        Embark on a mindful exploration of your daily rhythms. This 25-question journey is designed to uncover the patterns that shape your mental and physical wellbeing.
+                    </p>
+</div>
+<div class="flex flex-col sm:flex-row items-center gap-4 pt-4">
+<button class="group relative px-8 py-5 bg-primary text-on-primary rounded-full font-bold text-lg shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-3 w-full sm:w-auto justify-center overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+<span>Get Started</span>
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+<div class="flex items-center gap-3 px-6 py-4 rounded-full bg-surface-container-low border border-outline-variant/20">
+<span class="material-symbols-outlined text-primary" data-icon="schedule">schedule</span>
+<span class="text-sm font-semibold text-on-surface-variant">8-10 Minutes</span>
+</div>
+</div>
+</div>
+<!-- Visual Component: Bento-style Cards -->
+<div class="lg:col-span-5 relative">
+<div class="grid grid-cols-2 gap-4">
+<!-- Card 1 -->
+<div class="glass-card p-6 rounded-lg aspect-square flex flex-col justify-between transform rotate-[-2deg]">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-container flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="mindfulness">mindfulness</span>
+</div>
+<div>
+<p class="text-sm font-bold text-tertiary uppercase tracking-tighter">Mind</p>
+<p class="text-on-surface font-medium leading-tight">Clarity &amp; Focus</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-primary p-6 rounded-lg aspect-square flex flex-col justify-between transform translate-y-8 rotate-[3deg] shadow-2xl">
+<div class="w-12 h-12 rounded-2xl bg-on-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary" data-icon="favorite" data-weight="fill" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div class="text-on-primary">
+<p class="text-sm font-bold opacity-80 uppercase tracking-tighter">Body</p>
+<p class="font-medium leading-tight">Energy Levels</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-highest p-6 rounded-lg aspect-square flex flex-col justify-between transform -translate-y-4">
+<div class="w-12 h-12 rounded-2xl bg-surface flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-secondary" data-icon="nights_stay">nights_stay</span>
+</div>
+<div>
+<p class="text-sm font-bold text-secondary uppercase tracking-tighter">Rest</p>
+<p class="text-on-surface font-medium leading-tight">Sleep Quality</p>
+</div>
+</div>
+<!-- Card 4 (Image Card) -->
+<div class="rounded-lg aspect-square overflow-hidden relative group transform rotate-[-1deg] translate-y-4 shadow-xl">
+<img alt="Yoga Session" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Person practicing yoga in a bright airy studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMieGePlMLmcPirLzFIzW7ehaL-oOLjBG-Y-mlQr0zv0ybiDGNYjb6IK3X0wbexqgZrWXyI1xAQp4rzehPN0-wBgwy_Q_Sr8uJBScG4QMzBWdwznAhCCr0C2q1UrW4hwE5_HqX5jRr6_qyeRxctc4F353YC4kfpSlOOL-SZnsB1CkuPU_2sxxWanA2NuEi2Zq3JkQDIywbz21Nvhcc6fWWmIcu_EHB40kLC0IocN8lCvqas08wR6n8Lo94iVXqcfMvR-HgF65PlsQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 text-white">
+<p class="text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Harmony</p>
+<div class="h-1 w-full bg-white/20 rounded-full overflow-hidden">
+<div class="h-full bg-primary-fixed w-[70%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Badge -->
+<div class="absolute -bottom-6 -right-6 bg-white shadow-2xl p-4 rounded-2xl flex items-center gap-3 border border-stone-100 hidden md:flex">
+<div class="flex -space-x-3">
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="User avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAloMel8ZW4x9nQx8JEF14lK1GHxqD-rQ91T_EtG9lA5EhsyH3CumXbrYv3-CdP54Epf_mIqoHx28x-3G1xWIIE0gesanCgmm0xC0aAV0KvctnhNsnFdNE9UW1VfPRgw4-y8jPL_fZ53H8zo0arYO0ykPULT4sjffrMgasS5vXF_-SS0YQ5EMNkI6Out1INAfawO5sLL0sVWB6EIfW4Kct9ZJsU9PDLg2rbWA1FCC5NF4N8RiVUbjR4AySXfQJbeUtSipm5HucJGts"/>
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="User avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAl3QKKGqcI3pnDmeS1ICITnwDQRiTXUNpioWr5wRXsl4w0uMDpNfhIeauZ2Z712cB2SkQpZ92bpCdSxK4qCAz26-0FRvpT44xvULKaW65a5bUxTnvO4SqLR1efsGzhIcu-h3zb8btDF1uvJmy7tulWwMG6zrsqK8SbFvU16jCBJgffo_8_sa80yIRYBMRe-uD7vXCuPw3DcCdynrIRtKB3_ufmOPftoS7AfFsbfg58UWOHq5a8DSPgxZMc9wxC-y8ZuipNJZeHJOU"/>
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="User avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMN5eZTlzVoL6Xef4WPh0fF04QM91wLKAhWOSENOeKpeYAYBhfCE8zJgfmjVGmUmEgaDexA4am0ifJApmKvKz5xjAkVbVHnxvEfLGV8nc8dyymy6TE3Qo6exhLZ5se4HwdZYqz69ZDLayfyar42fjXIWFwKarFuU2fm_VMQOxTQtgkOUBML5n5HfhAI8BwvnY06DQAWMPntC9Nhoc15MD6_Ez5OhAX6URopPwqwm1sCPvAsbCRwnv-IiI0nDNKa0bQla0KsnlkWbU"/>
+</div>
+<p class="text-xs font-bold text-on-surface-variant">12k+ users tracking</p>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile/Focused Navigation) -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-between items-center px-10 py-4 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md shadow-lg dark:shadow-none border-t border-stone-100 dark:border-stone-800">
+<button class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-8 py-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-all Active: scale-98">
+<span class="material-symbols-outlined mb-1" data-icon="chevron_left">chevron_left</span>
+<span class="font-manrope font-bold text-xs uppercase tracking-widest">Previous</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-100 rounded-full px-8 py-2 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all Active: scale-98">
+<span class="material-symbols-outlined mb-1" data-icon="chevron_right">chevron_right</span>
+<span class="font-manrope font-bold text-xs uppercase tracking-widest">Next</span>
+</button>
+</nav>
+<!-- Spacer for Bottom Nav -->
+<div class="h-24 md:h-0"></div>
+</body></html>

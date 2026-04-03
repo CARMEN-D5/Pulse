@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Journal Hub - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-low": "#f2f5ea",
+              "primary-fixed-dim": "#8edcda",
+              "surface-container-high": "#e5eadd",
+              "primary-dim": "#005d5c",
+              "on-secondary-container": "#405271",
+              "inverse-primary": "#adfcfa",
+              "on-primary-fixed-variant": "#006362",
+              "surface-container": "#ebefe3",
+              "on-error-container": "#65000b",
+              "primary-fixed": "#9cebe8",
+              "secondary-container": "#d6e3ff",
+              "surface-container-highest": "#dfe5d6",
+              "on-primary-container": "#005857",
+              "tertiary": "#983f72",
+              "error": "#ac3434",
+              "on-tertiary-fixed-variant": "#711e51",
+              "on-surface-variant": "#5b6156",
+              "background": "#f8faf1",
+              "surface-tint": "#086a69",
+              "error-container": "#f56965",
+              "on-error": "#fff7f6",
+              "surface-dim": "#d5dccd",
+              "surface-variant": "#dfe5d6",
+              "on-surface": "#2e342a",
+              "secondary-fixed": "#d6e3ff",
+              "on-tertiary-fixed": "#45002e",
+              "on-primary": "#e0fffd",
+              "on-secondary-fixed": "#2e405d",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "tertiary-dim": "#893365",
+              "outline": "#767d70",
+              "surface-bright": "#f8faf1",
+              "secondary-dim": "#425472",
+              "primary-container": "#9cebe8",
+              "surface-container-lowest": "#ffffff",
+              "primary": "#086a69",
+              "secondary-fixed-dim": "#c2d5f9",
+              "outline-variant": "#aeb4a6",
+              "inverse-on-surface": "#9b9e96",
+              "tertiary-fixed": "#ff98cd",
+              "tertiary-fixed-dim": "#f289c0",
+              "on-secondary": "#f8f8ff",
+              "tertiary-container": "#ff98cd",
+              "on-tertiary-container": "#661447",
+              "on-tertiary": "#fff7f8",
+              "on-primary-fixed": "#004343",
+              "error-dim": "#70030f",
+              "surface": "#f8faf1",
+              "secondary": "#4e607f",
+              "inverse-surface": "#0c0f0a",
+              "on-background": "#2e342a"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .mesh-gradient {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(156, 235, 232, 0.3) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(214, 227, 255, 0.3) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(255, 152, 205, 0.1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(142, 220, 218, 0.2) 0px, transparent 50%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen mesh-gradient">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border-b border-white/20 dark:border-zinc-800/50 shadow-sm">
+<div class="flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
+<img class="w-full h-full object-cover" data-alt="User profile photo smiling gently" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFGgMLW3Suw9zu2M3YXoS6xRj2qYUSurSTmzIz8d45mjq508vwef3PKW4panLheFxkh__fVHJbthqH2GzPbgJnx1HIpccYVzrYeL2i6akHl-V061JW9UOKCDthzDYtFADxTreCoiISYlMhh2WeKYBNQkd5fvsf5h83yenzZsfm7zRQWlZXV46Chpby6TjHj0FBbuSoUpzR2Bm_zLqHYdY9rhXOJU9Gb8hFRUdFLZtbNfz8HMpkjsQ3MwaSjHGjVYD12JgPDRmrydQ"/>
+</div>
+<span class="text-xl font-bold tracking-tighter text-teal-900 dark:text-teal-100">Balanced Life</span>
+</div>
+<button class="text-teal-800 dark:text-teal-400 hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-2xl mx-auto space-y-10">
+<!-- Hero: Your Reflections -->
+<section class="space-y-6">
+<div class="flex justify-between items-end">
+<div>
+<h1 class="text-3xl font-extrabold tracking-tight text-on-surface">Your Reflections</h1>
+<p class="text-on-surface-variant font-medium mt-1">Nurturing your inner peace, one word at a time.</p>
+</div>
+<button class="bg-primary text-on-primary px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="edit_note">edit_note</span>
+<span>New Entry</span>
+</button>
+</div>
+<!-- Equilibrium Aesthetic Banner -->
+<div class="glass-card rounded-lg p-8 relative overflow-hidden group">
+<div class="relative z-10 flex flex-col gap-4">
+<div class="bg-primary-container text-on-primary-container w-fit px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase">Equilibrium</div>
+<h2 class="text-2xl font-bold text-on-surface max-w-[240px]">Find clarity through conscious writing.</h2>
+</div>
+<div class="absolute -right-12 -bottom-12 w-48 h-48 bg-primary-fixed-dim/30 rounded-full blur-3xl group-hover:bg-primary-fixed-dim/50 transition-colors"></div>
+<div class="absolute right-8 top-1/2 -translate-y-1/2 opacity-20 group-hover:opacity-40 transition-opacity">
+<span class="material-symbols-outlined text-[120px]" data-icon="self_care" style="font-variation-settings: 'FILL' 1;">self_care</span>
+</div>
+</div>
+</section>
+<!-- Daily Prompts -->
+<section class="space-y-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary" data-icon="lightbulb">lightbulb</span>
+<h3 class="text-lg font-bold tracking-tight text-on-surface">Daily Prompts</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="glass-card p-5 rounded-lg border-l-4 border-l-primary hover:translate-y-[-2px] transition-transform cursor-pointer shadow-sm">
+<p class="text-on-surface font-semibold leading-snug">What made you feel balanced today?</p>
+</div>
+<div class="glass-card p-5 rounded-lg border-l-4 border-l-tertiary hover:translate-y-[-2px] transition-transform cursor-pointer shadow-sm">
+<p class="text-on-surface font-semibold leading-snug">What is one thing you are grateful for?</p>
+</div>
+<div class="glass-card p-5 rounded-lg border-l-4 border-l-secondary hover:translate-y-[-2px] transition-transform cursor-pointer shadow-sm md:col-span-2">
+<p class="text-on-surface font-semibold leading-snug">How did you navigate a challenging moment this afternoon?</p>
+</div>
+</div>
+</section>
+<!-- Past Entries -->
+<section class="space-y-4">
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="history">history</span>
+<h3 class="text-lg font-bold tracking-tight text-on-surface">Past Entries</h3>
+</div>
+<button class="text-primary text-sm font-bold hover:underline">View All</button>
+</div>
+<div class="space-y-4">
+<!-- Entry 1 -->
+<div class="glass-card p-6 rounded-lg flex gap-4 hover:shadow-md transition-shadow">
+<div class="flex flex-col items-center justify-center bg-surface-container-highest/50 min-w-[64px] h-[64px] rounded-lg">
+<span class="text-sm font-bold text-on-surface-variant">OCT</span>
+<span class="text-xl font-extrabold text-primary">24</span>
+</div>
+<div class="flex-1 space-y-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-on-surface">Morning Meditation Clarity</h4>
+<span class="text-2xl">✨</span>
+</div>
+<p class="text-on-surface-variant text-sm line-clamp-2">Today I finally felt the silence between my thoughts. It was fleeting, but it reminded me that the calm I seek is already within me...</p>
+</div>
+</div>
+<!-- Entry 2 -->
+<div class="glass-card p-6 rounded-lg flex gap-4 hover:shadow-md transition-shadow">
+<div class="flex flex-col items-center justify-center bg-surface-container-highest/50 min-w-[64px] h-[64px] rounded-lg">
+<span class="text-sm font-bold text-on-surface-variant">OCT</span>
+<span class="text-xl font-extrabold text-primary">22</span>
+</div>
+<div class="flex-1 space-y-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-on-surface">Setting Boundaries at Work</h4>
+<span class="text-2xl">🌿</span>
+</div>
+<p class="text-on-surface-variant text-sm line-clamp-2">I said no to an extra project today. My initial guilt was quickly replaced by a profound sense of relief and self-respect...</p>
+</div>
+</div>
+<!-- Entry 3 -->
+<div class="glass-card p-6 rounded-lg flex gap-4 hover:shadow-md transition-shadow opacity-80">
+<div class="flex flex-col items-center justify-center bg-surface-container-highest/50 min-w-[64px] h-[64px] rounded-lg">
+<span class="text-sm font-bold text-on-surface-variant">OCT</span>
+<span class="text-xl font-extrabold text-primary">21</span>
+</div>
+<div class="flex-1 space-y-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-on-surface">Evening Nature Walk</h4>
+<span class="text-2xl">🌅</span>
+</div>
+<p class="text-on-surface-variant text-sm line-clamp-2">The sunset was particularly vibrant. Witnessing the transition from day to night helped me process the day's events...</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-t-[32px] border-t border-white/30 dark:border-zinc-800/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-teal-600 dark:hover:text-teal-300 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="home_max">home_max</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Home</span>
+</a>
+<!-- Activities (Active) -->
+<a class="flex flex-col items-center justify-center text-teal-700 dark:text-teal-300 bg-teal-50/50 dark:bg-teal-900/30 rounded-full px-4 py-1.5 active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="self_care" style="font-variation-settings: 'FILL' 1;">self_care</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Activities</span>
+</a>
+<!-- Progress -->
+<a class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-teal-600 dark:hover:text-teal-300 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Progress</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-teal-600 dark:hover:text-teal-300 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Profile</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Assessment Summary - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary": "#983f72",
+              "primary-dim": "#005d5c",
+              "error-dim": "#70030f",
+              "background": "#f8faf1",
+              "on-primary-fixed-variant": "#006362",
+              "on-primary": "#e0fffd",
+              "surface-container-high": "#e5eadd",
+              "on-tertiary-container": "#661447",
+              "surface-container": "#ebefe3",
+              "secondary": "#4e607f",
+              "secondary-dim": "#425472",
+              "primary-fixed": "#9cebe8",
+              "primary": "#086a69",
+              "surface": "#f8faf1",
+              "outline": "#767d70",
+              "tertiary-dim": "#893365",
+              "surface-container-lowest": "#ffffff",
+              "error": "#ac3434",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "secondary-container": "#d6e3ff",
+              "on-secondary": "#f8f8ff",
+              "on-surface": "#2e342a",
+              "secondary-fixed": "#d6e3ff",
+              "on-primary-container": "#005857",
+              "surface-container-highest": "#dfe5d6",
+              "on-tertiary-fixed-variant": "#711e51",
+              "tertiary-fixed": "#ff98cd",
+              "on-secondary-container": "#405271",
+              "surface-bright": "#f8faf1",
+              "inverse-surface": "#0c0f0a",
+              "on-surface-variant": "#5b6156",
+              "tertiary-fixed-dim": "#f289c0",
+              "on-primary-fixed": "#004343",
+              "on-error-container": "#65000b",
+              "secondary-fixed-dim": "#c2d5f9",
+              "surface-tint": "#086a69",
+              "outline-variant": "#aeb4a6",
+              "on-tertiary-fixed": "#45002e",
+              "surface-dim": "#d5dccd",
+              "on-background": "#2e342a",
+              "surface-container-low": "#f2f5ea",
+              "on-secondary-fixed": "#2e405d",
+              "inverse-primary": "#adfcfa",
+              "surface-variant": "#dfe5d6",
+              "error-container": "#f56965",
+              "primary-container": "#9cebe8",
+              "primary-fixed-dim": "#8edcda",
+              "on-tertiary": "#fff7f8",
+              "on-error": "#fff7f6",
+              "inverse-on-surface": "#9b9e96",
+              "tertiary-container": "#ff98cd"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body { font-family: 'Manrope', sans-serif; }
+      .mesh-bg {
+        background-color: #f8faf1;
+        background-image: 
+          radial-gradient(at 0% 0%, rgba(156, 235, 232, 0.4) 0px, transparent 50%),
+          radial-gradient(at 100% 0%, rgba(255, 152, 205, 0.2) 0px, transparent 50%),
+          radial-gradient(at 100% 100%, rgba(152, 63, 114, 0.1) 0px, transparent 50%),
+          radial-gradient(at 0% 100%, rgba(8, 106, 105, 0.1) 0px, transparent 50%);
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen mesh-bg flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-white dark:bg-stone-950 flex justify-between items-center w-full px-6 h-16 docked full-width top-0 border-b border-stone-100 dark:border-stone-800 fixed z-50">
+<div class="flex items-center gap-4">
+<button class="text-teal-800 dark:text-teal-400 hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-teal-900 dark:text-teal-200 font-bold text-xl">Wellbeing Journey</h1>
+</div>
+<div class="hidden md:flex gap-8 items-center">
+<span class="font-manrope font-semibold text-lg tracking-tight text-stone-400 dark:text-stone-600">History</span>
+<span class="font-manrope font-semibold text-lg tracking-tight text-teal-700 dark:text-teal-300">Analysis</span>
+<span class="font-manrope font-semibold text-lg tracking-tight text-stone-400 dark:text-stone-600">Support</span>
+</div>
+</header>
+<main class="flex-grow pt-24 pb-32 px-6 max-w-7xl mx-auto w-full">
+<!-- Headline Section -->
+<div class="mb-12 text-center md:text-left">
+<span class="text-primary font-bold tracking-widest uppercase text-xs mb-3 block">Assessment Complete</span>
+<h2 class="text-4xl md:text-6xl font-extrabold text-on-surface tracking-tight leading-tight">Your Baseline is Ready</h2>
+<p class="text-on-surface-variant mt-4 text-lg max-w-2xl">We've analyzed your responses across physical, mental, and lifestyle domains. Here is your holistic balance snapshot.</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+<!-- Hero Score Card (Asymmetric) -->
+<div class="md:col-span-7 glass-card border border-white/40 shadow-xl p-8 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary-container/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
+<div class="relative flex flex-col items-center">
+<!-- Sophisticated Circular Progress -->
+<div class="relative w-64 h-64 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="128" cy="128" fill="transparent" r="110" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary" cx="128" cy="128" fill="transparent" r="110" stroke="currentColor" stroke-dasharray="691" stroke-dashoffset="172" stroke-linecap="round" stroke-width="12"></circle>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="text-6xl font-extrabold text-on-surface">75</span>
+<span class="text-sm font-bold text-outline uppercase tracking-tighter">Balance Score</span>
+</div>
+</div>
+<div class="mt-8 text-center">
+<span class="inline-flex items-center gap-2 bg-primary/10 text-primary-dim px-4 py-1.5 rounded-full font-bold text-sm">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">stars</span>
+                            OPTIMIZED LEVEL
+                        </span>
+</div>
+</div>
+</div>
+<!-- Insights Side Cards -->
+<div class="md:col-span-5 grid grid-cols-1 gap-6">
+<div class="glass-card border border-white/40 p-6 rounded-lg flex gap-5 items-start">
+<div class="bg-secondary-container p-3 rounded-full text-on-secondary-container">
+<span class="material-symbols-outlined">directions_run</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface text-lg">Physical Vigor</h3>
+<p class="text-on-surface-variant text-sm mt-1 leading-relaxed">Your endurance is 15% higher than your age group average. Keep focus on recovery cycles.</p>
+</div>
+</div>
+<div class="glass-card border border-white/40 p-6 rounded-lg flex gap-5 items-start">
+<div class="bg-tertiary-container p-3 rounded-full text-on-tertiary-container">
+<span class="material-symbols-outlined">self_improvement</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface text-lg">Mental Clarity</h3>
+<p class="text-on-surface-variant text-sm mt-1 leading-relaxed">Mindfulness consistency is strong, but stress spikes were detected during late evening hours.</p>
+</div>
+</div>
+<div class="glass-card border border-white/40 p-6 rounded-lg flex gap-5 items-start">
+<div class="bg-primary-container p-3 rounded-full text-on-primary-container">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface text-lg">Nutritional Flow</h3>
+<p class="text-on-surface-variant text-sm mt-1 leading-relaxed">Hydration levels are meeting targets. Consider adjusting micronutrient timing for better energy.</p>
+</div>
+</div>
+</div>
+<!-- Motivational Call to Action Section -->
+<div class="md:col-span-12 glass-card bg-primary-dim text-on-primary p-10 rounded-lg flex flex-col md:flex-row items-center justify-between gap-8 mt-4 overflow-hidden relative">
+<div class="absolute inset-0 opacity-10" data-alt="Abstract energy flow lines and particles" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCaJ2WOF-YhtuQabUR4aYk1A1901QEkWGrzXlwpPs-P4b6Oq6aVunlVCGr-qet21OHqFcQYx4-cPWZmeA-_xlVrRFMnoNUDLZPetHzNtafOs7bTQ-rI1kHbNsE5kKhQadbRV1LDvqPw5ZKA5K2_UV2GA2HVqDH0Z4J0moSsGgtYMDrzAwn81x5e2RtfcRIFGT-qHmD1Yc-Y28d5Jp_A7Nm2ka5tCXC01MiSn3NMWD2vyVdOaAG79yF3pxbIVmtT4GDJPeA90LS-xFU');"></div>
+<div class="relative z-10 max-w-xl">
+<h3 class="text-3xl font-bold mb-3">Ready to transform?</h3>
+<p class="text-primary-fixed/80">Your personalized wellbeing roadmap is generated and waiting. Start your 12-week journey toward a more balanced version of you.</p>
+</div>
+<button class="relative z-10 bg-primary-fixed text-on-primary-fixed px-10 py-5 rounded-full font-extrabold text-lg flex items-center gap-3 hover:scale-105 transition-transform shadow-2xl">
+                    Enter Your Dashboard
+                    <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Transaction Specific Logic applied) -->
+<!-- Suppressing as this is a summary/result screen, showing primary CTA in center instead -->
+<!-- However, providing the requested shell format for navigation between steps if needed -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-between items-center px-10 py-4 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md border-t border-stone-100 dark:border-stone-800 shadow-lg dark:shadow-none">
+<button class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 px-8 py-2 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+<span class="font-manrope font-bold text-xs uppercase tracking-widest">Previous</span>
+</button>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-stone-200"></div>
+<div class="w-2 h-2 rounded-full bg-stone-200"></div>
+<div class="w-8 h-2 rounded-full bg-primary"></div>
+</div>
+<button class="flex flex-col items-center justify-center bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-100 rounded-full px-8 py-2 hover:opacity-80 active:scale-98 transition-all duration-150">
+<span class="material-symbols-outlined">chevron_right</span>
+<span class="font-manrope font-bold text-xs uppercase tracking-widest">Next</span>
+</button>
+</nav>
+</body></html>

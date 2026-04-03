@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Spirituality Detail - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-tint": "#086a69",
+                        "on-primary-fixed": "#004343",
+                        "on-tertiary-fixed": "#45002e",
+                        "tertiary-fixed": "#ff98cd",
+                        "surface-container-low": "#f2f5ea",
+                        "tertiary-dim": "#893365",
+                        "on-secondary-fixed": "#2e405d",
+                        "on-primary-container": "#005857",
+                        "tertiary-fixed-dim": "#f289c0",
+                        "outline-variant": "#aeb4a6",
+                        "secondary": "#4e607f",
+                        "tertiary-container": "#ff98cd",
+                        "primary-fixed-dim": "#8edcda",
+                        "inverse-primary": "#adfcfa",
+                        "surface-variant": "#dfe5d6",
+                        "secondary-fixed": "#d6e3ff",
+                        "surface": "#f8faf1",
+                        "inverse-surface": "#0c0f0a",
+                        "error-container": "#f56965",
+                        "surface-dim": "#d5dccd",
+                        "error": "#ac3434",
+                        "on-tertiary": "#fff7f8",
+                        "on-surface-variant": "#5b6156",
+                        "surface-container-highest": "#dfe5d6",
+                        "on-secondary": "#f8f8ff",
+                        "primary-dim": "#005d5c",
+                        "on-surface": "#2e342a",
+                        "primary-container": "#9cebe8",
+                        "on-secondary-container": "#405271",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#fff7f6",
+                        "background": "#f8faf1",
+                        "on-primary": "#e0fffd",
+                        "primary": "#086a69",
+                        "surface-bright": "#f8faf1",
+                        "secondary-container": "#d6e3ff",
+                        "primary-fixed": "#9cebe8",
+                        "inverse-on-surface": "#9b9e96",
+                        "on-error-container": "#65000b",
+                        "on-primary-fixed-variant": "#006362",
+                        "outline": "#767d70",
+                        "on-secondary-fixed-variant": "#4a5c7b",
+                        "on-tertiary-container": "#661447",
+                        "on-tertiary-fixed-variant": "#711e51",
+                        "secondary-fixed-dim": "#c2d5f9",
+                        "surface-container": "#ebefe3",
+                        "error-dim": "#70030f",
+                        "secondary-dim": "#425472",
+                        "on-background": "#2e342a",
+                        "surface-container-high": "#e5eadd",
+                        "tertiary": "#983f72"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .mesh-gradient {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(142, 220, 218, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(255, 152, 205, 0.2) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(173, 252, 250, 0.3) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(214, 227, 255, 0.4) 0px, transparent 50%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body bg-background text-on-background mesh-gradient min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm border-b border-white/20">
+<div class="flex justify-between items-center px-6 h-16 w-full">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/40 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-teal-800" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-manrope font-semibold text-lg tracking-tight text-teal-800">Spirituality</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/40 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-teal-800" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<main class="pt-24 px-6 space-y-8 max-w-2xl mx-auto">
+<!-- Hero: Spirit Score Glassmorphic Card -->
+<section class="glass-card rounded-xl p-8 flex flex-col items-center text-center relative overflow-hidden shadow-xl">
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl"></div>
+<div class="relative w-48 h-48 mb-6">
+<!-- Circular Progress -->
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-white/50" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="552.92" stroke-dashoffset="66.35" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-4xl font-extrabold text-on-surface">88</span>
+<span class="text-sm font-semibold text-on-surface-variant uppercase tracking-widest">Score</span>
+</div>
+</div>
+<div class="space-y-2">
+<h2 class="text-2xl font-bold text-on-surface">Ethereal Harmony</h2>
+<p class="text-on-surface-variant text-sm max-w-[240px] mx-auto">You are deeply attuned to your inner peace this week.</p>
+</div>
+<!-- 3D Abstract Icon Placeholder -->
+<div class="mt-8">
+<div class="w-24 h-24 bg-gradient-to-tr from-primary-container to-tertiary-container rounded-full flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-5xl text-primary" data-icon="auto_awesome" data-weight="fill" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+</div>
+</section>
+<!-- Trend Chart Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between px-2">
+<h3 class="font-bold text-lg text-on-surface">Spiritual Path</h3>
+<span class="text-xs font-bold text-primary bg-primary-container px-3 py-1 rounded-full">+12% vs last month</span>
+</div>
+<div class="glass-card rounded-xl p-6 h-48 flex items-end justify-between space-x-1">
+<!-- Mock Line Graph Representation -->
+<div class="flex-1 bg-primary/20 rounded-t-lg transition-all" style="height: 40%"></div>
+<div class="flex-1 bg-primary/30 rounded-t-lg transition-all" style="height: 55%"></div>
+<div class="flex-1 bg-primary/20 rounded-t-lg transition-all" style="height: 50%"></div>
+<div class="flex-1 bg-primary/40 rounded-t-lg transition-all" style="height: 70%"></div>
+<div class="flex-1 bg-primary/60 rounded-t-lg transition-all" style="height: 85%"></div>
+<div class="flex-1 bg-primary/50 rounded-t-lg transition-all" style="height: 80%"></div>
+<div class="flex-1 bg-primary rounded-t-lg transition-all" style="height: 100%"></div>
+</div>
+<div class="flex justify-between px-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">
+<span>30 Days ago</span>
+<span>Today</span>
+</div>
+</section>
+<!-- Strategic Insight Section -->
+<section class="glass-card rounded-xl p-6 border-l-4 border-primary flex items-start space-x-4 shadow-md">
+<div class="bg-primary-container p-3 rounded-full flex-shrink-0">
+<span class="material-symbols-outlined text-primary" data-icon="lightbulb">lightbulb</span>
+</div>
+<div class="space-y-1">
+<h4 class="font-bold text-on-surface">Strategic Insight</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                    Your consistency in morning reflections is building deep resilience. Try extending your practice by 2 minutes this weekend.
+                </p>
+</div>
+</section>
+<!-- Active Missions Bento Grid -->
+<section class="space-y-4">
+<h3 class="font-bold text-lg text-on-surface px-2">Active Missions</h3>
+<div class="grid grid-cols-2 gap-4">
+<!-- Mission 1 -->
+<div class="glass-card p-5 rounded-xl space-y-4 shadow-sm">
+<div class="w-10 h-10 bg-tertiary-container rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-container text-xl" data-icon="volunteer_activism">volunteer_activism</span>
+</div>
+<div>
+<h5 class="font-bold text-sm text-on-surface">Morning Gratitude</h5>
+<p class="text-[10px] text-on-surface-variant">5 min session</p>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5">
+<div class="bg-primary h-1.5 rounded-full" style="width: 60%"></div>
+</div>
+<span class="text-[10px] font-bold text-primary block text-right">60% complete</span>
+</div>
+<!-- Mission 2 -->
+<div class="glass-card p-5 rounded-xl space-y-4 shadow-sm">
+<div class="w-10 h-10 bg-secondary-container rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container text-xl" data-icon="phonelink_off">phonelink_off</span>
+</div>
+<div>
+<h5 class="font-bold text-sm text-on-surface">Digital Detox</h5>
+<p class="text-[10px] text-on-surface-variant">15m / 60m goal</p>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5">
+<div class="bg-secondary h-1.5 rounded-full" style="width: 25%"></div>
+</div>
+<span class="text-[10px] font-bold text-secondary block text-right">25% complete</span>
+</div>
+</div>
+</section>
+<!-- Reflection Prompt -->
+<section class="relative h-48 rounded-xl overflow-hidden group">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Quiet foggy forest path at dawn" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOdrq4Pm1Lrr3xL8QkPr5bVKrjewpPSH2ZH6s99HNQcP5ydF0Ck-SmM04eNwNSdImgnWLZp9nxz3hTMf3S0s0ENYbxDtpT66dP1fYUzYAE3YldtfVqD3x-kjLX_rNoiP8yXEsMuoJ_BQQjdHsSlSP1nRBR_IX4kTAVVeJ30l068zJxp6FkyQhBN2VKcwpa1xdTznunhu8nAz8HEc2-5sRtV_2YrTp-bUm7Q6e7X5By6JXlJVBK5gfRLU_VmKzIQaUHB2DkDuwQNVY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
+<span class="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1">Journal Prompt</span>
+<h4 class="text-white font-bold text-lg">What brought you unexpected peace today?</h4>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full px-8 pb-6 pt-3 flex justify-between items-center bg-white/80 backdrop-blur-lg rounded-t-[40px] z-50 border-t border-white/30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+<button class="flex items-center justify-center bg-teal-600 text-white rounded-full w-12 h-12 shadow-lg shadow-teal-200 transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+</button>
+<button class="flex items-center justify-center text-slate-400 w-12 h-12 hover:text-teal-500 transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+</button>
+<button class="flex items-center justify-center text-slate-400 w-12 h-12 hover:text-teal-500 transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="home_app_logo">home_app_logo</span>
+</button>
+<button class="flex items-center justify-center text-slate-400 w-12 h-12 hover:text-teal-500 transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+</button>
+<button class="flex items-center justify-center text-slate-400 w-12 h-12 hover:text-teal-500 transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="work">work</span>
+</button>
+</nav>
+</body></html>

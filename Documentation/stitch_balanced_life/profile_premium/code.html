@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wellbeing Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary": "#4e607f",
+              "secondary-dim": "#425472",
+              "on-primary-fixed-variant": "#006362",
+              "on-secondary-container": "#405271",
+              "on-secondary": "#f8f8ff",
+              "outline-variant": "#aeb4a6",
+              "on-primary-fixed": "#004343",
+              "on-tertiary-fixed-variant": "#711e51",
+              "secondary-fixed": "#d6e3ff",
+              "primary-fixed": "#9cebe8",
+              "surface-tint": "#086a69",
+              "tertiary-fixed": "#ff98cd",
+              "error-container": "#f56965",
+              "surface-container-high": "#e5eadd",
+              "surface-variant": "#dfe5d6",
+              "background": "#f8faf1",
+              "inverse-on-surface": "#9b9e96",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "on-background": "#2e342a",
+              "on-tertiary-fixed": "#45002e",
+              "primary-fixed-dim": "#8edcda",
+              "tertiary-container": "#ff98cd",
+              "surface-container-highest": "#dfe5d6",
+              "on-surface": "#2e342a",
+              "surface": "#f8faf1",
+              "tertiary-dim": "#893365",
+              "on-tertiary": "#fff7f8",
+              "primary": "#086a69",
+              "primary-container": "#9cebe8",
+              "secondary-fixed-dim": "#c2d5f9",
+              "surface-container-low": "#f2f5ea",
+              "on-error": "#fff7f6",
+              "tertiary-fixed-dim": "#f289c0",
+              "surface-dim": "#d5dccd",
+              "on-surface-variant": "#5b6156",
+              "on-primary-container": "#005857",
+              "primary-dim": "#005d5c",
+              "outline": "#767d70",
+              "surface-container-lowest": "#ffffff",
+              "error": "#ac3434",
+              "tertiary": "#983f72",
+              "surface-bright": "#f8faf1",
+              "on-tertiary-container": "#661447",
+              "error-dim": "#70030f",
+              "inverse-surface": "#0c0f0a",
+              "secondary-container": "#d6e3ff",
+              "on-secondary-fixed": "#2e405d",
+              "inverse-primary": "#adfcfa",
+              "surface-container": "#ebefe3",
+              "on-primary": "#e0fffd",
+              "on-error-container": "#65000b"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .mesh-gradient {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, #9cebe8 0px, transparent 50%),
+                radial-gradient(at 100% 0%, #ff98cd 0px, transparent 50%),
+                radial-gradient(at 100% 100%, #d6e3ff 0px, transparent 50%),
+                radial-gradient(at 0% 100%, #f289c0 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="mesh-gradient min-h-screen pb-32">
+<!-- TopAppBar Execution -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md shadow-sm border-b border-white/20 flex items-center justify-between px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a smiling woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIVElZ1dLoFa4ocbe3OsPKfupyB9h0xCJbKAwTObYwY11jd5X10QVFKqu6m9h6zr0xFvZwQT7I1Sm1J9NTAbQsBJ4GCvS1iZoqYKtNYCTuC1VBl0kMEwu28iAvyBL3i_0ZXmQG10A8qD0lk7D_xlbSN8FV1jcjKehf6S4c8VpUiSI7iyFnHfEgbPi3koE_C4zBUR0_Xj0HftmYWUq2kSy9ADb3FvCHkmGbI2csclc-xEKIBi8-7ICQgOvIjRzShrP-W70OOhzJtcM"/>
+</div>
+<span class="font-manrope font-semibold text-lg text-teal-800">Wellbeing</span>
+</div>
+<button class="material-symbols-outlined text-slate-500 hover:bg-white/40 transition-colors p-2 rounded-full active:scale-95 transition-transform">
+            settings
+        </button>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto space-y-8">
+<!-- User Identity Section -->
+<section class="flex flex-col items-center text-center space-y-4">
+<div class="relative">
+<div class="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-primary to-tertiary">
+<div class="w-full h-full rounded-full border-4 border-surface overflow-hidden">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="High quality headshot of a female user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD78puzwGCBhFdh3Kq56uTti44s3fK6p_nx9KQxhzr0_DCvUEgqTka6IdQiP8hunriucirMr6AmBx6HsGxWAg6LSXJnA9sNwVSgqdKn3OEh5uTekzHjW8PnQ0sN7Xcx64IIDacAaeiLhaEm5FG0BSkRkk12Q4piShif-jQxzqGQyGO5-7m4SuIYkZJhH7u9-GqzEvQ2hg9pYznzX2FJhzpxQH6TMV-lm4Kvq0FgFVhgk2eXT4TqQJuyXO0ncztwxGx4sgTXY-5Qw-M"/>
+</div>
+</div>
+<div class="absolute -bottom-2 right-0 bg-primary text-on-primary p-2 rounded-full shadow-lg border-2 border-surface">
+<span class="material-symbols-outlined text-sm block">verified</span>
+</div>
+</div>
+<div>
+<h1 class="text-3xl font-extrabold tracking-tight text-on-surface">Elena Rodriguez</h1>
+<p class="text-on-surface-variant font-medium">Mindfulness Explorer</p>
+</div>
+</section>
+<!-- Balance Score Bento -->
+<section class="glass-card p-6 rounded-xl shadow-xl shadow-primary/5">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold text-on-surface">Balance Score</h2>
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-bold">+12% this week</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col items-center justify-center p-4 bg-primary-container/30 rounded-lg">
+<span class="text-4xl font-black text-on-primary-container">84</span>
+<span class="text-xs uppercase tracking-widest text-on-primary-container/70 font-bold mt-1">Current</span>
+</div>
+<div class="flex flex-col justify-center space-y-2">
+<div class="w-full h-2 bg-on-surface/10 rounded-full overflow-hidden">
+<div class="w-[84%] h-full bg-primary"></div>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">You're in the <span class="text-primary font-bold">top 5%</span> of performers today. Keep it up!</p>
+</div>
+</div>
+</section>
+<!-- Statistics Grid -->
+<section class="grid grid-cols-3 gap-3">
+<div class="glass-card p-4 rounded-lg flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-primary mb-2">task_alt</span>
+<span class="text-xl font-bold text-on-surface">128</span>
+<span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Missions</span>
+</div>
+<div class="glass-card p-4 rounded-lg flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-tertiary mb-2">schedule</span>
+<span class="text-xl font-bold text-on-surface">42h</span>
+<span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Activity</span>
+</div>
+<div class="glass-card p-4 rounded-lg flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-secondary mb-2">calendar_month</span>
+<span class="text-xl font-bold text-on-surface">24</span>
+<span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Check-ins</span>
+</div>
+</section>
+<!-- Achievements Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-bold text-on-surface">Achievements</h2>
+<button class="text-sm font-bold text-primary">View All</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="glass-card p-5 rounded-lg flex flex-col items-center text-center group active:scale-95 transition-all">
+<div class="w-16 h-16 rounded-full bg-tertiary-container/30 flex items-center justify-center mb-4 border border-tertiary/20">
+<span class="material-symbols-outlined text-3xl text-tertiary-dim" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+<h3 class="font-bold text-on-surface text-sm">10 Day Streak</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">Unbroken consistency</p>
+</div>
+<div class="glass-card p-5 rounded-lg flex flex-col items-center text-center group active:scale-95 transition-all">
+<div class="w-16 h-16 rounded-full bg-primary-container/30 flex items-center justify-center mb-4 border border-primary/20">
+<span class="material-symbols-outlined text-3xl text-primary-dim" style="font-variation-settings: 'FILL' 1;">self_improvement</span>
+</div>
+<h3 class="font-bold text-on-surface text-sm">Mindfulness Master</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">50 hours mediated</p>
+</div>
+<div class="glass-card p-5 rounded-lg flex flex-col items-center text-center group active:scale-95 transition-all opacity-60">
+<div class="w-16 h-16 rounded-full bg-secondary-container/30 flex items-center justify-center mb-4 border border-secondary/20">
+<span class="material-symbols-outlined text-3xl text-secondary-dim">social_leaderboard</span>
+</div>
+<h3 class="font-bold text-on-surface text-sm">Community Lead</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">Help 5 new members</p>
+</div>
+<div class="glass-card p-5 rounded-lg flex flex-col items-center text-center group active:scale-95 transition-all opacity-60">
+<div class="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-3xl text-outline">lock</span>
+</div>
+<h3 class="font-bold text-on-surface text-sm">Early Riser</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">7AM sessions x 5</p>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Execution -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-8 bg-white/80 backdrop-blur-xl z-50 rounded-t-[32px] border-t border-white/30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+<a class="flex flex-col items-center justify-center text-slate-500 px-5 py-1.5 hover:text-teal-600 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">calendar_today</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Today</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 px-5 py-1.5 hover:text-teal-600 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">insights</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Stats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 px-5 py-1.5 hover:text-teal-600 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">military_tech</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Badges</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-teal-50 text-teal-800 rounded-full px-5 py-1.5 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Profile</span>
+</a>
+</nav>
+</body></html>

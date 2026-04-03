@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Journal Entry - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-low": "#f2f5ea",
+              "primary-fixed-dim": "#8edcda",
+              "surface-container-high": "#e5eadd",
+              "primary-dim": "#005d5c",
+              "on-secondary-container": "#405271",
+              "inverse-primary": "#adfcfa",
+              "on-primary-fixed-variant": "#006362",
+              "surface-container": "#ebefe3",
+              "on-error-container": "#65000b",
+              "primary-fixed": "#9cebe8",
+              "secondary-container": "#d6e3ff",
+              "surface-container-highest": "#dfe5d6",
+              "on-primary-container": "#005857",
+              "tertiary": "#983f72",
+              "error": "#ac3434",
+              "on-tertiary-fixed-variant": "#711e51",
+              "on-surface-variant": "#5b6156",
+              "background": "#f8faf1",
+              "surface-tint": "#086a69",
+              "error-container": "#f56965",
+              "on-error": "#fff7f6",
+              "surface-dim": "#d5dccd",
+              "surface-variant": "#dfe5d6",
+              "on-surface": "#2e342a",
+              "secondary-fixed": "#d6e3ff",
+              "on-tertiary-fixed": "#45002e",
+              "on-primary": "#e0fffd",
+              "on-secondary-fixed": "#2e405d",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "tertiary-dim": "#893365",
+              "outline": "#767d70",
+              "surface-bright": "#f8faf1",
+              "secondary-dim": "#425472",
+              "primary-container": "#9cebe8",
+              "surface-container-lowest": "#ffffff",
+              "primary": "#086a69",
+              "secondary-fixed-dim": "#c2d5f9",
+              "outline-variant": "#aeb4a6",
+              "inverse-on-surface": "#9b9e96",
+              "tertiary-fixed": "#ff98cd",
+              "tertiary-fixed-dim": "#f289c0",
+              "on-secondary": "#f8f8ff",
+              "tertiary-container": "#ff98cd",
+              "on-tertiary-container": "#661447",
+              "on-tertiary": "#fff7f8",
+              "on-primary-fixed": "#004343",
+              "error-dim": "#70030f",
+              "surface": "#f8faf1",
+              "secondary": "#4e607f",
+              "inverse-surface": "#0c0f0a",
+              "on-background": "#2e342a"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .mesh-gradient {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(156, 235, 232, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(255, 152, 205, 0.2) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(156, 235, 232, 0.3) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(214, 227, 255, 0.4) 0px, transparent 50%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(118, 125, 112, 0.2);
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="mesh-gradient min-h-screen text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation (Contextual Suppression of Shell for focused task) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-white/40 backdrop-blur-md border-b border-white/20">
+<button class="p-2 -ml-2 text-primary hover:bg-white/50 rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined text-[28px]">close</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="text-[11px] font-bold tracking-widest uppercase text-outline">Monday</span>
+<span class="text-sm font-semibold text-primary">Oct 23, 2023 • 08:45 AM</span>
+</div>
+<button class="px-5 py-1.5 bg-primary text-on-primary rounded-full font-bold text-sm shadow-md hover:scale-95 transition-transform duration-200">
+            Save Entry
+        </button>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-2xl mx-auto flex flex-col min-h-screen">
+<!-- Writing Area -->
+<div class="flex-grow flex flex-col">
+<label class="sr-only" for="journal-input">Journal Entry</label>
+<h1 class="text-3xl md:text-4xl font-light tracking-tight text-on-surface mb-8">
+                What's on your mind?
+            </h1>
+<div class="relative flex-grow">
+<textarea class="w-full h-full bg-transparent border-none focus:ring-0 p-0 text-lg md:text-xl leading-relaxed text-on-surface-variant placeholder:text-outline-variant/60 resize-none custom-scrollbar" id="journal-input" placeholder="Start typing your thoughts..." spellcheck="false"></textarea>
+</div>
+</div>
+<!-- Bento Inspired Mood & Tools Overlay -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-40">
+<div class="bg-white/60 backdrop-blur-2xl border border-white/40 p-3 rounded-xl shadow-xl flex flex-col gap-4">
+<!-- Mood Selection Bar -->
+<div class="flex items-center justify-between px-2">
+<span class="text-[10px] font-bold text-outline tracking-wider uppercase">Current Mood</span>
+<div class="flex gap-1">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary-container/30 text-outline transition-colors" title="Radiant">
+<span class="material-symbols-outlined" data-weight="fill">sentiment_very_satisfied</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container transition-colors" title="Good">
+<span class="material-symbols-outlined" data-weight="fill">sentiment_satisfied</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary-container/30 text-outline transition-colors" title="Neutral">
+<span class="material-symbols-outlined" data-weight="fill">sentiment_neutral</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary-container/30 text-outline transition-colors" title="Low">
+<span class="material-symbols-outlined" data-weight="fill">sentiment_dissatisfied</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary-container/30 text-outline transition-colors" title="Tired">
+<span class="material-symbols-outlined" data-weight="fill">bedtime</span>
+</button>
+</div>
+</div>
+<!-- Horizontal Divider -->
+<div class="h-[1px] bg-white/40 w-full"></div>
+<!-- Secondary Tools -->
+<div class="flex items-center justify-between px-2 pb-1">
+<div class="flex gap-4">
+<button class="flex items-center gap-2 text-outline-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">image</span>
+<span class="text-xs font-semibold">Media</span>
+</button>
+<button class="flex items-center gap-2 text-outline-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">sell</span>
+<span class="text-xs font-semibold">Tags</span>
+</button>
+</div>
+<div class="flex items-center gap-2 text-outline-variant">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="text-[11px] font-medium tracking-wide">Autosaved just now</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Background Decorative Element (Glass Morphic Orbit) -->
+<div class="fixed top-[20%] right-[-10%] w-64 h-64 bg-primary-fixed-dim/20 blur-3xl rounded-full -z-10"></div>
+<div class="fixed bottom-[10%] left-[-5%] w-80 h-80 bg-tertiary-fixed-dim/10 blur-3xl rounded-full -z-10"></div>
+</body></html>

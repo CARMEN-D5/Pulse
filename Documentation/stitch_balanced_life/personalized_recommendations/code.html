@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Personalized Recommendations - Wellbeing</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-low": "#f2f5ea",
+              "tertiary-dim": "#893365",
+              "tertiary-container": "#ff98cd",
+              "surface-bright": "#f8faf1",
+              "on-primary-fixed": "#004343",
+              "error-dim": "#70030f",
+              "on-primary": "#e0fffd",
+              "inverse-on-surface": "#9b9e96",
+              "on-secondary-fixed": "#2e405d",
+              "on-primary-fixed-variant": "#006362",
+              "surface-variant": "#dfe5d6",
+              "secondary-container": "#d6e3ff",
+              "surface-dim": "#d5dccd",
+              "outline": "#767d70",
+              "tertiary": "#983f72",
+              "on-tertiary": "#fff7f8",
+              "surface-container": "#ebefe3",
+              "primary-container": "#9cebe8",
+              "surface-container-high": "#e5eadd",
+              "outline-variant": "#aeb4a6",
+              "on-tertiary-fixed": "#45002e",
+              "primary-fixed-dim": "#8edcda",
+              "surface-tint": "#086a69",
+              "secondary-dim": "#425472",
+              "tertiary-fixed": "#ff98cd",
+              "on-surface": "#2e342a",
+              "surface-container-highest": "#dfe5d6",
+              "error": "#ac3434",
+              "on-primary-container": "#005857",
+              "on-surface-variant": "#5b6156",
+              "tertiary-fixed-dim": "#f289c0",
+              "surface": "#f8faf1",
+              "secondary-fixed": "#d6e3ff",
+              "on-error": "#fff7f6",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "error-container": "#f56965",
+              "on-tertiary-fixed-variant": "#711e51",
+              "primary-dim": "#005d5c",
+              "primary": "#086a69",
+              "inverse-surface": "#0c0f0a",
+              "on-background": "#2e342a",
+              "on-tertiary-container": "#661447",
+              "inverse-primary": "#adfcfa",
+              "primary-fixed": "#9cebe8",
+              "on-error-container": "#65000b",
+              "on-secondary": "#f8f8ff",
+              "background": "#f8faf1",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary-container": "#405271",
+              "secondary-fixed-dim": "#c2d5f9",
+              "secondary": "#4e607f"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .mesh-bg {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(156, 235, 232, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(255, 152, 205, 0.2) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(204, 251, 241, 0.4) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(142, 220, 218, 0.3) 0px, transparent 50%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-surface mesh-bg min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border-b border-white/20 dark:border-zinc-800/50 shadow-sm flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-teal-700 dark:text-teal-400" data-icon="spa">spa</span>
+<h1 class="text-xl font-bold text-teal-800 dark:text-teal-200">Wellbeing</h1>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden border-2 border-white/50">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Close up portrait of a smiling woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiRFpRNiJs_4pONgFpbmlGrfE5lpeWs92mPXl9dZx6N4eITQzVhdHsWilfN-DIk511id6zKLKR3l2OnsahTB3uRVyMNkAgAH_J7SaED0O8Np_xg6ap7FR9-fIU6Z3-QuFIQ7RG-femqi8LhhmUkg4vwWb28KJzkMhzEa0eTCh-ppJr11dYQnXoJWCmrW3Djb0HDOsHW-l2Mxeqfd7Oba9sT0EIiadp-sBQyZh8JiaShmM-Sf3aDsDw3iyqL8ZrC4sW5xp1kI5MPa0"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto">
+<!-- Hero Section -->
+<section class="mb-10 text-center md:text-left">
+<h2 class="text-3xl font-extrabold text-on-surface mb-2 tracking-tight">Your Daily Bloom</h2>
+<p class="text-on-surface-variant font-medium">Curated recommendations based on your current energy levels and goals.</p>
+</section>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Section 1: Journal Prompts (Featured) -->
+<div class="md:col-span-8 flex flex-col gap-6">
+<div class="glass-card p-8 rounded-lg shadow-sm group hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+</div>
+<div>
+<h3 class="text-xs font-bold uppercase tracking-widest text-primary/70">Journaling</h3>
+<p class="text-xl font-bold text-on-surface">Reflect on a recent win</p>
+</div>
+</div>
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full">RECOMMENDED</span>
+</div>
+<p class="text-on-surface-variant mb-8 leading-relaxed">Take a moment to acknowledge a small victory from the past 24 hours. Writing it down reinforces positive neural pathways and boosts confidence for future challenges.</p>
+<div class="flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-surface-container flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Man smiling at camera profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUBFfy4bI_xUJ7STNQ5eSdJ0i4hupc8GXnps_JY2aU8FFA6N6EPhRPRzgCjhQIHCNOWZL9wlPcADX9aD-A0hP8z696Dg2fgLkOTK76-05fULMWMu8jVU59AROSosOOrdv_ZKznH76hWGSlVfnb4YxUo_HX-6v8SYmytt6fvbgShz4NmsF41j14j4skOeIMprqTtVXRCn5ct8Pth-8w3haNMSmN-ZT7fK7hM1wjiNdQagUpTTMboE38YksngwIHkA1CvYCuJFiFh_s"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-surface-container flex items-center justify-center text-[10px] font-bold text-on-surface-variant">+12</div>
+</div>
+<button class="bg-primary text-on-primary px-6 py-3 rounded-full font-bold flex items-center gap-2 active:scale-95 transition-transform duration-200">
+                            Add to Plan
+                            <span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+</button>
+</div>
+</div>
+<!-- Section 3: Fitness Challenges (Large Horizontal) -->
+<div class="glass-card overflow-hidden rounded-lg shadow-sm flex flex-col md:flex-row h-full">
+<div class="md:w-1/3 relative min-h-[200px]">
+<img class="w-full h-full object-cover" data-alt="Person running outdoors during golden hour" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpM6ieeG5DBsNTagifz2HP8nYoc85CvqE9Yf53lJC3kXYRq_It67T1dAZyu4o1oc7kbAIHsRYi4Wj703UB4yTUuqPFSqA10fYQ9ZNtlDbeAlaPgYpm1brsx0-j9BNoAQdueKC_qrTMtHZxIeJUx8xOPgr1pYp8kmQtIp_pE8DInwh5rQ79w3ZypMzaGyIfKWkxwMFerqNwVR6JDd5c-XxvujpIu_cTkO7Jzffj1HSsrjAgcS16py4k8ODYj8UO5efKUtXH7YLhcyU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:bg-gradient-to-r"></div>
+</div>
+<div class="md:w-2/3 p-8 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-tertiary" data-icon="fitness_center">fitness_center</span>
+<h3 class="text-xs font-bold uppercase tracking-widest text-tertiary">Fitness Challenge</h3>
+</div>
+<h4 class="text-2xl font-bold mb-3">10k Steps Challenge</h4>
+<p class="text-on-surface-variant text-sm mb-6">Join 4,200 others in hitting 10,000 steps daily for 7 days. Consistency is the key to cardiovascular health.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-tertiary text-on-tertiary px-8 py-3 rounded-full font-bold active:scale-95 transition-transform duration-200">
+                                Start
+                            </button>
+<span class="text-sm font-semibold text-on-surface-variant">7 Days Left</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Mindfulness Exercises (Sidebar Vertical) -->
+<div class="md:col-span-4 flex flex-col gap-6">
+<div class="glass-card p-6 rounded-lg shadow-sm flex flex-col h-full bg-secondary-container/30">
+<div class="mb-8">
+<span class="material-symbols-outlined text-secondary-dim text-4xl mb-4" data-icon="air">air</span>
+<h3 class="text-xs font-bold uppercase tracking-widest text-secondary-dim mb-2">Mindfulness</h3>
+<h4 class="text-2xl font-bold mb-4">5-min Breathing</h4>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-6">A quick reset for your nervous system. Perfect for transitioning between tasks or calming a busy mind.</p>
+<ul class="space-y-3 mb-8">
+<li class="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="check_circle">check_circle</span>
+                                Box breathing technique
+                            </li>
+<li class="flex items-center gap-3 text-sm font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="check_circle">check_circle</span>
+                                Guided audio support
+                            </li>
+</ul>
+</div>
+<button class="mt-auto w-full bg-secondary text-on-secondary py-4 rounded-full font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform duration-200">
+                        Explore
+                        <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Small Promo / Tip -->
+<div class="bg-white/40 border border-white/40 p-6 rounded-lg">
+<h5 class="font-bold mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-500" data-icon="lightbulb">lightbulb</span>
+                        Quick Tip
+                    </h5>
+<p class="text-sm text-on-surface-variant italic">"Your mind is a garden. Your thoughts are the seeds. You can grow flowers, or you can grow weeds."</p>
+</div>
+</div>
+</div>
+<!-- Secondary Suggestions -->
+<section class="mt-16 mb-12">
+<h3 class="text-xl font-bold mb-6">More for you</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="glass-card p-4 rounded-lg flex items-center gap-4 hover:bg-white/60 transition-colors">
+<div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+<span class="material-symbols-outlined" data-icon="bedtime">bedtime</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">Sleep Prep</h4>
+<p class="text-[10px] text-on-surface-variant">Wind down routine</p>
+</div>
+</div>
+<div class="glass-card p-4 rounded-lg flex items-center gap-4 hover:bg-white/60 transition-colors">
+<div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+<span class="material-symbols-outlined" data-icon="restaurant">restaurant</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">Mindful Eating</h4>
+<p class="text-[10px] text-on-surface-variant">3 healthy recipes</p>
+</div>
+</div>
+<div class="glass-card p-4 rounded-lg flex items-center gap-4 hover:bg-white/60 transition-colors">
+<div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+<span class="material-symbols-outlined" data-icon="music_note">music_note</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">Focus Flow</h4>
+<p class="text-[10px] text-on-surface-variant">Ambient soundscape</p>
+</div>
+</div>
+<div class="glass-card p-4 rounded-lg flex items-center gap-4 hover:bg-white/60 transition-colors">
+<div class="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">Community</h4>
+<p class="text-[10px] text-on-surface-variant">Check in with peers</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-t border-white/30 dark:border-zinc-800/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-[32px] z-50">
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-5 py-1.5 hover:text-teal-600 dark:hover:text-teal-300 active:scale-90 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-manrope text-[11px] font-medium mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 rounded-full px-5 py-1.5 active:scale-90 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="self_care" style="font-variation-settings: 'FILL' 1;">self_care</span>
+<span class="font-manrope text-[11px] font-bold mt-1">Meditate</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-5 py-1.5 hover:text-teal-600 dark:hover:text-teal-300 active:scale-90 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="timer">timer</span>
+<span class="font-manrope text-[11px] font-medium mt-1">Focus</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 px-5 py-1.5 hover:text-teal-600 dark:hover:text-teal-300 active:scale-90 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-manrope text-[11px] font-medium mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

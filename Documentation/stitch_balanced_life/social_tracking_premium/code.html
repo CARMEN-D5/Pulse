@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Social Connection - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-dim": "#005d5c",
+              "error": "#ac3434",
+              "on-surface": "#2e342a",
+              "secondary-fixed-dim": "#c2d5f9",
+              "on-error-container": "#65000b",
+              "outline-variant": "#aeb4a6",
+              "surface-container-lowest": "#ffffff",
+              "surface-container": "#ebefe3",
+              "tertiary-fixed": "#ff98cd",
+              "secondary-dim": "#425472",
+              "on-surface-variant": "#5b6156",
+              "on-secondary": "#f8f8ff",
+              "on-background": "#2e342a",
+              "secondary-container": "#d6e3ff",
+              "on-tertiary-fixed": "#45002e",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "primary-container": "#9cebe8",
+              "on-secondary-fixed": "#2e405d",
+              "primary": "#086a69",
+              "surface-variant": "#dfe5d6",
+              "tertiary": "#983f72",
+              "surface-tint": "#086a69",
+              "on-tertiary-fixed-variant": "#711e51",
+              "secondary-fixed": "#d6e3ff",
+              "surface-bright": "#f8faf1",
+              "surface-dim": "#d5dccd",
+              "secondary": "#4e607f",
+              "primary-fixed-dim": "#8edcda",
+              "tertiary-fixed-dim": "#f289c0",
+              "on-secondary-container": "#405271",
+              "on-error": "#fff7f6",
+              "on-tertiary-container": "#661447",
+              "on-tertiary": "#fff7f8",
+              "inverse-surface": "#0c0f0a",
+              "error-dim": "#70030f",
+              "tertiary-dim": "#893365",
+              "tertiary-container": "#ff98cd",
+              "on-primary-fixed-variant": "#006362",
+              "surface": "#f8faf1",
+              "primary-fixed": "#9cebe8",
+              "on-primary-container": "#005857",
+              "inverse-primary": "#adfcfa",
+              "error-container": "#f56965",
+              "surface-container-highest": "#dfe5d6",
+              "background": "#f8faf1",
+              "surface-container-low": "#f2f5ea",
+              "inverse-on-surface": "#9b9e96",
+              "on-primary": "#e0fffd",
+              "on-primary-fixed": "#004343",
+              "surface-container-high": "#e5eadd",
+              "outline": "#767d70"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            background: radial-gradient(at top left, #f8faf1, #e0fffd);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface pb-32">
+<!-- TopAppBar -->
+<header class="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border-b border-white/20 dark:border-zinc-800/50 shadow-sm docked full-width top-0 sticky z-50 flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile photo smiling confidently" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDh09Il3AzsJmmUpI8QkKMa5tnozRU0xoLdTdj79BvVtqFFlQu5FZTEMtcABc5UavZ7FdR-FODwxNUufoGCbMXrWobCdca8i3DpyJLmPsJ6oc_wfLvs29SNiiQh0_qpLSENDSqHkuvTmOenl5ZmdZcVk3PU_FwgHX_f9q-W5ylflyZIOC_fsSJIQbU6StFfPEuX4sogITNIAlc4Vw9GT-ReiW6Ka7u_3SLOuXRkpF7uYIYl0B3n5tcHc__k1zVVJpXdbsX9jZ072IM"/>
+</div>
+<span class="text-xl font-bold tracking-tight text-teal-900 dark:text-teal-100">Balanced Life</span>
+</div>
+<div class="text-zinc-500 dark:text-zinc-400 hover:opacity-80 transition-opacity cursor-pointer">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</div>
+</header>
+<main class="max-w-md mx-auto px-6 pt-8 space-y-8">
+<!-- Summary Section: Social Connection Score -->
+<section class="glass-card rounded-lg p-6 shadow-sm overflow-hidden relative">
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h2 class="text-on-surface-variant font-medium text-sm mb-1 uppercase tracking-wider">Social Connection Score</h2>
+<div class="flex items-baseline gap-2">
+<span class="text-5xl font-extrabold text-primary">84</span>
+<span class="text-on-surface-variant/60 font-semibold">/100</span>
+</div>
+</div>
+<div class="bg-primary-container/40 p-3 rounded-full">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+</div>
+<div class="bg-white/30 rounded-lg p-4 border border-white/40">
+<p class="text-on-surface-variant text-sm leading-relaxed">
+<span class="font-bold text-primary">Great work!</span> You've nurtured 3 core relationships this week. Your deep conversations are boosting your overall well-being.
+                    </p>
+</div>
+</div>
+<!-- Decorative Mesh Element -->
+<div class="absolute -bottom-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl"></div>
+</section>
+<!-- Quick Actions: Recent Interactions -->
+<section>
+<div class="flex justify-between items-end mb-4">
+<h3 class="font-bold text-xl text-teal-900">Recent Interactions</h3>
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:underline">
+                    View Log <span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<button class="glass-card rounded-lg p-4 flex flex-col items-center gap-2 hover:bg-primary-container/20 transition-all active:scale-95">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="call">call</span>
+</div>
+<span class="text-xs font-semibold text-on-surface">Call</span>
+</button>
+<button class="glass-card rounded-lg p-4 flex flex-col items-center gap-2 hover:bg-primary-container/20 transition-all active:scale-95">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="forum">forum</span>
+</div>
+<span class="text-xs font-semibold text-on-surface">Meet</span>
+</button>
+<button class="glass-card rounded-lg p-4 flex flex-col items-center gap-2 hover:bg-primary-container/20 transition-all active:scale-95">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="chat">chat</span>
+</div>
+<span class="text-xs font-semibold text-on-surface">Message</span>
+</button>
+</div>
+</section>
+<!-- Circle of Connection -->
+<section>
+<h3 class="font-bold text-xl text-teal-900 mb-4">Circle of Connection</h3>
+<div class="relative flex justify-center items-center py-10 glass-card rounded-lg">
+<!-- Center: User (Abstracted) -->
+<div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary/40 z-10">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="person_pin">person_pin</span>
+</div>
+<!-- Satellite 1 -->
+<div class="absolute top-4 left-1/4 animate-pulse">
+<div class="group relative">
+<img class="w-12 h-12 rounded-full border-2 border-white shadow-md" data-alt="Portrait of a male friend" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlGdY83h4dJwWHosJ91qt9f3b9w6ngiYqzmueG-ELL5UvBnFehwc3TODe4PcKegeVfl8rUIohzNvPpspT0kI_pCKFruttiwT0fohI6ZTSRf8tJ5LLFiunbOG5vlseFGNOb6PwxQV5VgFPTnMVN_hJ6Ys5qt-LHjT-OXou2ZCzpQH8kJr6QsDyyT4zea9UO_fMqgJ6wr28xE6EPaz8jVqzlYNdtkUg_LvF8BBORndh2YohgBLT6xNL15lewNxSCIna4s0iW8RESIYY"/>
+<div class="absolute -top-1 -right-1 w-4 h-4 bg-error rounded-full border-2 border-white flex items-center justify-center">
+<span class="text-[8px] text-white font-bold">!</span>
+</div>
+</div>
+</div>
+<!-- Satellite 2 -->
+<div class="absolute top-1/2 right-12">
+<img class="w-10 h-10 rounded-full border-2 border-white shadow-md opacity-80" data-alt="Portrait of a female friend" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9iHMXlalqnST8mVTDayYaO6lUCvBdBfXq1llo4xouilGiV7kk18x57jSY6PXSYrYXfLdRbjlUJsb3jDo4muXu5fDk4ueIVrw7JNYNbO2NWd0Leo0GyjMVcdN7T3MwGdCgnEuzdtJn8a_CkWYaCns5em2Dy1GTWiA2WzbZOjjnKC1sHCIrd8USx2STQZP5lInZNOkr-7MHczxMDhVXAY_diFxdboY5QmhHS2sX3ZvDvUgGtXRT-L2hiNpIcGGRnIjLKbyqxU4xaJg"/>
+</div>
+<!-- Satellite 3 -->
+<div class="absolute bottom-6 left-1/3">
+<img class="w-14 h-14 rounded-full border-2 border-white shadow-md" data-alt="Portrait of a young male friend" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-NgDXwSfcncq4D3dbTl6pPnShJPfjRvC-KAXpNbJ1zYQDeMCBPIO1uNzqwKDW8RTHdIc0Hyrkjg4_EjGzZpHH4CQW6rTMcopVFXFRul6rQ6iKQ8Y4Ez7ETSlinJOJMXy2JjziZA21XsoG-4kQUElPscCLH29SgnnVExMoZAUbjOHEYnkTNUq376Dh7m8ntu-bu5DUiQTpFZtOnhuBR0q1dvK2HtJ8U0NCfeSHtEMrkBZ3H0Y0M6eN7MfBShDjC7aTDl2G1EGrwlQ"/>
+</div>
+<!-- Circle Rings (Background) -->
+<div class="absolute w-48 h-48 border border-primary/10 rounded-full"></div>
+<div class="absolute w-72 h-72 border border-primary/5 rounded-full"></div>
+</div>
+<p class="text-center text-on-surface-variant text-xs mt-3 font-medium">It's been a while since you talked to <span class="text-primary font-bold">Marcus</span>.</p>
+</section>
+<!-- Nurture List -->
+<section>
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-xl text-teal-900">Nurture List</h3>
+<span class="bg-tertiary-container/30 text-tertiary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">Priority</span>
+</div>
+<div class="space-y-4">
+<!-- Priority Item 1 -->
+<div class="glass-card rounded-lg p-4 flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container relative">
+<img class="w-full h-full object-cover rounded-full" data-alt="Close up of a friend's face" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBp_0Zp3QpgABd_8M02dnsX41P51jn78jDT4aZAu671qF7XD9ZMPeRptzx5yEFkshiQa5dU1YLrZD_9Wql1uylRqm8ZohsvENMhbY-2D4akgk8z2J-9PNO0rwWe3lS-DgjSykIsRjRGYrJYbRA9VlRmew2ZjFNmkesdgALHUvfBrISCFC4gAAvdoBKEM7Xb7ggpmC2uHe6cVj_i-ko1RM6xQHY-xf9z4QXSTnTAf3qxLcCoiZnpDFcql303PbTjzG7fMaP1OIaki_Q"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-tertiary rounded-full border-2 border-white"></div>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Sarah Mitchell</h4>
+<p class="text-xs text-on-surface-variant">Social Goal: Call once a week</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<div class="w-16 h-2 bg-surface-container rounded-full overflow-hidden mb-1">
+<div class="w-3/4 h-full bg-tertiary"></div>
+</div>
+<span class="text-[10px] font-bold text-tertiary">75% Streak</span>
+</div>
+</div>
+<!-- Priority Item 2 -->
+<div class="glass-card rounded-lg p-4 flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container relative">
+<img class="w-full h-full object-cover rounded-full" data-alt="Portrait of an older man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCe5dbLfxtEa94J79AlzvTA6-tnuC3qyF8xUKAd_ePcZbx5AYc2v8Amqlshoko7gSgL15ibMkJsx2X3yYbH1UmfFLAdIOy2XUAMY4dmK83LyOCNImhHd9_5UNa6Ci6cfXo0TYSR6CRF7t44l4Tn9wT6cGNJ-zIZIKe_nQu21IL0PAKeb7Uko5W_-8TW4AxcErT2a6q0_meBVSNtCyAaOgb12qhAj8Zu7-Cr1XVS6CM3kqkH6EfEPNzdYPQe4v2EE4pWUeY2McnHTP8"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full border-2 border-white"></div>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">David Chen</h4>
+<p class="text-xs text-on-surface-variant">Social Goal: Coffee meetup monthly</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<div class="w-16 h-2 bg-surface-container rounded-full overflow-hidden mb-1">
+<div class="w-1/4 h-full bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-primary">Due Soon</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-t border-white/30 dark:border-zinc-800/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-[32px] z-50">
+<div class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 px-5 py-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-full px-5 py-2 scale-90 duration-150 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Social</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 px-5 py-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Insights</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 px-5 py-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-manrope text-[11px] font-medium tracking-wide">Profile</span>
+</div>
+</nav>
+<!-- FAB for adding interaction (Contextual) -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform active:scale-90 z-40">
+<span class="material-symbols-outlined text-3xl" data-icon="add">add</span>
+</button>
+</body></html>

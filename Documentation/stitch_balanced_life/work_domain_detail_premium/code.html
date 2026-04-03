@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Work Domain - Balanced Life</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-highest": "#dfe5d6",
+              "on-tertiary-fixed": "#45002e",
+              "surface-container": "#ebefe3",
+              "on-secondary-container": "#405271",
+              "on-primary": "#e0fffd",
+              "on-tertiary": "#fff7f8",
+              "surface-container-high": "#e5eadd",
+              "tertiary-container": "#ff98cd",
+              "inverse-surface": "#0c0f0a",
+              "secondary-dim": "#425472",
+              "surface-container-low": "#f2f5ea",
+              "surface-bright": "#f8faf1",
+              "secondary-fixed-dim": "#c2d5f9",
+              "primary-dim": "#005d5c",
+              "on-surface-variant": "#5b6156",
+              "on-primary-container": "#005857",
+              "on-error": "#fff7f6",
+              "primary-fixed": "#9cebe8",
+              "inverse-on-surface": "#9b9e96",
+              "surface-container-lowest": "#ffffff",
+              "surface-tint": "#086a69",
+              "secondary-container": "#d6e3ff",
+              "outline-variant": "#aeb4a6",
+              "tertiary-fixed": "#ff98cd",
+              "on-primary-fixed-variant": "#006362",
+              "tertiary-dim": "#893365",
+              "primary-container": "#9cebe8",
+              "error-container": "#f56965",
+              "on-secondary": "#f8f8ff",
+              "inverse-primary": "#adfcfa",
+              "background": "#f8faf1",
+              "primary-fixed-dim": "#8edcda",
+              "on-secondary-fixed-variant": "#4a5c7b",
+              "on-primary-fixed": "#004343",
+              "tertiary": "#983f72",
+              "surface-variant": "#dfe5d6",
+              "surface-dim": "#d5dccd",
+              "on-surface": "#2e342a",
+              "on-error-container": "#65000b",
+              "on-background": "#2e342a",
+              "secondary-fixed": "#d6e3ff",
+              "error-dim": "#70030f",
+              "error": "#ac3434",
+              "on-tertiary-container": "#661447",
+              "tertiary-fixed-dim": "#f289c0",
+              "outline": "#767d70",
+              "secondary": "#4e607f",
+              "primary": "#086a69",
+              "surface": "#f8faf1",
+              "on-tertiary-fixed-variant": "#711e51",
+              "on-secondary-fixed": "#2e405d"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .mesh-bg {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(156, 235, 232, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(214, 227, 255, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(255, 152, 205, 0.2) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(156, 235, 232, 0.3) 0px, transparent 50%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-surface mesh-bg min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky flex items-center justify-between px-4 h-16 w-full bg-white/60 backdrop-blur-md border-b border-stone-100 z-50 font-manrope antialiased tracking-tight">
+<div class="flex items-center gap-3">
+<button class="p-2 hover:bg-stone-50 transition-colors active:scale-95 duration-100 rounded-full text-teal-800">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-teal-900">Work Domain</h1>
+</div>
+<button class="p-2 hover:bg-stone-50 transition-colors active:scale-95 duration-100 rounded-full text-teal-800">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</header>
+<main class="max-w-2xl mx-auto px-6 pt-8 space-y-8">
+<!-- Central Score Section -->
+<section class="flex flex-col items-center justify-center py-6">
+<div class="relative w-64 h-64 flex items-center justify-center">
+<!-- Outer Ring Progress -->
+<svg class="absolute inset-0 w-full h-full -rotate-90">
+<circle class="text-surface-container-high" cx="128" cy="128" fill="transparent" r="110" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary" cx="128" cy="128" fill="transparent" r="110" stroke="currentColor" stroke-dasharray="691" stroke-dashoffset="180" stroke-linecap="round" stroke-width="12"></circle>
+</svg>
+<!-- Inner Content -->
+<div class="glass-card w-48 h-48 rounded-full flex flex-col items-center justify-center text-center shadow-xl">
+<span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Work Score</span>
+<div class="flex items-baseline gap-0.5">
+<span class="text-6xl font-extrabold text-primary">74</span>
+<span class="text-xl font-medium text-on-surface-variant">/100</span>
+</div>
+<div class="mt-2 px-3 py-1 bg-primary-container/40 rounded-full flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-xs font-bold text-on-primary-container">Steady Focus</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Trend Chart Section -->
+<section class="glass-card rounded-lg p-6 shadow-sm">
+<div class="flex justify-between items-end mb-6">
+<div>
+<h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Productivity Trend</h3>
+<p class="text-lg font-bold text-on-surface">Last 30 Days</p>
+</div>
+<div class="text-right">
+<span class="text-primary font-bold">+12%</span>
+<p class="text-[10px] text-on-surface-variant">vs last month</p>
+</div>
+</div>
+<!-- Mock Chart -->
+<div class="h-32 flex items-end justify-between gap-1">
+<div class="w-full bg-primary-container/30 h-[40%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[55%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[45%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[70%] rounded-t-sm"></div>
+<div class="w-full bg-primary h-[85%] rounded-t-sm shadow-[0_0_15px_rgba(8,106,105,0.2)]"></div>
+<div class="w-full bg-primary-container/30 h-[60%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[75%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[50%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[65%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[80%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[40%] rounded-t-sm"></div>
+<div class="w-full bg-primary-container/30 h-[90%] rounded-t-sm"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] text-on-surface-variant font-medium">
+<span>AUG 01</span>
+<span>AUG 15</span>
+<span>TODAY</span>
+</div>
+</section>
+<!-- Key Metrics Bento Grid -->
+<section class="grid grid-cols-2 gap-4">
+<!-- Work-Life Balance -->
+<div class="glass-card rounded-lg p-5 flex flex-col justify-between aspect-square">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">balance</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-on-surface-variant">Work-Life Balance</p>
+<p class="text-2xl font-extrabold text-on-surface mt-1">6.5<span class="text-sm font-medium opacity-60">/10</span></p>
+</div>
+</div>
+<!-- Productivity -->
+<div class="glass-card rounded-lg p-5 flex flex-col justify-between aspect-square">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-on-surface-variant">Productivity</p>
+<p class="text-2xl font-extrabold text-on-surface mt-1">82%</p>
+</div>
+</div>
+<!-- Stress Levels (Full Width) -->
+<div class="glass-card rounded-lg p-5 col-span-2 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-container/30 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">spa</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-on-surface-variant">Stress Levels</p>
+<p class="text-xl font-extrabold text-on-surface">Low</p>
+</div>
+</div>
+<div class="flex gap-1">
+<div class="w-2 h-6 bg-primary rounded-full"></div>
+<div class="w-2 h-6 bg-surface-container-highest rounded-full"></div>
+<div class="w-2 h-6 bg-surface-container-highest rounded-full"></div>
+</div>
+</div>
+</section>
+<!-- To-Do Progress Section -->
+<section class="glass-card rounded-lg p-6 shadow-sm mb-8">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-wider">To-Do Progress</h3>
+<span class="text-sm font-bold text-primary">12 of 15 completed</span>
+</div>
+<div class="w-full bg-surface-container-high h-3 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 80%"></div>
+</div>
+<div class="mt-6 space-y-3">
+<div class="flex items-center gap-3 bg-white/40 p-3 rounded-md border border-white/20">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<span class="text-sm font-medium line-through text-on-surface-variant">Review Q3 Strategy Deck</span>
+</div>
+<div class="flex items-center gap-3 bg-white/40 p-3 rounded-md border border-white/20">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<span class="text-sm font-medium line-through text-on-surface-variant">Weekly Sync with Design Team</span>
+</div>
+<div class="flex items-center gap-3 bg-white/60 p-3 rounded-md border border-primary/20">
+<span class="material-symbols-outlined text-stone-300">radio_button_unchecked</span>
+<span class="text-sm font-bold text-on-surface">Finalize Project "Equilibrium" Specs</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-6 pb-6 pt-3 bg-white/80 dark:bg-stone-950/80 backdrop-blur-md shadow-[0_-4px_12px_rgba(0,0,0,0.05)] rounded-t-full border-t border-stone-100">
+<!-- Work (Active) -->
+<a class="flex flex-col items-center justify-center bg-teal-50 text-teal-800 rounded-full px-5 py-1.5 transition-transform active:scale-90 tap-highlight-transparent" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">work</span>
+<span class="text-[11px] font-semibold font-manrope uppercase tracking-wider">Work</span>
+</a>
+<!-- Life -->
+<a class="flex flex-col items-center justify-center text-stone-400 px-5 py-1.5 hover:text-teal-600 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined">favorite</span>
+<span class="text-[11px] font-semibold font-manrope uppercase tracking-wider">Life</span>
+</a>
+<!-- Stats -->
+<a class="flex flex-col items-center justify-center text-stone-400 px-5 py-1.5 hover:text-teal-600 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="text-[11px] font-semibold font-manrope uppercase tracking-wider">Stats</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-stone-400 px-5 py-1.5 hover:text-teal-600 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[11px] font-semibold font-manrope uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+</body></html>

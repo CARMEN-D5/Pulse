@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weekly Review - Balanced Life</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-high": "#e5eadd",
+              "secondary-fixed": "#d6e3ff",
+              "inverse-surface": "#0c0f0a",
+              "on-tertiary-fixed": "#45002e",
+              "on-error": "#fff7f6",
+              "on-surface": "#2e342a",
+              "secondary-fixed-dim": "#c2d5f9",
+              "on-tertiary": "#fff7f8",
+              "tertiary-dim": "#893365",
+              "outline": "#767d70",
+              "primary-dim": "#005d5c",
+              "on-tertiary-container": "#661447",
+              "tertiary-fixed-dim": "#f289c0",
+              "on-primary": "#e0fffd",
+              "surface-container": "#ebefe3",
+              "on-primary-fixed": "#004343",
+              "surface-container-highest": "#dfe5d6",
+              "surface-container-low": "#f2f5ea",
+              "on-background": "#2e342a",
+              "on-secondary": "#f8f8ff",
+              "inverse-on-surface": "#9b9e96",
+              "primary-fixed": "#9cebe8",
+              "surface-tint": "#086a69",
+              "error": "#ac3434",
+              "surface-variant": "#dfe5d6",
+              "tertiary-container": "#ff98cd",
+              "background": "#f8faf1",
+              "primary-container": "#9cebe8",
+              "on-secondary-container": "#405271",
+              "outline-variant": "#aeb4a6",
+              "inverse-primary": "#adfcfa",
+              "tertiary": "#983f72",
+              "secondary": "#4e607f",
+              "primary-fixed-dim": "#8edcda",
+              "on-tertiary-fixed-variant": "#711e51",
+              "surface": "#f8faf1",
+              "on-primary-container": "#005857",
+              "tertiary-fixed": "#ff98cd",
+              "surface-container-lowest": "#ffffff",
+              "secondary-container": "#d6e3ff",
+              "on-surface-variant": "#5b6156",
+              "surface-bright": "#f8faf1",
+              "on-secondary-fixed": "#2e405d",
+              "surface-dim": "#d5dccd",
+              "error-dim": "#70030f",
+              "error-container": "#f56965",
+              "primary": "#086a69",
+              "on-primary-fixed-variant": "#006362",
+              "secondary-dim": "#425472",
+              "on-error-container": "#65000b",
+              "on-secondary-fixed-variant": "#4a5c7b"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .mesh-bg {
+            background-color: #f8faf1;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(179,53%,76%,0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(331,100%,80%,0.3) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(218,100%,80%,0.3) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(179,53%,76%,0.4) 0px, transparent 50%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body min-h-screen mesh-bg flex flex-col overflow-x-hidden">
+<!-- Header -->
+<header class="flex items-center justify-between p-4 bg-transparent z-10 sticky top-0 backdrop-blur-md">
+<button aria-label="Go back" class="flex items-center justify-center w-12 h-12 text-on-background rounded-full hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-xl font-headline font-bold">Weekly Review</h1>
+<div class="w-12 h-12"></div> <!-- Spacer for centering -->
+</header>
+<main class="flex-1 px-4 pb-24 space-y-8 max-w-md mx-auto w-full @container">
+<!-- Hero Summary -->
+<section class="mt-4">
+<div class="glass-panel rounded-xl p-6 shadow-sm">
+<p class="text-sm font-medium text-on-surface-variant mb-1 uppercase tracking-wider">Oct 16 - Oct 22</p>
+<h2 class="text-3xl font-headline font-bold text-on-background mb-4">A Balanced Week</h2>
+<p class="text-on-surface">You maintained strong momentum in Health, but Work needed more focus. Let's adjust for next week.</p>
+</div>
+</section>
+<!-- Mission Status Cards -->
+<section>
+<h3 class="text-lg font-headline font-bold mb-4 px-1">Mission Status</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="glass-panel rounded-xl p-5 flex flex-col justify-between shadow-sm">
+<span class="material-symbols-outlined text-primary mb-2" data-icon="task_alt">task_alt</span>
+<p class="text-sm font-medium text-on-surface-variant">Completed</p>
+<p class="text-2xl font-bold text-on-background mt-1">12</p>
+<p class="text-xs font-bold text-primary mt-2">+10% vs last week</p>
+</div>
+<div class="glass-panel rounded-xl p-5 flex flex-col justify-between shadow-sm">
+<span class="material-symbols-outlined text-tertiary mb-2" data-icon="pending">pending</span>
+<p class="text-sm font-medium text-on-surface-variant">In Progress</p>
+<p class="text-2xl font-bold text-on-background mt-1">3</p>
+<p class="text-xs font-medium text-on-surface-variant mt-2">Steady pace</p>
+</div>
+</div>
+</section>
+<!-- Domain Progress (Simple Bar Chart representation) -->
+<section>
+<div class="flex justify-between items-end mb-4 px-1">
+<h3 class="text-lg font-headline font-bold">Domain Harmony</h3>
+<span class="text-sm font-medium text-primary cursor-pointer hover:underline">Details</span>
+</div>
+<div class="glass-panel rounded-xl p-6 shadow-sm space-y-5">
+<!-- Health -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="favorite">favorite</span> Health
+                        </span>
+<span class="font-bold text-on-background">85%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden">
+<div class="bg-primary h-2.5 rounded-full" style="width: 85%"></div>
+</div>
+</div>
+<!-- Work -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="work">work</span> Work
+                        </span>
+<span class="font-bold text-on-background">40%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden">
+<div class="bg-secondary h-2.5 rounded-full" style="width: 40%"></div>
+</div>
+</div>
+<!-- Growth -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-tertiary" data-icon="psychology">psychology</span> Growth
+                        </span>
+<span class="font-bold text-on-background">70%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden">
+<div class="bg-tertiary h-2.5 rounded-full" style="width: 70%"></div>
+</div>
+</div>
+<!-- Social -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary-fixed-dim" data-icon="groups">groups</span> Social
+                        </span>
+<span class="font-bold text-on-background">60%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden">
+<div class="bg-primary-fixed-dim h-2.5 rounded-full" style="width: 60%"></div>
+</div>
+</div>
+<!-- Wealth -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-secondary-dim" data-icon="account_balance_wallet">account_balance_wallet</span> Wealth
+                        </span>
+<span class="font-bold text-on-background">90%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden">
+<div class="bg-secondary-dim h-2.5 rounded-full" style="width: 90%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Mood Patterns -->
+<section>
+<h3 class="text-lg font-headline font-bold mb-4 px-1">Mood Patterns</h3>
+<div class="glass-panel rounded-xl p-6 shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<div class="text-center">
+<span class="block text-sm text-on-surface-variant mb-1">Mon</span>
+<span class="material-symbols-outlined text-tertiary" data-icon="sentiment_satisfied">sentiment_satisfied</span>
+</div>
+<div class="text-center">
+<span class="block text-sm text-on-surface-variant mb-1">Tue</span>
+<span class="material-symbols-outlined text-primary" data-icon="sentiment_very_satisfied">sentiment_very_satisfied</span>
+</div>
+<div class="text-center">
+<span class="block text-sm text-on-surface-variant mb-1">Wed</span>
+<span class="material-symbols-outlined text-secondary" data-icon="sentiment_neutral">sentiment_neutral</span>
+</div>
+<div class="text-center">
+<span class="block text-sm text-on-surface-variant mb-1">Thu</span>
+<span class="material-symbols-outlined text-primary" data-icon="sentiment_very_satisfied">sentiment_very_satisfied</span>
+</div>
+<div class="text-center">
+<span class="block text-sm text-on-surface-variant mb-1">Fri</span>
+<span class="material-symbols-outlined text-tertiary" data-icon="sentiment_satisfied">sentiment_satisfied</span>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-lg p-4 text-sm text-on-surface border border-surface-container-high">
+<p>You felt mostly positive this week, correlating strongly with your completed Health missions. Great job!</p>
+</div>
+</div>
+</section>
+<!-- Motivational Quote -->
+<section class="pb-8">
+<div class="glass-panel rounded-xl p-6 shadow-sm text-center relative overflow-hidden">
+<span class="material-symbols-outlined absolute text-[120px] text-primary-container opacity-20 -top-4 -left-4" data-icon="format_quote">format_quote</span>
+<p class="text-lg italic font-medium text-on-background relative z-10">"Balance is not something you find, it's something you create."</p>
+<p class="text-sm text-on-surface-variant mt-2 relative z-10">- Jana Kingsford</p>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<div class="fixed bottom-0 left-0 right-0 flex gap-2 border-t border-surface-container-high bg-surface px-4 pb-3 pt-2 z-50">
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-on-surface-variant hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined" data-icon="house">house</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Home</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-on-surface-variant hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined" data-icon="check_square">square</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Missions</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-primary" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined" data-icon="chart_bar" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
+</div>
+<p class="text-xs font-bold leading-normal tracking-[0.015em]">Review</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-on-surface-variant hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined" data-icon="user">verified_user</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
+</a>
+</div>
+</body></html>

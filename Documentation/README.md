@@ -8,6 +8,8 @@ This folder contains the active documentation set for the VELORA project.
 - `Balanced_Life_Model.pdf`
 - `Scenarios&UserStory.md`
 - `userflowChart_1.pdf`
+- `stitch_balanced_life/`
+  - stitched premium UI reference explorations and exported screens
 
 These files are original source or reference material and should be kept.
 
