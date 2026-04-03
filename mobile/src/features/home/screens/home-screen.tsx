@@ -1,19 +1,22 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DomainBadge } from "@/components/ui/domain-badge";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { Screen } from "@/components/ui/screen";
+import { ScoreRing } from "@/components/ui/score-ring";
+import { SectionHeader } from "@/components/ui/section-header";
 import { StatusCard } from "@/components/ui/status-card";
 import {
   deriveWeeklyMissions,
   loadMissionCompletionState,
-  saveMissionCompletionState,
-  type WeeklyMission
+  saveMissionCompletionState
 } from "@/features/missions/services/mission-service";
 import {
   fetchLatestDashboardSnapshot,
@@ -23,7 +26,7 @@ import { formatWeekRange } from "@/lib/date-time";
 import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
-import { createShadow, domainTheme, theme } from "@/theme/tokens";
+import { domainTheme, theme } from "@/theme/tokens";
 
 export function HomeScreen() {
   const { user } = useAuthSession();
@@ -129,13 +132,11 @@ export function HomeScreen() {
 
   return (
     <Screen scrollable>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>VELORA</Text>
-        <Text style={styles.title}>Good to see you, {greetingName}.</Text>
-        <Text style={styles.copy}>
-          See where your balance is strongest, where it needs care, and what to do next today.
-        </Text>
-      </View>
+      <SectionHeader
+        eyebrow="VELORA"
+        subtitle="See where your balance is strongest, where it needs care, and what to do next today."
+        title={`Good to see you, ${greetingName}.`}
+      />
 
       <Card style={styles.scoreCard} variant="highlight">
         <Text style={styles.scoreLabel}>Balanced life score</Text>
@@ -143,12 +144,7 @@ export function HomeScreen() {
           <ActivityIndicator color={theme.colors.primary} />
         ) : snapshot?.lifeSummary ? (
           <View style={styles.scoreContent}>
-            <View style={styles.scoreRing}>
-              <Text style={styles.scoreValue}>
-                {Math.round(snapshot.lifeSummary.balancedLifeScore)}
-              </Text>
-              <Text style={styles.scoreRingLabel}>balance</Text>
-            </View>
+            <ScoreRing caption="balance" value={snapshot.lifeSummary.balancedLifeScore} />
             <View style={styles.scoreBody}>
               <Text style={styles.scoreHeadline}>
                 {snapshot.lifeSummary.isProvisional
@@ -176,35 +172,11 @@ export function HomeScreen() {
       <View style={styles.quickGrid}>
         <Card style={styles.quickCard}>
           <Text style={styles.quickTitle}>Strongest domain</Text>
-          {strongestDomainKey ? (
-            <View style={styles.quickValueRow}>
-              <View
-                style={[
-                  styles.quickDot,
-                  { backgroundColor: domainTheme[strongestDomainKey].accent }
-                ]}
-              />
-              <Text style={styles.quickValue}>{DOMAIN_LABELS[strongestDomainKey]}</Text>
-            </View>
-          ) : (
-            <Text style={styles.quickValue}>Not available yet</Text>
-          )}
+          {strongestDomainKey ? <DomainBadge domainKey={strongestDomainKey} /> : <Text style={styles.quickValue}>Not available yet</Text>}
         </Card>
         <Card style={styles.quickCard}>
           <Text style={styles.quickTitle}>Needs attention</Text>
-          {weakestDomainKey ? (
-            <View style={styles.quickValueRow}>
-              <View
-                style={[
-                  styles.quickDot,
-                  { backgroundColor: domainTheme[weakestDomainKey].accent }
-                ]}
-              />
-              <Text style={styles.quickValue}>{DOMAIN_LABELS[weakestDomainKey]}</Text>
-            </View>
-          ) : (
-            <Text style={styles.quickValue}>Not available yet</Text>
-          )}
+          {weakestDomainKey ? <DomainBadge domainKey={weakestDomainKey} /> : <Text style={styles.quickValue}>Not available yet</Text>}
         </Card>
       </View>
 
@@ -261,21 +233,11 @@ export function HomeScreen() {
         {!isLoading && snapshot?.domainSummaries.length
           ? snapshot.domainSummaries.map((summary) => (
               <View key={summary.domainKey} style={styles.metricRow}>
-                <View style={styles.metricHeader}>
-                  <Text style={styles.itemLabel}>{DOMAIN_LABELS[summary.domainKey]}</Text>
-                  <Text style={styles.itemValue}>{summary.displayedScore.toFixed(0)}</Text>
-                </View>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        backgroundColor: domainTheme[summary.domainKey].accent,
-                        width: `${Math.max(8, Math.min(100, summary.displayedScore))}%`
-                      }
-                    ]}
-                  />
-                </View>
+                <ProgressBar
+                  accentColor={domainTheme[summary.domainKey].accent}
+                  label={DOMAIN_LABELS[summary.domainKey]}
+                  value={summary.displayedScore}
+                />
               </View>
             ))
           : null}
@@ -306,28 +268,6 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: 12,
-    marginBottom: 4
-  },
-  eyebrow: {
-    color: theme.colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase"
-  },
-  title: {
-    color: theme.colors.text,
-    fontSize: 34,
-    fontWeight: "800",
-    lineHeight: 40
-  },
-  copy: {
-    color: theme.colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24
-  },
   scoreCard: {
     marginBottom: 4
   },
@@ -341,29 +281,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 20
-  },
-  scoreRing: {
-    ...createShadow("sm"),
-    alignItems: "center",
-    borderColor: theme.colors.primary,
-    borderRadius: 999,
-    borderWidth: 6,
-    height: 132,
-    justifyContent: "center",
-    width: 132
-  },
-  scoreValue: {
-    color: theme.colors.primary,
-    fontSize: 42,
-    fontWeight: "800",
-    lineHeight: 48
-  },
-  scoreRingLabel: {
-    color: theme.colors.textSoft,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.1,
-    textTransform: "uppercase"
   },
   scoreBody: {
     flex: 1,
@@ -444,16 +361,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textTransform: "uppercase"
   },
-  quickValueRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8
-  },
-  quickDot: {
-    borderRadius: 999,
-    height: 10,
-    width: 10
-  },
   quickValue: {
     color: theme.colors.text,
     fontSize: 17,
@@ -489,32 +396,6 @@ const styles = StyleSheet.create({
   },
   metricRow: {
     gap: 8
-  },
-  metricHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-  itemLabel: {
-    color: theme.colors.text,
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  itemValue: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: "700"
-  },
-  progressTrack: {
-    backgroundColor: "rgba(8, 106, 105, 0.08)",
-    borderRadius: 999,
-    height: 8,
-    overflow: "hidden"
-  },
-  progressFill: {
-    borderRadius: 999,
-    height: "100%"
   },
   itemCopy: {
     color: theme.colors.textMuted,

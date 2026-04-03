@@ -4,7 +4,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DOMAIN_LABELS } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
+import { DomainBadge } from "@/components/ui/domain-badge";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { Screen } from "@/components/ui/screen";
+import { ScoreRing } from "@/components/ui/score-ring";
+import { SectionHeader } from "@/components/ui/section-header";
 import { StatusCard } from "@/components/ui/status-card";
 import {
   fetchWeeklyDomainSummaries,
@@ -96,13 +100,11 @@ export function SummaryScreen() {
 
   return (
     <Screen scrollable>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Weekly Summary</Text>
-        <Text style={styles.title}>Review your official score history.</Text>
-        <Text style={styles.copy}>
-          Weekly reviews help you see whether your attention is becoming more balanced over time.
-        </Text>
-      </View>
+      <SectionHeader
+        eyebrow="Weekly Summary"
+        subtitle="Look back at your official weekly reviews to see where balance is settling and where it needs more care."
+        title="Review your score history."
+      />
 
       {isLoading ? (
         <StatusCard
@@ -116,26 +118,37 @@ export function SummaryScreen() {
       {!isLoading && selectedLifeSummary ? (
         <Card variant="highlight">
           <Text style={styles.sectionTitle}>{formatWeekRange(selectedLifeSummary.weekStartLocalDate)}</Text>
-          <Text style={styles.heroScore}>{selectedLifeSummary.balancedLifeScore.toFixed(1)}</Text>
-          <Text style={styles.helper}>
-            Life strength {selectedLifeSummary.lifeStrength.toFixed(1)} • Evenness{" "}
-            {selectedLifeSummary.evenness.toFixed(1)}
-          </Text>
-          <Text style={styles.helper}>
-            {selectedLifeSummary.isProvisional ? "Provisional week" : "Official weekly summary"}
-          </Text>
-          <Text style={styles.helper}>
-            Strongest:{" "}
-            {selectedLifeSummary.strongestDomainKey
-              ? DOMAIN_LABELS[selectedLifeSummary.strongestDomainKey]
-              : "N/A"}
-          </Text>
-          <Text style={styles.helper}>
-            Weakest:{" "}
-            {selectedLifeSummary.weakestDomainKey
-              ? DOMAIN_LABELS[selectedLifeSummary.weakestDomainKey]
-              : "N/A"}
-          </Text>
+          <View style={styles.heroCardContent}>
+            <ScoreRing caption="official" value={selectedLifeSummary.balancedLifeScore} />
+            <View style={styles.heroCardBody}>
+              <Text style={styles.heroHeadline}>
+                {selectedLifeSummary.isProvisional
+                  ? "This week is still forming."
+                  : "Your official weekly balance is ready."}
+              </Text>
+              <Text style={styles.helper}>
+                Life strength {selectedLifeSummary.lifeStrength.toFixed(1)} • Evenness{" "}
+                {selectedLifeSummary.evenness.toFixed(1)}
+              </Text>
+              <Text style={styles.helper}>
+                {selectedLifeSummary.isProvisional ? "Provisional week" : "Official weekly summary"}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.badgeRow}>
+            {selectedLifeSummary.strongestDomainKey ? (
+              <View style={styles.badgeWrap}>
+                <Text style={styles.badgeLabel}>Strongest</Text>
+                <DomainBadge compact domainKey={selectedLifeSummary.strongestDomainKey} />
+              </View>
+            ) : null}
+            {selectedLifeSummary.weakestDomainKey ? (
+              <View style={styles.badgeWrap}>
+                <Text style={styles.badgeLabel}>Needs care</Text>
+                <DomainBadge compact domainKey={selectedLifeSummary.weakestDomainKey} />
+              </View>
+            ) : null}
+          </View>
         </Card>
       ) : null}
 
@@ -144,21 +157,11 @@ export function SummaryScreen() {
           <Text style={styles.sectionTitle}>Domain breakdown</Text>
           {domainSummaries.map((summary) => (
             <View key={summary.domainKey} style={styles.metricRow}>
-              <View style={styles.metricHeader}>
-                <Text style={styles.metricLabel}>{DOMAIN_LABELS[summary.domainKey]}</Text>
-                <Text style={styles.metricValue}>{summary.displayedScore.toFixed(0)}</Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      backgroundColor: domainTheme[summary.domainKey].accent,
-                      width: `${Math.max(8, Math.min(100, summary.displayedScore))}%`
-                    }
-                  ]}
-                />
-              </View>
+              <ProgressBar
+                accentColor={domainTheme[summary.domainKey].accent}
+                label={DOMAIN_LABELS[summary.domainKey]}
+                value={summary.displayedScore}
+              />
             </View>
           ))}
         </Card>
@@ -203,72 +206,48 @@ export function SummaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: 12,
-    marginBottom: 4
-  },
-  eyebrow: {
-    color: theme.colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase"
-  },
-  title: {
-    color: theme.colors.text,
-    fontSize: 34,
-    fontWeight: "800",
-    lineHeight: 40
-  },
-  copy: {
-    color: theme.colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24
-  },
   sectionTitle: {
     color: theme.colors.text,
     fontSize: 18,
     fontWeight: "700"
   },
-  heroScore: {
-    color: theme.colors.primary,
-    fontSize: 42,
-    fontWeight: "800",
-    lineHeight: 50
+  heroCardBody: {
+    flex: 1,
+    gap: 8
+  },
+  heroCardContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 20
+  },
+  heroHeadline: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+    lineHeight: 24
   },
   helper: {
     color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 20
   },
+  badgeLabel: {
+    color: theme.colors.textSoft,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase"
+  },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12
+  },
+  badgeWrap: {
+    gap: 6
+  },
   metricRow: {
     gap: 8
-  },
-  metricHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-  metricLabel: {
-    color: theme.colors.text,
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  metricValue: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: "700"
-  },
-  progressTrack: {
-    backgroundColor: "rgba(8, 106, 105, 0.08)",
-    borderRadius: 999,
-    height: 8,
-    overflow: "hidden"
-  },
-  progressFill: {
-    borderRadius: 999,
-    height: "100%"
   },
   historyItem: {
     alignItems: "center",

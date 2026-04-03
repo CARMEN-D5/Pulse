@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import { createShadow, theme } from "@/theme/tokens";
+
 type DomainTrendCardProps = {
   changeLabel: string;
   currentScore: number;
@@ -81,8 +83,8 @@ const styles = StyleSheet.create({
   },
   barTrack: {
     alignItems: "flex-end",
-    backgroundColor: "#0f131b",
-    borderColor: "#0f131b",
+    backgroundColor: "rgba(8, 106, 105, 0.08)",
+    borderColor: "rgba(118, 125, 112, 0.18)",
     borderRadius: 999,
     borderWidth: 1,
     height: 64,
@@ -91,17 +93,18 @@ const styles = StyleSheet.create({
     width: 16
   },
   barTrackActive: {
-    borderColor: "#8ba3ff"
+    borderColor: "rgba(8, 106, 105, 0.35)"
   },
   caption: {
-    color: "#8f99b3",
+    color: theme.colors.textSoft,
     fontSize: 12,
     lineHeight: 16
   },
   card: {
-    backgroundColor: "#10141d",
-    borderColor: "#293040",
-    borderRadius: 18,
+    ...createShadow("sm"),
+    backgroundColor: theme.colors.surfaceStrong,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
     gap: 14,
     paddingHorizontal: 14,
@@ -109,7 +112,7 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   change: {
-    color: "#8ba3ff",
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: "700"
   },
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   currentScore: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 22,
     fontWeight: "800"
   },
@@ -134,7 +137,7 @@ const styles = StyleSheet.create({
     paddingRight: 12
   },
   label: {
-    color: "#f2f5ff",
+    color: theme.colors.text,
     fontSize: 15,
     fontWeight: "700",
     lineHeight: 20

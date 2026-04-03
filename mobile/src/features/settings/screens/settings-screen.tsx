@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { SectionHeader } from "@/components/ui/section-header";
 import { signOut } from "@/features/auth/services/auth-service";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
@@ -20,13 +21,11 @@ export function SettingsScreen() {
 
   return (
     <Screen scrollable>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Settings</Text>
-        <Text style={styles.title}>Account and scoring setup</Text>
-        <Text style={styles.copy}>
-          Keep your profile clear and your reminders predictable so the weekly review stays meaningful.
-        </Text>
-      </View>
+      <SectionHeader
+        eyebrow="Settings"
+        subtitle="Keep your profile clear and your scoring setup steady so each weekly review stays meaningful."
+        title="Account and scoring setup"
+      />
 
       <Card variant="highlight">
         <Text style={styles.sectionTitle}>Profile</Text>
@@ -56,28 +55,6 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: 12,
-    marginBottom: 4
-  },
-  eyebrow: {
-    color: theme.colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase"
-  },
-  title: {
-    color: theme.colors.text,
-    fontSize: 34,
-    fontWeight: "800",
-    lineHeight: 40
-  },
-  copy: {
-    color: theme.colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24
-  },
   sectionTitle: {
     color: theme.colors.text,
     fontSize: 18,

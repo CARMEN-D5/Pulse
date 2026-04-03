@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
-import { DOMAIN_KEYS, DOMAIN_LABELS, type DomainKey } from "@velora/shared";
+import { DOMAIN_KEYS, type DomainKey } from "@velora/shared";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DomainBadge } from "@/components/ui/domain-badge";
 import { RatingPicker } from "@/components/ui/rating-picker";
 import { Screen } from "@/components/ui/screen";
+import { SectionHeader } from "@/components/ui/section-header";
 import { StatusCard } from "@/components/ui/status-card";
 import {
   fetchDailyCheckinsForLocalDate,
@@ -18,7 +19,7 @@ import { getLocalDateInTimeZone } from "@/lib/date-time";
 import { toHelpfulErrorMessage } from "@/lib/errors";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
-import { domainTheme, theme } from "@/theme/tokens";
+import { theme } from "@/theme/tokens";
 
 type RatingsState = Partial<Record<DomainKey, number>>;
 
@@ -131,14 +132,12 @@ export function CheckInScreen() {
 
   return (
     <Screen scrollable>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Daily Check-In</Text>
-        <Text style={styles.title}>Capture how each life area feels today.</Text>
-        <Text style={styles.copy}>
-          A quick daily reflection keeps your weekly score grounded in how life actually feels.
-        </Text>
-        {localDate ? <Text style={styles.dateBadge}>Local scoring date: {localDate}</Text> : null}
-      </View>
+      <SectionHeader
+        eyebrow="Daily Check-In"
+        subtitle="A quick daily reflection keeps your weekly score grounded in how life actually feels."
+        title="Capture how each life area feels today."
+      />
+      {localDate ? <Text style={styles.dateBadge}>Local scoring date: {localDate}</Text> : null}
 
       <Card variant="highlight">
         <Text style={styles.summaryLabel}>Today&apos;s progress</Text>
@@ -172,26 +171,12 @@ export function CheckInScreen() {
             return (
               <Card key={domainKey}>
                 <View style={styles.cardHeader}>
-                  <View
-                    style={[
-                      styles.cardIcon,
-                      { backgroundColor: domainTheme[domainKey].soft }
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      color={domainTheme[domainKey].accent}
-                      name={domainTheme[domainKey].icon as never}
-                      size={18}
-                    />
-                  </View>
-                  <View style={styles.cardHeaderCopy}>
-                    <Text style={styles.cardTitle}>{DOMAIN_LABELS[domainKey]}</Text>
-                    <Text style={styles.helper}>
-                      {existingEntry
-                        ? `Saved today as ${existingEntry.ratingValue}/5. You can update it before the day ends.`
-                        : "No check-in saved yet for today."}
-                    </Text>
-                  </View>
+                  <DomainBadge domainKey={domainKey} />
+                  <Text style={styles.helper}>
+                    {existingEntry
+                      ? `Saved today as ${existingEntry.ratingValue}/5. You can update it before the day ends.`
+                      : "No check-in saved yet for today."}
+                  </Text>
                 </View>
                 <RatingPicker
                   onChange={(ratingValue) =>
@@ -224,28 +209,6 @@ export function CheckInScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: 12,
-    marginBottom: 4
-  },
-  eyebrow: {
-    color: theme.colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase"
-  },
-  title: {
-    color: theme.colors.text,
-    fontSize: 34,
-    fontWeight: "800",
-    lineHeight: 40
-  },
-  copy: {
-    color: theme.colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24
-  },
   dateBadge: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(156, 235, 232, 0.34)",
@@ -270,25 +233,7 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   cardHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12
-  },
-  cardHeaderCopy: {
-    flex: 1,
-    gap: 4
-  },
-  cardIcon: {
-    alignItems: "center",
-    borderRadius: 16,
-    height: 40,
-    justifyContent: "center",
-    width: 40
-  },
-  cardTitle: {
-    color: theme.colors.text,
-    fontSize: 17,
-    fontWeight: "700"
+    gap: 8
   },
   helper: {
     color: theme.colors.textMuted,

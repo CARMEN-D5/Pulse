@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import { theme } from "@/theme/tokens";
+
 type ScoreChangePillProps = {
   change: number | null;
   label?: string;
@@ -31,21 +33,25 @@ export function ScoreChangePill({ change, label = "vs prev" }: ScoreChangePillPr
 const styles = StyleSheet.create({
   base: {
     alignSelf: "flex-start",
-    borderRadius: 999,
+    borderRadius: theme.radii.pill,
+    borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 7
   },
   positive: {
-    backgroundColor: "#163126"
+    backgroundColor: "rgba(47, 140, 104, 0.14)",
+    borderColor: "rgba(47, 140, 104, 0.18)"
   },
   negative: {
-    backgroundColor: "#3a1b24"
+    backgroundColor: "rgba(172, 52, 52, 0.12)",
+    borderColor: "rgba(172, 52, 52, 0.16)"
   },
   neutral: {
-    backgroundColor: "#1f2533"
+    backgroundColor: "rgba(255,255,255,0.58)",
+    borderColor: theme.colors.borderMuted
   },
   label: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 12,
     fontWeight: "700"
   }

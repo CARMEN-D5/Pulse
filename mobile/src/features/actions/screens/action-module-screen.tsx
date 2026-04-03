@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { SectionHeader } from "@/components/ui/section-header";
 import { StatusCard } from "@/components/ui/status-card";
 import { TextField } from "@/components/ui/text-field";
 import { ACTION_MODULES, isActionModuleKey, type ActionModuleKey } from "@/features/actions/action-modules";
@@ -107,11 +108,7 @@ function ModuleShell({
 
   return (
     <Screen scrollable>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Actions</Text>
-        <Text style={styles.title}>{module.title}</Text>
-        <Text style={styles.copy}>{module.description}</Text>
-      </View>
+      <SectionHeader eyebrow="Actions" subtitle={module.description} title={module.title} />
 
       <Button onPress={() => router.back()} tone="ghost">
         Back to actions
@@ -1475,28 +1472,6 @@ function FinancialActionModule() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: 12,
-    marginBottom: 16
-  },
-  eyebrow: {
-    color: theme.colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase"
-  },
-  title: {
-    color: theme.colors.text,
-    fontSize: 34,
-    fontWeight: "800",
-    lineHeight: 40
-  },
-  copy: {
-    color: theme.colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24
-  },
   sectionTitle: {
     color: theme.colors.text,
     fontSize: 18,
