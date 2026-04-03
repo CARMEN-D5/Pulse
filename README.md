@@ -30,6 +30,7 @@ pulse/          Legacy Create React App scaffold kept for reference only
 - [Scoring decisions](./Documentation/scoring-architecture-decisions.md)
 - [Technical blueprint](./Documentation/mvp-technical-blueprint.md)
 - [Supabase sequencing](./Documentation/supabase-sequencing.md)
+- [V1 release checklist](./Documentation/v1-release-checklist.md)
 
 ## Phase 0 status
 
