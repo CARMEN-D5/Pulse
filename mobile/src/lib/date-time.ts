@@ -45,3 +45,10 @@ export function formatWeekRange(weekStartLocalDate: string) {
   const weekEndLocalDate = addDaysToLocalDate(weekStartLocalDate, 6);
   return `${formatLocalDateLong(weekStartLocalDate)} - ${formatLocalDateLong(weekEndLocalDate)}`;
 }
+
+export function formatTimestampLocal(value: string) {
+  return new Intl.DateTimeFormat("en-AU", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
+}

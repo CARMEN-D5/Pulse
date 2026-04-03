@@ -1,49 +1,53 @@
-import { Link } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { ACTION_MODULES, type ActionModuleKey } from "@/features/actions/action-modules";
 
-const ACTION_MODULES = [
-  { title: "Journal", status: "Next implementation slice", summary: "Spirituality reflection entries." },
-  { title: "Connection Log", status: "Next implementation slice", summary: "Meaningful social moments." },
-  { title: "Tasks", status: "Next implementation slice", summary: "Important work and study completions." },
-  { title: "Focus Session", status: "Next implementation slice", summary: "Timed deep work sessions." },
-  { title: "Activity", status: "Next implementation slice", summary: "Exercise and movement logs." },
-  { title: "Sleep", status: "Next implementation slice", summary: "Sleep duration and wake-day scoring." },
-  { title: "Expense", status: "Next implementation slice", summary: "Quick financial awareness logs." },
-  { title: "Budget / Savings", status: "Next implementation slice", summary: "Review or saving actions." }
-] as const;
+const MODULE_ORDER: ActionModuleKey[] = [
+  "journal",
+  "connection",
+  "task",
+  "focus",
+  "activity",
+  "sleep",
+  "expense",
+  "financial"
+];
 
 export function ActionsHubScreen() {
   return (
     <Screen scrollable>
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>Action Modules</Text>
-        <Text style={styles.title}>The actions hub is wired into the V1 navigation now.</Text>
+        <Text style={styles.title}>Capture score-driving actions across all five domains.</Text>
         <Text style={styles.copy}>
-          The next commit will turn these modules into working create and review flows on top of the
-          Supabase tables that already normalize into score events.
+          Each module writes to a dedicated Supabase table and the backend normalizes those records
+          into the score ledger automatically.
         </Text>
       </View>
 
-      {ACTION_MODULES.map((module) => (
-        <Card key={module.title}>
-          <Text style={styles.cardTitle}>{module.title}</Text>
-          <Text style={styles.cardSummary}>{module.summary}</Text>
-          <Text style={styles.cardStatus}>{module.status}</Text>
-        </Card>
+      {MODULE_ORDER.map((moduleKey) => (
+        <Pressable
+          key={moduleKey}
+          onPress={() => router.push(`/(app)/actions/${moduleKey}`)}
+          style={styles.pressable}
+        >
+          <Card>
+            <Text style={styles.cardTitle}>{ACTION_MODULES[moduleKey].title}</Text>
+            <Text style={styles.cardSummary}>{ACTION_MODULES[moduleKey].description}</Text>
+            <Text style={styles.cardStatus}>Open module</Text>
+          </Card>
+        </Pressable>
       ))}
 
       <Card>
         <Text style={styles.cardTitle}>Current V1 focus</Text>
         <Text style={styles.cardSummary}>
-          Account creation, onboarding, daily check-ins, dashboard reads, summary history, and
-          settings are now the active end-to-end foundation.
+          You can now navigate from the hub into real V1 score-input flows. The next remaining work
+          is polish, edit/delete refinement, and release hardening.
         </Text>
-        <Link href="/(app)/(tabs)/check-in" style={styles.link}>
-          Open today&apos;s check-in
-        </Link>
       </Card>
     </Screen>
   );
@@ -87,9 +91,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600"
   },
-  link: {
-    color: "#8ba3ff",
-    fontSize: 15,
-    fontWeight: "700"
+  pressable: {
+    borderRadius: 20
   }
 });
