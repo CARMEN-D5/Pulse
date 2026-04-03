@@ -5,7 +5,7 @@ import { ActionsHubScreen } from "@/features/actions/screens/actions-hub-screen"
 export default function ActionsRoute() {
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <ActionsHubScreen />
     </>
   );

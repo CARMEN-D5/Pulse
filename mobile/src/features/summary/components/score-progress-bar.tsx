@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import { theme } from "@/theme/tokens";
+
 type ScoreProgressBarProps = {
   label: string;
   score: number;
@@ -50,18 +52,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   label: {
-    color: "#d7def0",
+    color: theme.colors.text,
     flex: 1,
     fontSize: 15,
     lineHeight: 22
   },
   score: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 15,
     fontWeight: "700"
   },
   track: {
-    backgroundColor: "#0f131b",
+    backgroundColor: "rgba(8, 106, 105, 0.08)",
     borderRadius: 999,
     height: 10,
     overflow: "hidden"
@@ -71,7 +73,7 @@ const styles = StyleSheet.create({
     height: "100%"
   },
   detail: {
-    color: "#95a1be",
+    color: theme.colors.textSoft,
     fontSize: 13,
     lineHeight: 18
   }

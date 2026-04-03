@@ -5,7 +5,7 @@ import { ActionModuleScreen } from "@/features/actions/screens/action-module-scr
 export default function ActionModuleRoute() {
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <ActionModuleScreen />
     </>
   );

@@ -261,7 +261,7 @@ function JournalModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Recent entries</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !entries.length ? (
           <EmptyState message="No journal entries yet." />
         ) : null}
@@ -428,7 +428,7 @@ function ConnectionModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Recent connection logs</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !entries.length ? (
           <EmptyState message="No connection logs yet." />
         ) : null}
@@ -608,7 +608,7 @@ function TaskModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Task list</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !tasks.length ? <EmptyState message="No tasks yet." /> : null}
         {tasks.map((task) => (
           <View key={task.id} style={styles.listItem}>
@@ -782,7 +782,7 @@ function FocusModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Sessions</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !sessions.length ? <EmptyState message="No focus sessions yet." /> : null}
         {sessions.map((session) => (
           <View key={session.id} style={styles.listItem}>
@@ -957,7 +957,7 @@ function ActivityModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Recent activity logs</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !entries.length ? <EmptyState message="No activity logs yet." /> : null}
         {entries.map((entry) => (
           <View key={entry.id} style={styles.listItem}>
@@ -1099,7 +1099,7 @@ function SleepModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Recent sleep logs</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !entries.length ? <EmptyState message="No sleep logs yet." /> : null}
         {entries.map((entry) => (
           <View key={entry.id} style={styles.listItem}>
@@ -1263,7 +1263,7 @@ function ExpenseModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Recent expense logs</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !entries.length ? <EmptyState message="No expense logs yet." /> : null}
         {entries.map((entry) => (
           <View key={entry.id} style={styles.listItem}>
@@ -1432,7 +1432,7 @@ function FinancialActionModule() {
 
       <Card>
         <Text style={styles.sectionTitle}>Recent financial actions</Text>
-        {isLoading ? <ActivityIndicator color="#8ba3ff" /> : null}
+        {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && !entries.length ? <EmptyState message="No financial actions yet." /> : null}
         {entries.map((entry) => (
           <View key={entry.id} style={styles.listItem}>

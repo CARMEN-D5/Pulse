@@ -1,12 +1,14 @@
 import { DOMAIN_KEYS, DOMAIN_LABELS, type DomainKey } from "@velora/shared";
 import { StyleSheet, Text, View } from "react-native";
 
+import { createShadow, domainTheme, theme } from "@/theme/tokens";
+
 const DOMAIN_COLORS: Record<DomainKey, string> = {
-  spirituality: "#8ba3ff",
-  family_friends: "#68d5b5",
-  work_productivity: "#ffb86b",
-  health: "#ff7f9f",
-  financial_wellbeing: "#b69cff"
+  spirituality: domainTheme.spirituality.accent,
+  family_friends: domainTheme.family_friends.accent,
+  work_productivity: domainTheme.work_productivity.accent,
+  health: domainTheme.health.accent,
+  financial_wellbeing: domainTheme.financial_wellbeing.accent
 };
 
 const DOMAIN_SHORT_LABELS: Record<DomainKey, string> = {
@@ -210,14 +212,15 @@ export function BalanceWheel({ centerCaption, centerValue, items, size = 240 }: 
 
 const styles = StyleSheet.create({
   axis: {
-    backgroundColor: "#273144",
+    backgroundColor: theme.colors.borderMuted,
     height: "50%",
     position: "absolute"
   },
   centerBadge: {
+    ...createShadow("sm"),
     alignItems: "center",
-    backgroundColor: "rgba(8, 12, 20, 0.88)",
-    borderColor: "#293040",
+    backgroundColor: theme.colors.surfaceStrong,
+    borderColor: theme.colors.border,
     borderRadius: 52,
     borderWidth: 1,
     justifyContent: "center",
@@ -226,16 +229,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     position: "absolute",
-    shadowColor: "#000000",
-    shadowOffset: { height: 12, width: 0 },
-    shadowOpacity: 0.24,
-    shadowRadius: 24,
     top: "50%",
     transform: [{ translateX: -44 }, { translateY: -44 }],
     width: 88
   },
   centerCaption: {
-    color: "#8f99b3",
+    color: theme.colors.textSoft,
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0.4,
@@ -243,7 +242,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase"
   },
   centerValue: {
-    color: "#ffffff",
+    color: theme.colors.text,
     fontSize: 26,
     fontWeight: "800",
     lineHeight: 32,
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
     gap: 18
   },
   label: {
-    color: "#d8e0f7",
+    color: theme.colors.textSoft,
     fontSize: 11,
     fontWeight: "700",
     textAlign: "center"
@@ -270,8 +269,8 @@ const styles = StyleSheet.create({
   },
   legendItem: {
     alignItems: "center",
-    backgroundColor: "#10141d",
-    borderColor: "#293040",
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
     borderRadius: 16,
     borderWidth: 1,
     flexBasis: "48%",
@@ -281,7 +280,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   legendLabel: {
-    color: "#d6def4",
+    color: theme.colors.text,
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 16
@@ -296,12 +295,12 @@ const styles = StyleSheet.create({
     gap: 2
   },
   legendValue: {
-    color: "#8f99b3",
+    color: theme.colors.textSoft,
     fontSize: 12,
     fontWeight: "600"
   },
   outerCap: {
-    backgroundColor: "#2d3548",
+    backgroundColor: theme.colors.borderMuted,
     borderRadius: 999,
     height: 8,
     position: "absolute",
@@ -319,13 +318,13 @@ const styles = StyleSheet.create({
   },
   ring: {
     backgroundColor: "transparent",
-    borderColor: "#222b3d",
+    borderColor: theme.colors.borderMuted,
     borderRadius: 999,
     borderWidth: 1,
     position: "absolute"
   },
   segment: {
-    backgroundColor: "rgba(139, 163, 255, 0.82)",
+    backgroundColor: "rgba(8, 106, 105, 0.32)",
     borderRadius: 999,
     height: 2,
     position: "absolute"

@@ -5,7 +5,7 @@ import { SummaryScreen } from "@/features/summary/screens/summary-screen";
 export default function SummaryRoute() {
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <SummaryScreen />
     </>
   );

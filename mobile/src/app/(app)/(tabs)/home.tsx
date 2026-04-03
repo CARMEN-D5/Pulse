@@ -5,7 +5,7 @@ import { HomeScreen } from "@/features/home/screens/home-screen";
 export default function HomeRoute() {
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <HomeScreen />
     </>
   );
