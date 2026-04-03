@@ -1,15 +1,15 @@
-import { Redirect } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 
 import { LoadingState } from "@/components/ui/loading-state";
 import { useAuthSession } from "@/providers/auth-session-provider";
 import { useProfile } from "@/providers/profile-provider";
 
-export default function IndexScreen() {
+export default function AppLayout() {
   const { isLoading: isAuthLoading, user } = useAuthSession();
   const { isLoading: isProfileLoading, profile } = useProfile();
 
   if (isAuthLoading || (user && isProfileLoading)) {
-    return <LoadingState title="Preparing VELORA" message="Checking your session and profile." />;
+    return <LoadingState title="Opening VELORA" message="Syncing your score dashboard." />;
   }
 
   if (!user) {
@@ -20,5 +20,14 @@ export default function IndexScreen() {
     return <Redirect href="/(onboarding)" />;
   }
 
-  return <Redirect href="/(app)/(tabs)/home" />;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: "#0f1117"
+        }
+      }}
+    />
+  );
 }

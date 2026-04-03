@@ -1,40 +1,145 @@
-import { Text, View, StyleSheet } from "react-native";
+import { Link } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { DOMAIN_KEYS, DOMAIN_LABELS } from "@velora/shared";
+import { DOMAIN_LABELS, type DomainKey } from "@velora/shared";
 
+import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
+import { fetchLatestDashboardSnapshot, type DashboardSnapshot } from "@/features/summary/services/summary-service";
 import { useAuthSession } from "@/providers/auth-session-provider";
+import { useProfile } from "@/providers/profile-provider";
 
 export function HomeScreen() {
-  const { isLoading, user } = useAuthSession();
+  const { user } = useAuthSession();
+  const { profile } = useProfile();
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
 
-  const authStatus = isLoading ? "Checking Supabase session..." : user ? "Signed in" : "Signed out";
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      if (!user?.id) {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setErrorMessage(null);
+        const nextSnapshot = await fetchLatestDashboardSnapshot(user.id);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setSnapshot(nextSnapshot);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : "Unable to load the dashboard.");
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  const greetingName = profile?.displayName ?? "there";
 
   return (
     <Screen scrollable>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>VELORA Phase 0</Text>
-        <Text style={styles.title}>Mobile, backend, and shared workspaces are scaffolded.</Text>
+        <Text style={styles.eyebrow}>VELORA</Text>
+        <Text style={styles.title}>Good to see you, {greetingName}.</Text>
         <Text style={styles.copy}>
-          This screen is still a placeholder shell, but the mobile app now has a Supabase session
-          boundary. The next phase is wiring auth screens, onboarding, and the daily check-in flow.
+          Your home view is now connected to the official weekly summary tables in Supabase.
         </Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Session status</Text>
-        <Text style={styles.listItem}>{authStatus}</Text>
-        {user ? <Text style={styles.listItem}>{user.email ?? user.id}</Text> : null}
+      <Card style={styles.scoreCard}>
+        <Text style={styles.scoreLabel}>Balanced Life Score</Text>
+        {isLoading ? (
+          <ActivityIndicator color="#8ba3ff" />
+        ) : snapshot?.lifeSummary ? (
+          <>
+            <Text style={styles.scoreValue}>
+              {snapshot.lifeSummary.balancedLifeScore.toFixed(1)}
+            </Text>
+            <Text style={styles.scoreMeta}>
+              Week of {snapshot.lifeSummary.weekStartLocalDate}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.emptyCopy}>Your first official weekly summary will appear here.</Text>
+        )}
+      </Card>
+
+      <View style={styles.quickGrid}>
+        <Card style={styles.quickCard}>
+          <Text style={styles.quickTitle}>Strongest domain</Text>
+          <Text style={styles.quickValue}>
+            {snapshot?.lifeSummary?.strongestDomainKey
+              ? DOMAIN_LABELS[snapshot.lifeSummary.strongestDomainKey]
+              : "Not available yet"}
+          </Text>
+        </Card>
+        <Card style={styles.quickCard}>
+          <Text style={styles.quickTitle}>Weakest domain</Text>
+          <Text style={styles.quickValue}>
+            {snapshot?.lifeSummary?.weakestDomainKey
+              ? DOMAIN_LABELS[snapshot.lifeSummary.weakestDomainKey]
+              : "Not available yet"}
+          </Text>
+        </Card>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Locked score domains</Text>
-        {DOMAIN_KEYS.map((domainKey) => (
-          <Text key={domainKey} style={styles.listItem}>
-            • {DOMAIN_LABELS[domainKey]}
+      <Card>
+        <Text style={styles.sectionTitle}>Latest domain scores</Text>
+        {isLoading ? <Text style={styles.itemCopy}>Loading domain summaries...</Text> : null}
+        {!isLoading && snapshot?.domainSummaries.length
+          ? snapshot.domainSummaries.map((summary) => (
+              <View key={summary.domainKey} style={styles.metricRow}>
+                <Text style={styles.itemLabel}>{DOMAIN_LABELS[summary.domainKey]}</Text>
+                <Text style={styles.itemValue}>{summary.displayedScore.toFixed(1)}</Text>
+              </View>
+            ))
+          : null}
+        {!isLoading && !snapshot?.domainSummaries.length ? (
+          <Text style={styles.itemCopy}>
+            There is no official weekly domain summary yet. Keep using check-ins and action logs so
+            the backend can finalize your first week.
           </Text>
-        ))}
-      </View>
+        ) : null}
+      </Card>
+
+      <Card>
+        <Text style={styles.sectionTitle}>Quick actions</Text>
+        <Link href="/(app)/(tabs)/check-in" style={styles.link}>
+          Open today&apos;s check-in
+        </Link>
+        <Link href="/(app)/(tabs)/summary" style={styles.link}>
+          Review weekly summary history
+        </Link>
+        <Link href="/(app)/(tabs)/actions" style={styles.link}>
+          Open the actions hub
+        </Link>
+      </Card>
+
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
     </Screen>
   );
 }
@@ -42,11 +147,11 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: 12,
-    marginBottom: 28
+    marginBottom: 24
   },
   eyebrow: {
     color: "#8ba3ff",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase"
@@ -58,26 +163,90 @@ const styles = StyleSheet.create({
     lineHeight: 38
   },
   copy: {
-    color: "#b6bed6",
+    color: "#b8c2dc",
     fontSize: 16,
     lineHeight: 24
   },
-  card: {
-    backgroundColor: "#171a22",
-    borderColor: "#272c38",
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 10,
-    padding: 20
+  scoreCard: {
+    alignItems: "center",
+    marginBottom: 16
   },
-  cardTitle: {
+  scoreLabel: {
+    color: "#a9b5d4",
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "uppercase"
+  },
+  scoreValue: {
+    color: "#ffffff",
+    fontSize: 52,
+    fontWeight: "800",
+    lineHeight: 60
+  },
+  scoreMeta: {
+    color: "#8f99b3",
+    fontSize: 14
+  },
+  emptyCopy: {
+    color: "#ccd4ea",
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center"
+  },
+  quickGrid: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16
+  },
+  quickCard: {
+    flex: 1
+  },
+  quickTitle: {
+    color: "#98a5c7",
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase"
+  },
+  quickValue: {
+    color: "#ffffff",
+    fontSize: 17,
+    fontWeight: "700",
+    lineHeight: 24
+  },
+  sectionTitle: {
     color: "#ffffff",
     fontSize: 18,
-    fontWeight: "600"
+    fontWeight: "700"
   },
-  listItem: {
+  metricRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  itemLabel: {
     color: "#d8def0",
+    flex: 1,
     fontSize: 15,
     lineHeight: 22
+  },
+  itemValue: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700"
+  },
+  itemCopy: {
+    color: "#aab4cf",
+    fontSize: 14,
+    lineHeight: 20
+  },
+  link: {
+    color: "#8ba3ff",
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  error: {
+    color: "#ff9ea4",
+    fontSize: 14,
+    lineHeight: 20
   }
 });
