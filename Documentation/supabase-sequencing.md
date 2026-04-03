@@ -265,6 +265,15 @@ Important note:
 Exit criteria:
 - mobile app can sign in, fetch profile state, and talk to the new backend
 
+Current progress:
+- the placeholder Firebase mobile client has been replaced with a Supabase client scaffold in `mobile/src/lib/supabase/client.ts`
+- the mobile workspace now depends on:
+  - `@supabase/supabase-js`
+  - `@react-native-async-storage/async-storage`
+  - `react-native-url-polyfill`
+- the Supabase mobile client is configured for React Native session persistence with AsyncStorage and app-state-driven token refresh
+- the mobile workspace installs cleanly and `npm run typecheck:mobile` still passes after the client-layer pivot
+
 ### Phase S6: Implement the shared scoring core and validate with SQL outputs
 
 Goal:

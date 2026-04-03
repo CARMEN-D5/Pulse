@@ -14,3 +14,5 @@ mobile/.expo/
 mobile/.expo-shared/
 functions/lib/
 shared/dist/
+!mobile/src/lib/
+!mobile/src/lib/**
