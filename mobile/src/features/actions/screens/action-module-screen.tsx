@@ -15,6 +15,12 @@ import {
   createConnectionLog,
   createExpenseLog,
   createFinancialAction,
+  deleteConnectionLog,
+  deleteExpenseLog,
+  deleteFinancialAction,
+  deleteFocusSession,
+  deleteSleepLog,
+  deleteTask,
   createJournalEntry,
   createQuickSleepLog,
   createTask,
@@ -27,6 +33,12 @@ import {
   fetchSleepLogs,
   fetchTasks,
   startFocusSession,
+  updateActivityLog,
+  updateConnectionLog,
+  updateExpenseLog,
+  updateFinancialAction,
+  updateJournalEntry,
+  updateTask,
   type ActivityLog,
   type ConnectionLog,
   type ExpenseLog,
@@ -119,6 +131,15 @@ function SuccessBanner({ message }: { message: string | null }) {
   return message ? <Text style={styles.success}>{message}</Text> : null;
 }
 
+function useEntryActionState() {
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+
+  return {
+    activeEntryId,
+    setActiveEntryId
+  };
+}
+
 function JournalModule() {
   const { user } = useAuthSession();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -128,6 +149,8 @@ function JournalModule() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const { activeEntryId, setActiveEntryId } = useEntryActionState();
 
   useEffect(() => {
     void loadEntries();
@@ -164,10 +187,52 @@ function JournalModule() {
       });
       setTitle("");
       setBody("");
+      setEditingEntryId(null);
       setSuccessMessage("Journal entry saved.");
       await loadEntries();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to save the journal entry.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      if (editingEntryId) {
+        await updateJournalEntry(user.id, editingEntryId, {
+          body,
+          title
+        });
+        setSuccessMessage("Journal entry updated.");
+      } else {
+        await createJournalEntry(user.id, {
+          body,
+          title
+        });
+        setSuccessMessage("Journal entry saved.");
+      }
+
+      setTitle("");
+      setBody("");
+      setEditingEntryId(null);
+      await loadEntries();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : editingEntryId
+            ? "Unable to update the journal entry."
+            : "Unable to save the journal entry."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -189,8 +254,8 @@ function JournalModule() {
         />
         <ErrorBanner message={errorMessage} />
         <SuccessBanner message={successMessage} />
-        <Button loading={isSaving} onPress={handleCreate}>
-          Save journal entry
+        <Button loading={isSaving} onPress={handleSave}>
+          {editingEntryId ? "Update journal entry" : "Save journal entry"}
         </Button>
       </Card>
 
@@ -205,6 +270,23 @@ function JournalModule() {
             <Text style={styles.listTitle}>{entry.title || "Untitled reflection"}</Text>
             <Text style={styles.listCopy}>{entry.body}</Text>
             <Text style={styles.listMeta}>{formatTimestampLocal(entry.occurredAtUtc)}</Text>
+            <View style={styles.inlineActions}>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => {
+                  setActiveEntryId(entry.id);
+                  setTitle(entry.title ?? "");
+                  setBody(entry.body);
+                  setEditingEntryId(entry.id);
+                  setSuccessMessage(null);
+                  setErrorMessage(null);
+                  setActiveEntryId(null);
+                }}
+                tone="secondary"
+              >
+                Edit
+              </Button>
+            </View>
           </View>
         ))}
       </Card>
@@ -222,6 +304,8 @@ function ConnectionModule() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const { activeEntryId, setActiveEntryId } = useEntryActionState();
 
   useEffect(() => {
     void loadEntries();
@@ -243,7 +327,7 @@ function ConnectionModule() {
     }
   }
 
-  async function handleCreate() {
+  async function handleSave() {
     if (!user?.id) {
       return;
     }
@@ -252,20 +336,61 @@ function ConnectionModule() {
       setIsSaving(true);
       setErrorMessage(null);
       setSuccessMessage(null);
-      await createConnectionLog(user.id, {
-        connectionType,
-        contactLabel,
-        note
-      });
+      if (editingEntryId) {
+        await updateConnectionLog(user.id, editingEntryId, {
+          connectionType,
+          contactLabel,
+          note
+        });
+        setSuccessMessage("Connection log updated.");
+      } else {
+        await createConnectionLog(user.id, {
+          connectionType,
+          contactLabel,
+          note
+        });
+        setSuccessMessage("Connection log saved.");
+      }
       setConnectionType("");
       setContactLabel("");
       setNote("");
-      setSuccessMessage("Connection log saved.");
+      setEditingEntryId(null);
       await loadEntries();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to save the connection log.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : editingEntryId
+            ? "Unable to update the connection log."
+            : "Unable to save the connection log."
+      );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleDelete(entryId: string) {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      setActiveEntryId(entryId);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await deleteConnectionLog(user.id, entryId);
+      if (editingEntryId === entryId) {
+        setConnectionType("");
+        setContactLabel("");
+        setNote("");
+        setEditingEntryId(null);
+      }
+      setSuccessMessage("Connection log deleted.");
+      await loadEntries();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to delete the connection log.");
+    } finally {
+      setActiveEntryId(null);
     }
   }
 
@@ -296,8 +421,8 @@ function ConnectionModule() {
         />
         <ErrorBanner message={errorMessage} />
         <SuccessBanner message={successMessage} />
-        <Button loading={isSaving} onPress={handleCreate}>
-          Save connection log
+        <Button loading={isSaving} onPress={handleSave}>
+          {editingEntryId ? "Update connection log" : "Save connection log"}
         </Button>
       </Card>
 
@@ -316,6 +441,29 @@ function ConnectionModule() {
               {[entry.contactLabel, entry.note].filter(Boolean).join(" • ") || "No extra note"}
             </Text>
             <Text style={styles.listMeta}>{formatTimestampLocal(entry.occurredAtUtc)}</Text>
+            <View style={styles.inlineActions}>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => {
+                  setConnectionType(entry.connectionType ?? "");
+                  setContactLabel(entry.contactLabel ?? "");
+                  setNote(entry.note ?? "");
+                  setEditingEntryId(entry.id);
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                tone="secondary"
+              >
+                Edit
+              </Button>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => void handleDelete(entry.id)}
+                tone="ghost"
+              >
+                Delete
+              </Button>
+            </View>
           </View>
         ))}
       </Card>
@@ -333,6 +481,7 @@ function TaskModule() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadTasks();
@@ -354,7 +503,7 @@ function TaskModule() {
     }
   }
 
-  async function handleCreate() {
+  async function handleSave() {
     if (!user?.id) {
       return;
     }
@@ -363,16 +512,31 @@ function TaskModule() {
       setIsSaving(true);
       setErrorMessage(null);
       setSuccessMessage(null);
-      await createTask(user.id, {
-        notes,
-        title
-      });
+      if (editingTaskId) {
+        await updateTask(user.id, editingTaskId, {
+          notes,
+          title
+        });
+        setSuccessMessage("Task updated.");
+      } else {
+        await createTask(user.id, {
+          notes,
+          title
+        });
+        setSuccessMessage("Task created.");
+      }
       setTitle("");
       setNotes("");
-      setSuccessMessage("Task created.");
+      setEditingTaskId(null);
       await loadTasks();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to create the task.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : editingTaskId
+            ? "Unable to update the task."
+            : "Unable to create the task."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -397,6 +561,30 @@ function TaskModule() {
     }
   }
 
+  async function handleDelete(taskId: string) {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      setUpdatingTaskId(taskId);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await deleteTask(user.id, taskId);
+      if (editingTaskId === taskId) {
+        setTitle("");
+        setNotes("");
+        setEditingTaskId(null);
+      }
+      setSuccessMessage("Task deleted.");
+      await loadTasks();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to delete the task.");
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  }
+
   return (
     <ModuleShell moduleKey="task">
       <Card>
@@ -413,8 +601,8 @@ function TaskModule() {
         />
         <ErrorBanner message={errorMessage} />
         <SuccessBanner message={successMessage} />
-        <Button loading={isSaving} onPress={handleCreate}>
-          Create task
+        <Button loading={isSaving} onPress={handleSave}>
+          {editingTaskId ? "Update task" : "Create task"}
         </Button>
       </Card>
 
@@ -431,15 +619,41 @@ function TaskModule() {
                 ? `Completed ${task.completedAtUtc ? formatTimestampLocal(task.completedAtUtc) : ""}`
                 : `Status: ${task.status}`}
             </Text>
-            {task.status === "pending" ? (
-              <Button
-                loading={updatingTaskId === task.id}
-                onPress={() => void handleComplete(task.id)}
-                tone="secondary"
-              >
-                Mark complete
-              </Button>
-            ) : null}
+            <View style={styles.inlineActions}>
+              {task.status === "pending" ? (
+                <>
+                  <Button
+                    loading={updatingTaskId === task.id}
+                    onPress={() => void handleComplete(task.id)}
+                    tone="secondary"
+                  >
+                    Mark complete
+                  </Button>
+                  <Button
+                    loading={updatingTaskId === task.id}
+                    onPress={() => {
+                      setTitle(task.title);
+                      setNotes(task.notes ?? "");
+                      setEditingTaskId(task.id);
+                      setErrorMessage(null);
+                      setSuccessMessage(null);
+                    }}
+                    tone="ghost"
+                  >
+                    Edit
+                  </Button>
+                </>
+              ) : null}
+              {task.status !== "completed" ? (
+                <Button
+                  loading={updatingTaskId === task.id}
+                  onPress={() => void handleDelete(task.id)}
+                  tone="ghost"
+                >
+                  Delete
+                </Button>
+              ) : null}
+            </View>
           </View>
         ))}
       </Card>
@@ -533,6 +747,25 @@ function FocusModule() {
     }
   }
 
+  async function handleDelete(sessionId: string) {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      setActiveSessionId(sessionId);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await deleteFocusSession(user.id, sessionId);
+      setSuccessMessage("Focus session deleted.");
+      await loadSessions();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to delete the focus session.");
+    } finally {
+      setActiveSessionId(null);
+    }
+  }
+
   return (
     <ModuleShell moduleKey="focus">
       <Card>
@@ -576,9 +809,25 @@ function FocusModule() {
                 >
                   Cancel
                 </Button>
+                <Button
+                  loading={activeSessionId === session.id}
+                  onPress={() => void handleDelete(session.id)}
+                  tone="ghost"
+                >
+                  Delete
+                </Button>
               </View>
             ) : (
-              <Text style={styles.listMeta}>Status: {session.status}</Text>
+              <View style={styles.inlineActions}>
+                <Text style={styles.listMeta}>Status: {session.status}</Text>
+                <Button
+                  loading={activeSessionId === session.id}
+                  onPress={() => void handleDelete(session.id)}
+                  tone="ghost"
+                >
+                  Delete
+                </Button>
+              </View>
             )}
           </View>
         ))}
@@ -598,6 +847,8 @@ function ActivityModule() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const { activeEntryId, setActiveEntryId } = useEntryActionState();
 
   useEffect(() => {
     void loadEntries();
@@ -619,7 +870,7 @@ function ActivityModule() {
     }
   }
 
-  async function handleCreate() {
+  async function handleSave() {
     if (!user?.id) {
       return;
     }
@@ -628,20 +879,37 @@ function ActivityModule() {
       setIsSaving(true);
       setErrorMessage(null);
       setSuccessMessage(null);
-      await createActivityLog(user.id, {
-        activityType,
-        distanceKm,
-        durationMinutes,
-        notes
-      });
+      if (editingEntryId) {
+        await updateActivityLog(user.id, editingEntryId, {
+          activityType,
+          distanceKm,
+          durationMinutes,
+          notes
+        });
+        setSuccessMessage("Activity log updated.");
+      } else {
+        await createActivityLog(user.id, {
+          activityType,
+          distanceKm,
+          durationMinutes,
+          notes
+        });
+        setSuccessMessage("Activity logged.");
+      }
       setActivityType("");
       setDurationMinutes("");
       setDistanceKm("");
       setNotes("");
-      setSuccessMessage("Activity logged.");
+      setEditingEntryId(null);
       await loadEntries();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to save the activity log.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : editingEntryId
+            ? "Unable to update the activity log."
+            : "Unable to save the activity log."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -682,8 +950,8 @@ function ActivityModule() {
         />
         <ErrorBanner message={errorMessage} />
         <SuccessBanner message={successMessage} />
-        <Button loading={isSaving} onPress={handleCreate}>
-          Save activity log
+        <Button loading={isSaving} onPress={handleSave}>
+          {editingEntryId ? "Update activity log" : "Save activity log"}
         </Button>
       </Card>
 
@@ -700,6 +968,23 @@ function ActivityModule() {
                 .join(" • ") || "No duration or distance"}
             </Text>
             <Text style={styles.listMeta}>{formatTimestampLocal(entry.occurredAtUtc)}</Text>
+            <View style={styles.inlineActions}>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => {
+                  setActivityType(entry.activityType);
+                  setDurationMinutes(entry.durationMinutes ? String(entry.durationMinutes) : "");
+                  setDistanceKm(entry.distanceKm ? String(entry.distanceKm) : "");
+                  setNotes(entry.notes ?? "");
+                  setEditingEntryId(entry.id);
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                tone="secondary"
+              >
+                Edit
+              </Button>
+            </View>
           </View>
         ))}
       </Card>
@@ -716,6 +1001,7 @@ function SleepModule() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const { activeEntryId, setActiveEntryId } = useEntryActionState();
 
   useEffect(() => {
     void loadEntries();
@@ -761,6 +1047,25 @@ function SleepModule() {
     }
   }
 
+  async function handleDelete(entryId: string) {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      setActiveEntryId(entryId);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await deleteSleepLog(user.id, entryId);
+      setSuccessMessage("Sleep log deleted.");
+      await loadEntries();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to delete the sleep log.");
+    } finally {
+      setActiveEntryId(null);
+    }
+  }
+
   return (
     <ModuleShell moduleKey="sleep">
       <Card>
@@ -803,6 +1108,15 @@ function SleepModule() {
             </Text>
             <Text style={styles.listCopy}>{entry.notes || "No extra notes"}</Text>
             <Text style={styles.listMeta}>{formatTimestampLocal(entry.sleepEndUtc)}</Text>
+            <View style={styles.inlineActions}>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => void handleDelete(entry.id)}
+                tone="ghost"
+              >
+                Delete
+              </Button>
+            </View>
           </View>
         ))}
       </Card>
@@ -821,6 +1135,8 @@ function ExpenseModule() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const { activeEntryId, setActiveEntryId } = useEntryActionState();
 
   useEffect(() => {
     void loadEntries();
@@ -842,7 +1158,7 @@ function ExpenseModule() {
     }
   }
 
-  async function handleCreate() {
+  async function handleSave() {
     if (!user?.id) {
       return;
     }
@@ -851,21 +1167,63 @@ function ExpenseModule() {
       setIsSaving(true);
       setErrorMessage(null);
       setSuccessMessage(null);
-      await createExpenseLog(user.id, {
-        amount,
-        category,
-        currencyCode,
-        note
-      });
+      if (editingEntryId) {
+        await updateExpenseLog(user.id, editingEntryId, {
+          amount,
+          category,
+          currencyCode,
+          note
+        });
+        setSuccessMessage("Expense log updated.");
+      } else {
+        await createExpenseLog(user.id, {
+          amount,
+          category,
+          currencyCode,
+          note
+        });
+        setSuccessMessage("Expense log saved.");
+      }
       setAmount("");
       setCategory("");
       setNote("");
-      setSuccessMessage("Expense log saved.");
+      setEditingEntryId(null);
       await loadEntries();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to save the expense log.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : editingEntryId
+            ? "Unable to update the expense log."
+            : "Unable to save the expense log."
+      );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleDelete(entryId: string) {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      setActiveEntryId(entryId);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await deleteExpenseLog(user.id, entryId);
+      if (editingEntryId === entryId) {
+        setAmount("");
+        setCategory("");
+        setNote("");
+        setEditingEntryId(null);
+      }
+      setSuccessMessage("Expense log deleted.");
+      await loadEntries();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to delete the expense log.");
+    } finally {
+      setActiveEntryId(null);
     }
   }
 
@@ -898,8 +1256,8 @@ function ExpenseModule() {
         />
         <ErrorBanner message={errorMessage} />
         <SuccessBanner message={successMessage} />
-        <Button loading={isSaving} onPress={handleCreate}>
-          Save expense log
+        <Button loading={isSaving} onPress={handleSave}>
+          {editingEntryId ? "Update expense log" : "Save expense log"}
         </Button>
       </Card>
 
@@ -914,6 +1272,30 @@ function ExpenseModule() {
             </Text>
             <Text style={styles.listCopy}>{entry.note || "No note"}</Text>
             <Text style={styles.listMeta}>{formatTimestampLocal(entry.occurredAtUtc)}</Text>
+            <View style={styles.inlineActions}>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => {
+                  setAmount(String(entry.amount));
+                  setCurrencyCode(entry.currencyCode);
+                  setCategory(entry.category);
+                  setNote(entry.note ?? "");
+                  setEditingEntryId(entry.id);
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                tone="secondary"
+              >
+                Edit
+              </Button>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => void handleDelete(entry.id)}
+                tone="ghost"
+              >
+                Delete
+              </Button>
+            </View>
           </View>
         ))}
       </Card>
@@ -931,6 +1313,8 @@ function FinancialActionModule() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const { activeEntryId, setActiveEntryId } = useEntryActionState();
 
   useEffect(() => {
     void loadEntries();
@@ -952,7 +1336,7 @@ function FinancialActionModule() {
     }
   }
 
-  async function handleCreate() {
+  async function handleSave() {
     if (!user?.id) {
       return;
     }
@@ -961,20 +1345,61 @@ function FinancialActionModule() {
       setIsSaving(true);
       setErrorMessage(null);
       setSuccessMessage(null);
-      await createFinancialAction(user.id, {
-        actionKind,
-        amount,
-        note
-      });
+      if (editingEntryId) {
+        await updateFinancialAction(user.id, editingEntryId, {
+          actionKind,
+          amount,
+          note
+        });
+        setSuccessMessage("Financial action updated.");
+      } else {
+        await createFinancialAction(user.id, {
+          actionKind,
+          amount,
+          note
+        });
+        setSuccessMessage("Financial action saved.");
+      }
       setActionKind("");
       setAmount("");
       setNote("");
-      setSuccessMessage("Financial action saved.");
+      setEditingEntryId(null);
       await loadEntries();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to save the financial action.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : editingEntryId
+            ? "Unable to update the financial action."
+            : "Unable to save the financial action."
+      );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleDelete(entryId: string) {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      setActiveEntryId(entryId);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await deleteFinancialAction(user.id, entryId);
+      if (editingEntryId === entryId) {
+        setActionKind("");
+        setAmount("");
+        setNote("");
+        setEditingEntryId(null);
+      }
+      setSuccessMessage("Financial action deleted.");
+      await loadEntries();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to delete the financial action.");
+    } finally {
+      setActiveEntryId(null);
     }
   }
 
@@ -1000,8 +1425,8 @@ function FinancialActionModule() {
         />
         <ErrorBanner message={errorMessage} />
         <SuccessBanner message={successMessage} />
-        <Button loading={isSaving} onPress={handleCreate}>
-          Save financial action
+        <Button loading={isSaving} onPress={handleSave}>
+          {editingEntryId ? "Update financial action" : "Save financial action"}
         </Button>
       </Card>
 
@@ -1016,6 +1441,29 @@ function FinancialActionModule() {
               {entry.amount != null ? `$${entry.amount.toFixed(2)}` : "No amount"} • {entry.note || "No note"}
             </Text>
             <Text style={styles.listMeta}>{formatTimestampLocal(entry.occurredAtUtc)}</Text>
+            <View style={styles.inlineActions}>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => {
+                  setActionKind(entry.actionKind);
+                  setAmount(entry.amount != null ? String(entry.amount) : "");
+                  setNote(entry.note ?? "");
+                  setEditingEntryId(entry.id);
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                tone="secondary"
+              >
+                Edit
+              </Button>
+              <Button
+                loading={activeEntryId === entry.id}
+                onPress={() => void handleDelete(entry.id)}
+                tone="ghost"
+              >
+                Delete
+              </Button>
+            </View>
           </View>
         ))}
       </Card>

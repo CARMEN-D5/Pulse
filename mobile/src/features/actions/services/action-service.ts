@@ -88,6 +88,25 @@ export async function createJournalEntry(userId: string, input: { body: string; 
   }
 }
 
+export async function updateJournalEntry(
+  userId: string,
+  entryId: string,
+  input: { body: string; title: string }
+) {
+  const { error } = await supabase
+    .from("journal_entries")
+    .update({
+      body: ensureText(input.body, "Entry"),
+      title: input.title.trim() || null
+    })
+    .eq("id", entryId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 type ConnectionLogRow = {
   connection_type: string | null;
   contact_label: string | null;
@@ -135,6 +154,38 @@ export async function createConnectionLog(
     note: input.note.trim() || null,
     user_id: userId
   });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updateConnectionLog(
+  userId: string,
+  entryId: string,
+  input: { connectionType: string; contactLabel: string; note: string }
+) {
+  const { error } = await supabase
+    .from("connection_logs")
+    .update({
+      connection_type: input.connectionType.trim() || null,
+      contact_label: input.contactLabel.trim() || null,
+      note: input.note.trim() || null
+    })
+    .eq("id", entryId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteConnectionLog(userId: string, entryId: string) {
+  const { error } = await supabase
+    .from("connection_logs")
+    .delete()
+    .eq("id", entryId)
+    .eq("user_id", userId);
 
   if (error) {
     throw error;
@@ -193,12 +244,43 @@ export async function createTask(userId: string, input: { notes: string; title: 
   }
 }
 
+export async function updateTask(
+  userId: string,
+  taskId: string,
+  input: { notes: string; title: string }
+) {
+  const { error } = await supabase
+    .from("tasks")
+    .update({
+      notes: input.notes.trim() || null,
+      title: ensureText(input.title, "Task title")
+    })
+    .eq("id", taskId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function completeTask(userId: string, taskId: string) {
   const { error } = await supabase
     .from("tasks")
     .update({
       status: "completed"
     })
+    .eq("id", taskId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteTask(userId: string, taskId: string) {
+  const { error } = await supabase
+    .from("tasks")
+    .delete()
     .eq("id", taskId)
     .eq("user_id", userId);
 
@@ -278,6 +360,18 @@ export async function cancelFocusSession(userId: string, sessionId: string) {
   await updateFocusSessionStatus(userId, sessionId, "cancelled");
 }
 
+export async function deleteFocusSession(userId: string, sessionId: string) {
+  const { error } = await supabase
+    .from("focus_sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 type ActivityLogRow = {
   activity_type: string;
   distance_km: number | null;
@@ -329,6 +423,27 @@ export async function createActivityLog(
     notes: input.notes.trim() || null,
     user_id: userId
   });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updateActivityLog(
+  userId: string,
+  entryId: string,
+  input: { activityType: string; distanceKm: string; durationMinutes: string; notes: string }
+) {
+  const { error } = await supabase
+    .from("activity_logs")
+    .update({
+      activity_type: ensureText(input.activityType, "Activity type"),
+      distance_km: parseOptionalDecimal(input.distanceKm),
+      duration_minutes: parseOptionalInteger(input.durationMinutes),
+      notes: input.notes.trim() || null
+    })
+    .eq("id", entryId)
+    .eq("user_id", userId);
 
   if (error) {
     throw error;
@@ -388,6 +503,18 @@ export async function createQuickSleepLog(
     sleep_start_utc: sleepStart.toISOString(),
     user_id: userId
   });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteSleepLog(userId: string, entryId: string) {
+  const { error } = await supabase
+    .from("sleep_logs")
+    .delete()
+    .eq("id", entryId)
+    .eq("user_id", userId);
 
   if (error) {
     throw error;
@@ -457,6 +584,45 @@ export async function createExpenseLog(
   }
 }
 
+export async function updateExpenseLog(
+  userId: string,
+  entryId: string,
+  input: { amount: string; category: string; currencyCode: string; note: string }
+) {
+  const amount = parseOptionalDecimal(input.amount);
+
+  if (amount == null) {
+    throw new Error("Amount is required.");
+  }
+
+  const { error } = await supabase
+    .from("expense_logs")
+    .update({
+      amount,
+      category: ensureText(input.category, "Category"),
+      currency_code: ensureText(input.currencyCode, "Currency code").toUpperCase(),
+      note: input.note.trim() || null
+    })
+    .eq("id", entryId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteExpenseLog(userId: string, entryId: string) {
+  const { error } = await supabase
+    .from("expense_logs")
+    .delete()
+    .eq("id", entryId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 type FinancialActionRow = {
   action_kind: string;
   amount: number | null;
@@ -504,6 +670,38 @@ export async function createFinancialAction(
     note: input.note.trim() || null,
     user_id: userId
   });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updateFinancialAction(
+  userId: string,
+  entryId: string,
+  input: { actionKind: string; amount: string; note: string }
+) {
+  const { error } = await supabase
+    .from("financial_actions")
+    .update({
+      action_kind: ensureText(input.actionKind, "Action kind"),
+      amount: parseOptionalDecimal(input.amount),
+      note: input.note.trim() || null
+    })
+    .eq("id", entryId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteFinancialAction(userId: string, entryId: string) {
+  const { error } = await supabase
+    .from("financial_actions")
+    .delete()
+    .eq("id", entryId)
+    .eq("user_id", userId);
 
   if (error) {
     throw error;
