@@ -239,6 +239,13 @@ Current progress:
 - local verification confirmed `upsert_weekly_life_summary(...)` produced a coherent weekly aggregate for the throwaway user and persisted it into `weekly_life_summaries`
 - local verification confirmed the aggregate aligned with the underlying domain summaries, with `health` as strongest and `spirituality` as weakest for the tested week
 - authenticated clients do not have `EXECUTE` privileges on the weekly life-summary helper functions; life summary writes also remain backend-owned
+- weekly orchestration helper functions now exist for:
+  - upserting the previous closed weekly life summary for a single user
+  - running a batch over onboarding-complete users for scheduled weekly summary generation
+- the single-user orchestration helper derives the target week from the user's timezone and a reference UTC timestamp
+- local verification confirmed that using a future reference timestamp correctly targeted the throwaway user's first scoring week (`2026-03-30`)
+- local verification confirmed the batch helper returned the same weekly score (`63.72`) for the tested user
+- authenticated clients do not have `EXECUTE` privileges on the weekly orchestration helper functions; scheduler-facing operations remain backend-owned
 
 ### Phase S5: Adapt the mobile app from Firebase client flows to Supabase client flows
 
