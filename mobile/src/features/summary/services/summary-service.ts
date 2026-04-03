@@ -1,4 +1,4 @@
-import { type DomainKey } from "@velora/shared";
+import { DOMAIN_KEYS, type DomainKey } from "@velora/shared";
 
 import { supabase } from "@/lib/supabase/client";
 
@@ -75,6 +75,11 @@ export type DashboardSnapshot = {
   previousLifeSummary: WeeklyLifeSummary | null;
 };
 
+export type DomainTrendSeries = {
+  domainKey: DomainKey;
+  summaries: WeeklyDomainSummary[];
+};
+
 function mapWeeklyLifeSummary(row: WeeklyLifeSummaryRow): WeeklyLifeSummary {
   return {
     balancedLifeScore: Number(row.balanced_life_score),
@@ -136,6 +141,41 @@ export async function fetchWeeklyDomainSummaries(userId: string, weekStartLocalD
   }
 
   return (data ?? []).map((row) => mapWeeklyDomainSummary(row as WeeklyDomainSummaryRow));
+}
+
+export async function fetchDomainTrendSeries(userId: string, weekStartLocalDates: string[]) {
+  if (!weekStartLocalDates.length) {
+    return DOMAIN_KEYS.map((domainKey) => ({
+      domainKey,
+      summaries: []
+    }));
+  }
+
+  const { data, error } = await supabase
+    .from("weekly_domain_summaries")
+    .select("*")
+    .eq("user_id", userId)
+    .in("week_start_local_date", weekStartLocalDates);
+
+  if (error) {
+    throw error;
+  }
+
+  const mapped = (data ?? []).map((row) => mapWeeklyDomainSummary(row as WeeklyDomainSummaryRow));
+  const grouped = new Map<DomainKey, WeeklyDomainSummary[]>(
+    DOMAIN_KEYS.map((domainKey) => [domainKey, [] as WeeklyDomainSummary[]])
+  );
+
+  mapped.forEach((summary) => {
+    grouped.get(summary.domainKey)?.push(summary);
+  });
+
+  return DOMAIN_KEYS.map((domainKey) => ({
+    domainKey,
+    summaries: (grouped.get(domainKey) ?? []).sort((left, right) =>
+      left.weekStartLocalDate.localeCompare(right.weekStartLocalDate)
+    )
+  }));
 }
 
 export async function fetchLatestDashboardSnapshot(userId: string): Promise<DashboardSnapshot> {

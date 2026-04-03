@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { DOMAIN_LABELS } from "@velora/shared";
+import { DOMAIN_LABELS, DOMAIN_KEYS, type DomainKey } from "@velora/shared";
 
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { BalanceWheel } from "@/features/summary/components/balance-wheel";
+import { DomainTrendCard } from "@/features/summary/components/domain-trend-card";
 import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
 import { ScoreProgressBar } from "@/features/summary/components/score-progress-bar";
 import {
+  fetchDomainTrendSeries,
   fetchWeeklyDomainSummaries,
   fetchWeeklyLifeSummaries,
+  type DomainTrendSeries,
   type WeeklyDomainSummary,
   type WeeklyLifeSummary
 } from "@/features/summary/services/summary-service";
@@ -24,6 +27,7 @@ export function SummaryScreen() {
   const [lifeSummaries, setLifeSummaries] = useState<WeeklyLifeSummary[]>([]);
   const [selectedWeekStart, setSelectedWeekStart] = useState<string | null>(null);
   const [domainSummaries, setDomainSummaries] = useState<WeeklyDomainSummary[]>([]);
+  const [domainTrendSeries, setDomainTrendSeries] = useState<DomainTrendSeries[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -49,6 +53,16 @@ export function SummaryScreen() {
 
         const nextSelectedWeek = nextLifeSummaries[0]?.weekStartLocalDate ?? null;
         setSelectedWeekStart(nextSelectedWeek);
+        const trendWeeks = nextLifeSummaries
+          .map((summary) => summary.weekStartLocalDate)
+          .slice(0, 6);
+        const nextTrendSeries = await fetchDomainTrendSeries(user.id, trendWeeks);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDomainTrendSeries(nextTrendSeries);
 
         if (nextSelectedWeek) {
           const nextDomainSummaries = await fetchWeeklyDomainSummaries(user.id, nextSelectedWeek);
@@ -102,6 +116,9 @@ export function SummaryScreen() {
     selectedLifeSummary && previousLifeSummary
       ? selectedLifeSummary.balancedLifeScore - previousLifeSummary.balancedLifeScore
       : null;
+  const domainSummaryByKey = new Map<DomainKey, WeeklyDomainSummary>(
+    domainSummaries.map((summary) => [summary.domainKey, summary])
+  );
 
   return (
     <Screen scrollable>
@@ -181,6 +198,51 @@ export function SummaryScreen() {
               </View>
             </View>
           ))}
+        </Card>
+      ) : null}
+
+      {!isLoading && domainTrendSeries.some((series) => series.summaries.length) ? (
+        <Card>
+          <Text style={styles.sectionTitle}>Recent domain trends</Text>
+          <Text style={styles.helper}>
+            Each trend card shows displayed domain scores across your last few official weeks.
+          </Text>
+          <View style={styles.trendGrid}>
+            {DOMAIN_KEYS.map((domainKey) => {
+              const currentSummary = domainSummaryByKey.get(domainKey);
+              const trendSeries = domainTrendSeries.find((series) => series.domainKey === domainKey);
+              const trendScores = trendSeries?.summaries.map((summary) => summary.displayedScore) ?? [];
+              const selectedTrendIndex = trendSeries?.summaries.findIndex(
+                (summary) => summary.weekStartLocalDate === selectedWeekStart
+              ) ?? -1;
+              const resolvedTrendIndex =
+                selectedTrendIndex >= 0 ? selectedTrendIndex : Math.max(trendScores.length - 1, 0);
+              const resolvedCurrentScore =
+                trendScores[resolvedTrendIndex] ?? currentSummary?.displayedScore ?? 0;
+              const previousTrend = resolvedTrendIndex > 0 ? trendScores[resolvedTrendIndex - 1] : null;
+              const trendDelta =
+                previousTrend == null
+                  ? null
+                  : Math.round((resolvedCurrentScore - previousTrend) * 10) / 10;
+              const changeLabel =
+                !trendScores.length
+                  ? "No official data yet"
+                  : trendDelta == null
+                  ? "No prior week yet"
+                  : `${trendDelta > 0 ? "+" : ""}${trendDelta.toFixed(1)} vs prior week`;
+
+              return (
+                <DomainTrendCard
+                  key={domainKey}
+                  changeLabel={changeLabel}
+                  currentScore={currentSummary?.displayedScore ?? resolvedCurrentScore}
+                  highlightIndex={trendScores.length ? resolvedTrendIndex : undefined}
+                  label={DOMAIN_LABELS[domainKey]}
+                  scores={trendScores}
+                />
+              );
+            })}
+          </View>
         </Card>
       ) : null}
 
@@ -280,6 +342,9 @@ const styles = StyleSheet.create({
   metricPillRow: {
     flexDirection: "row",
     gap: 10
+  },
+  trendGrid: {
+    gap: 12
   },
   metricPill: {
     backgroundColor: "#10141d",
