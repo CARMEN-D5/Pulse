@@ -55,7 +55,7 @@ export function deriveWeeklyMissions(snapshot: DashboardSnapshot | null): Weekly
         iconName: "rocket-launch-outline",
         id: `${weekKey}:starter-action`,
         route: "/(app)/(tabs)/actions",
-        title: "Create your first proof point"
+        title: "Log your first small step"
       }
     ];
   }

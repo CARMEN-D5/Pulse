@@ -65,7 +65,7 @@ export function ActionModuleScreen() {
         <View style={styles.invalidWrapper}>
           <Text style={styles.invalidTitle}>Unknown action module</Text>
           <Text style={styles.invalidCopy}>
-            This route does not match one of the supported V1 action modules.
+            This route does not match one of the available action paths.
           </Text>
           <Button onPress={() => router.back()} tone="secondary">
             Back to actions

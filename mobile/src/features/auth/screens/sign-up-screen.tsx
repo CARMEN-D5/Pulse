@@ -43,7 +43,7 @@ export function SignUpScreen() {
 
   return (
     <AuthShell
-      eyebrow="Start your pilot"
+      eyebrow="Begin here"
       footerCopy="Already have an account?"
       footerHref="/(auth)/sign-in"
       footerLabel="Sign in"
