@@ -36,6 +36,11 @@ export function AuthShell({
         <Text style={styles.eyebrow}>{eyebrow}</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
+        <View style={styles.noteWrap}>
+          <Text style={styles.noteText}>
+            A few calm minutes a day is enough to see your balance more clearly.
+          </Text>
+        </View>
       </View>
 
       <Card style={styles.formCard} variant="highlight">
@@ -93,6 +98,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     maxWidth: 320,
+    textAlign: "center"
+  },
+  noteWrap: {
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.borderMuted,
+    borderRadius: theme.radii.pill,
+    borderWidth: 1,
+    marginTop: 4,
+    maxWidth: 320,
+    paddingHorizontal: 16,
+    paddingVertical: 10
+  },
+  noteText: {
+    color: theme.colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: "center"
   },
   formCard: {

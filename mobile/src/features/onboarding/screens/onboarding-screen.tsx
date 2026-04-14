@@ -32,6 +32,7 @@ export function OnboardingScreen() {
     () => DOMAIN_KEYS.filter((domainKey) => !ratings[domainKey]),
     [ratings]
   );
+  const completedCount = DOMAIN_KEYS.length - missingDomains.length;
 
   async function handleCompleteOnboarding() {
     if (!scoringTimezone.trim()) {
@@ -75,6 +76,12 @@ export function OnboardingScreen() {
       />
 
       <Card variant="highlight">
+        <Text style={styles.progressLabel}>Baseline progress</Text>
+        <Text style={styles.progressValue}>{completedCount}/5 areas rated</Text>
+        <Text style={styles.progressCopy}>
+          Start with your best estimate for each area. Your weekly picture will become more personal
+          as real check-ins and actions build up.
+        </Text>
         <TextField
           autoCapitalize="words"
           label="Display name"
@@ -95,7 +102,24 @@ export function OnboardingScreen() {
       {DOMAIN_KEYS.map((domainKey) => (
         <Card key={domainKey}>
           <View style={styles.domainHeader}>
-            <DomainBadge domainKey={domainKey} />
+            <View style={styles.domainTopRow}>
+              <DomainBadge domainKey={domainKey} />
+              <View
+                style={[
+                  styles.ratingPill,
+                  ratings[domainKey] ? styles.ratingPillSelected : null
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.ratingPillText,
+                    ratings[domainKey] ? styles.ratingPillTextSelected : null
+                  ]}
+                >
+                  {ratings[domainKey] ? `${ratings[domainKey]}/5` : "Not rated"}
+                </Text>
+              </View>
+            </View>
             <Text style={styles.domainCopy}>
               Rate where this area feels right now on a scale from 1 to 5.
             </Text>
@@ -123,12 +147,53 @@ export function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  progressLabel: {
+    color: theme.colors.textSoft,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase"
+  },
+  progressValue: {
+    color: theme.colors.text,
+    fontSize: 26,
+    fontWeight: "800"
+  },
+  progressCopy: {
+    color: theme.colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20
+  },
   domainHeader: {
     gap: 8
+  },
+  domainTopRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
   },
   domainCopy: {
     color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 20
+  },
+  ratingPill: {
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.borderMuted,
+    borderRadius: theme.radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  ratingPillSelected: {
+    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.primary
+  },
+  ratingPillText: {
+    color: theme.colors.textSoft,
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  ratingPillTextSelected: {
+    color: theme.colors.primary
   }
 });
