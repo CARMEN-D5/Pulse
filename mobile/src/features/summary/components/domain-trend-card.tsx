@@ -64,7 +64,7 @@ export function DomainTrendCard({
       </View>
 
       <Text style={styles.caption}>
-        Last {normalizedScores.length} official week{normalizedScores.length === 1 ? "" : "s"}
+        Last {normalizedScores.length} saved week{normalizedScores.length === 1 ? "" : "s"}
       </Text>
     </View>
   );

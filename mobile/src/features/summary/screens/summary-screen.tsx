@@ -10,9 +10,14 @@ import { Screen } from "@/components/ui/screen";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StatusCard } from "@/components/ui/status-card";
+import { BalanceWheel } from "@/features/summary/components/balance-wheel";
+import { DomainTrendCard } from "@/features/summary/components/domain-trend-card";
+import { ScoreChangePill } from "@/features/summary/components/score-change-pill";
 import {
+  fetchDomainTrendSeries,
   fetchWeeklyDomainSummaries,
   fetchWeeklyLifeSummaries,
+  type DomainTrendSeries,
   type WeeklyDomainSummary,
   type WeeklyLifeSummary
 } from "@/features/summary/services/summary-service";
@@ -28,6 +33,7 @@ export function SummaryScreen() {
   const [lifeSummaries, setLifeSummaries] = useState<WeeklyLifeSummary[]>([]);
   const [selectedWeekStart, setSelectedWeekStart] = useState<string | null>(null);
   const [domainSummaries, setDomainSummaries] = useState<WeeklyDomainSummary[]>([]);
+  const [domainTrendSeries, setDomainTrendSeries] = useState<DomainTrendSeries[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,15 +61,23 @@ export function SummaryScreen() {
         setSelectedWeekStart(nextSelectedWeek);
 
         if (nextSelectedWeek) {
-          const nextDomainSummaries = await fetchWeeklyDomainSummaries(user.id, nextSelectedWeek);
+          const [nextDomainSummaries, nextDomainTrendSeries] = await Promise.all([
+            fetchWeeklyDomainSummaries(user.id, nextSelectedWeek),
+            fetchDomainTrendSeries(
+              user.id,
+              nextLifeSummaries.slice(0, 6).map((summary) => summary.weekStartLocalDate)
+            )
+          ]);
 
           if (!isMounted) {
             return;
           }
 
           setDomainSummaries(nextDomainSummaries);
+          setDomainTrendSeries(nextDomainTrendSeries);
         } else {
           setDomainSummaries([]);
+          setDomainTrendSeries([]);
         }
       } catch (error) {
         if (!isMounted) {
@@ -97,6 +111,15 @@ export function SummaryScreen() {
 
   const selectedLifeSummary =
     lifeSummaries.find((summary) => summary.weekStartLocalDate === selectedWeekStart) ?? null;
+  const selectedLifeSummaryIndex = lifeSummaries.findIndex(
+    (summary) => summary.weekStartLocalDate === selectedWeekStart
+  );
+  const previousLifeSummary =
+    selectedLifeSummaryIndex >= 0 ? lifeSummaries[selectedLifeSummaryIndex + 1] ?? null : null;
+  const balanceChange =
+    selectedLifeSummary && previousLifeSummary
+      ? selectedLifeSummary.balancedLifeScore - previousLifeSummary.balancedLifeScore
+      : null;
 
   return (
     <Screen scrollable>
@@ -133,6 +156,7 @@ export function SummaryScreen() {
               <Text style={styles.helper}>
                 {selectedLifeSummary.isProvisional ? "Provisional week" : "Official weekly summary"}
               </Text>
+              <ScoreChangePill change={balanceChange} label="vs last week" />
             </View>
           </View>
           <View style={styles.badgeRow}>
@@ -155,6 +179,17 @@ export function SummaryScreen() {
       {!isLoading && selectedLifeSummary ? (
         <Card>
           <Text style={styles.sectionTitle}>Domain breakdown</Text>
+          <Text style={styles.helper}>
+            See how this week is spreading across all five areas before you dive into the details.
+          </Text>
+          <BalanceWheel
+            centerCaption="balance"
+            centerValue={selectedLifeSummary.balancedLifeScore.toFixed(0)}
+            items={domainSummaries.map((summary) => ({
+              domainKey: summary.domainKey,
+              score: summary.displayedScore
+            }))}
+          />
           {domainSummaries.map((summary) => (
             <View key={summary.domainKey} style={styles.metricRow}>
               <ProgressBar
@@ -164,6 +199,51 @@ export function SummaryScreen() {
               />
             </View>
           ))}
+        </Card>
+      ) : null}
+
+      {!isLoading && domainTrendSeries.length ? (
+        <Card>
+          <Text style={styles.sectionTitle}>Recent movement</Text>
+          <Text style={styles.helper}>
+            A quick read on how each area has been moving across your recent weekly reviews.
+          </Text>
+          {domainTrendSeries.map((series) => {
+            const highlightIndex = series.summaries.findIndex(
+              (summary) => summary.weekStartLocalDate === selectedWeekStart
+            );
+            const selectedSummary =
+              highlightIndex >= 0
+                ? series.summaries[highlightIndex]
+                : series.summaries[series.summaries.length - 1] ?? null;
+            const previousSummary =
+              highlightIndex > 0
+                ? series.summaries[highlightIndex - 1]
+                : null;
+            const delta =
+              selectedSummary && previousSummary
+                ? selectedSummary.displayedScore - previousSummary.displayedScore
+                : null;
+            const changeLabel =
+              delta == null
+                ? "Building a baseline"
+                : `${delta > 0 ? "+" : ""}${delta.toFixed(1)} vs last week`;
+
+            if (!selectedSummary) {
+              return null;
+            }
+
+            return (
+              <DomainTrendCard
+                key={series.domainKey}
+                changeLabel={changeLabel}
+                currentScore={selectedSummary.displayedScore}
+                highlightIndex={highlightIndex >= 0 ? highlightIndex : undefined}
+                label={DOMAIN_LABELS[series.domainKey]}
+                scores={series.summaries.map((summary) => summary.displayedScore)}
+              />
+            );
+          })}
         </Card>
       ) : null}
 
@@ -182,7 +262,7 @@ export function SummaryScreen() {
                 <View>
                   <Text style={styles.historyTitle}>{formatWeekRange(summary.weekStartLocalDate)}</Text>
                   <Text style={styles.historyMeta}>
-                    {summary.isProvisional ? "Provisional" : "Official"} weekly score
+                    {summary.isProvisional ? "Provisional" : "Saved"} weekly review
                   </Text>
                 </View>
                 <Text style={styles.historyValue}>{summary.balancedLifeScore.toFixed(1)}</Text>
