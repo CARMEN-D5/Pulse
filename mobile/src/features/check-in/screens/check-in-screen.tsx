@@ -158,7 +158,7 @@ export function CheckInScreen() {
       {isLoading ? (
         <StatusCard
           loading
-          message="Pulling today’s saved check-ins from Supabase."
+          message="Loading today’s saved check-ins."
           title="Loading today’s check-ins"
           tone="info"
         />

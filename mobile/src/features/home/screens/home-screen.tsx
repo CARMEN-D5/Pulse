@@ -162,8 +162,8 @@ export function HomeScreen() {
           </View>
         ) : (
           <StatusCard
-            message="Keep using check-ins and action logs so your first official week can be finalized."
-            title="No official summary yet"
+            message="Keep checking in and logging small actions. Your first weekly review will appear once a full week has taken shape."
+            title="Your first weekly review is on its way"
             tone="neutral"
           />
         )}
@@ -185,7 +185,7 @@ export function HomeScreen() {
           <View style={styles.missionHeadingWrap}>
             <Text style={styles.sectionTitle}>This week&apos;s missions</Text>
             <Text style={styles.itemCopy}>
-              Lightweight prompts shaped by your official weekly balance snapshot.
+              Small prompts shaped by your latest weekly pattern.
             </Text>
           </View>
           <View style={styles.streakPill}>
@@ -243,8 +243,8 @@ export function HomeScreen() {
           : null}
         {!isLoading && !snapshot?.domainSummaries.length ? (
           <Text style={styles.itemCopy}>
-            There is no official weekly domain summary yet. Keep using check-ins and action logs so
-            the backend can finalize your first week.
+            Your first weekly domain view will appear once you have built a fuller week of check-ins
+            and actions.
           </Text>
         ) : null}
       </Card>

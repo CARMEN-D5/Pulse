@@ -33,7 +33,7 @@ export function SignUpScreen() {
         return;
       }
 
-      setSuccessMessage("Account created. Confirm the email if your Supabase project requires it.");
+      setSuccessMessage("Account created. Confirm your email if verification is turned on.");
     } catch (error) {
       setErrorMessage(toHelpfulErrorMessage(error, "Unable to create your account."));
     } finally {

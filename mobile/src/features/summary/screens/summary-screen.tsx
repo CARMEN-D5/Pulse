@@ -102,14 +102,14 @@ export function SummaryScreen() {
     <Screen scrollable>
       <SectionHeader
         eyebrow="Weekly Summary"
-        subtitle="Look back at your official weekly reviews to see where balance is settling and where it needs more care."
+        subtitle="Look back at your weekly reviews to see where balance is settling and where it needs more care."
         title="Review your score history."
       />
 
       {isLoading ? (
         <StatusCard
           loading
-          message="Fetching official weekly summaries and domain history."
+          message="Loading your weekly summaries and domain history."
           title="Loading summary history"
           tone="info"
         />
@@ -119,12 +119,12 @@ export function SummaryScreen() {
         <Card variant="highlight">
           <Text style={styles.sectionTitle}>{formatWeekRange(selectedLifeSummary.weekStartLocalDate)}</Text>
           <View style={styles.heroCardContent}>
-            <ScoreRing caption="official" value={selectedLifeSummary.balancedLifeScore} />
+            <ScoreRing caption="weekly" value={selectedLifeSummary.balancedLifeScore} />
             <View style={styles.heroCardBody}>
               <Text style={styles.heroHeadline}>
                 {selectedLifeSummary.isProvisional
                   ? "This week is still forming."
-                  : "Your official weekly balance is ready."}
+                  : "Your weekly balance is ready."}
               </Text>
               <Text style={styles.helper}>
                 Life strength {selectedLifeSummary.lifeStrength.toFixed(1)} • Evenness{" "}
@@ -191,8 +191,8 @@ export function SummaryScreen() {
           })
         ) : (
           <StatusCard
-            message="Your first closed week will appear here after backend finalization."
-            title="No official history yet"
+            message="Your first completed week will appear here once you have a full week of check-ins and actions."
+            title="No weekly history yet"
             tone="neutral"
           />
         )}

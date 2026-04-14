@@ -1,6 +1,6 @@
 export const ACTION_MODULES = {
   activity: {
-    description: "Record exercise or movement that should feed the Health action score.",
+    description: "Log movement that helped your body feel supported today.",
     title: "Activity"
   },
   connection: {
@@ -8,27 +8,27 @@ export const ACTION_MODULES = {
     title: "Connection Log"
   },
   expense: {
-    description: "Log quick expenses that contribute to Financial Wellbeing awareness.",
+    description: "Capture a quick expense so money decisions stay visible and calm.",
     title: "Expense Log"
   },
   financial: {
-    description: "Record budget reviews, savings steps, or other financial improvement actions.",
+    description: "Record a budgeting or savings step that helped you feel more in control.",
     title: "Budget / Savings"
   },
   focus: {
-    description: "Track deep work sessions that normalize into the Work/Productivity domain.",
+    description: "Track a stretch of focused work that moved something meaningful forward.",
     title: "Focus Session"
   },
   journal: {
-    description: "Write a reflection entry for the Spirituality domain.",
+    description: "Write a short reflection to slow down and notice what matters.",
     title: "Journal"
   },
   sleep: {
-    description: "Capture a quick sleep record using the current time as the wake time for V1.",
+    description: "Log last night’s rest in one quick step.",
     title: "Sleep"
   },
   task: {
-    description: "Create and complete important tasks for Work/Productivity.",
+    description: "Capture an important task and mark it done when it is finished.",
     title: "Tasks"
   }
 } as const;

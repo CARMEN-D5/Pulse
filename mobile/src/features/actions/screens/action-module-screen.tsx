@@ -770,8 +770,7 @@ function FocusModule() {
     <ModuleShell moduleKey="focus">
       <Card>
         <Text style={styles.helper}>
-          Start a session when you begin focused work. Complete it when you finish so the backend can
-          normalize it into score events.
+          Start a session when you begin focused work, then complete it when that block is done.
         </Text>
         <ErrorBanner message={errorMessage} />
         <SuccessBanner message={successMessage} />
@@ -1038,7 +1037,7 @@ function SleepModule() {
       });
       setSleepHours("");
       setNotes("");
-      setSuccessMessage("Sleep log saved using the current time as the wake time.");
+      setSuccessMessage("Sleep log saved.");
       await loadEntries();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to save the sleep log.");
@@ -1070,8 +1069,7 @@ function SleepModule() {
     <ModuleShell moduleKey="sleep">
       <Card>
         <Text style={styles.helper}>
-          V1 quick sleep logging uses the current time as the wake time and works backward from the
-          number of hours you enter.
+          Add the number of hours you slept and a short note if you want to remember how the night felt.
         </Text>
         <TextField
           keyboardType="decimal-pad"
@@ -1496,8 +1494,13 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   listItem: {
-    gap: 6,
-    paddingVertical: 6
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.borderMuted,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14
   },
   listTitle: {
     color: theme.colors.text,
@@ -1515,6 +1518,7 @@ const styles = StyleSheet.create({
   },
   inlineActions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10
   },
   invalidWrapper: {

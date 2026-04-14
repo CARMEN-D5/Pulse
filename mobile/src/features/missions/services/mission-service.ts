@@ -41,7 +41,7 @@ export function deriveWeeklyMissions(snapshot: DashboardSnapshot | null): Weekly
     return [
       {
         actionLabel: "Open check-in",
-        body: "Fill all five daily check-ins so VELORA can build your first official weekly picture.",
+        body: "Fill all five daily check-ins so VELORA can start building your first weekly picture.",
         completionLabel: "Daily rhythm started",
         iconName: "checkbox-marked-circle-outline",
         id: `${weekKey}:starter-checkin`,
