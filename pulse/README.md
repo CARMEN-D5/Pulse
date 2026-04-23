@@ -97,7 +97,7 @@ If you have run out of energy or time for your project, put a note at the top of
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+## Available Scriptsnpm npm
 
 In the project directory, you can run:
 
