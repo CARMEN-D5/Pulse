@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   },
   orbTopLeft: {
     backgroundColor: "rgba(156, 235, 232, 0.72)",
-    height: 220,
+    height: 230,
     left: -48,
     top: -24,
     width: 220

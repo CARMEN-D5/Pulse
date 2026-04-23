@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.985 }]
   },
   label: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "700"
   },
   labelPrimary: {
