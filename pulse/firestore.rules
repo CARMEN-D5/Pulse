@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// ============================================================================
+// Pulse Firestore security rules
+// ----------------------------------------------------------------------------
+// Paste the contents of this file into Firebase Console →
+//   Firestore Database → Rules → Publish.
+//
+// These rules cover the login branch only. Extend them as new collections
+// (journals, budgets, missions, streaks, etc.) land in later sprints.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // /users/{uid} — a user's private profile document.
+    // Only the signed-in user with the matching uid may read or write it.
+    match /users/{uid} {
+      allow read, update, delete: if request.auth != null
+                                  && request.auth.uid == uid;
+
+      // On create, require that the doc's id matches the caller's uid and
+      // the doc's `uid` field is consistent. This prevents a user from
+      // creating documents on behalf of other users.
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.uid == uid;
+    }
+
+    // Default deny — any other collection is blocked until its rules are
+    // written. Safer than leaving the database world-readable.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

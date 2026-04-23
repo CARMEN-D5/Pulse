@@ -1,0 +1,342 @@
+/* ==========================================================================
+   Pulse – shared auth / onboarding styles
+   A clean, simplistic, mobile-first design used by the Splash, Login,
+   Sign Up and Reset Password pages.
+   ========================================================================== */
+
+:root {
+  --pulse-primary: #ff4d6d;
+  --pulse-primary-dark: #c9184a;
+  --pulse-accent: #ff8fa3;
+  --pulse-bg: #fff5f7;
+  --pulse-bg-gradient: linear-gradient(160deg, #ffe3e8 0%, #fff5f7 45%, #fde9ef 100%);
+  --pulse-card: #ffffff;
+  --pulse-text: #1f1f2e;
+  --pulse-text-muted: #6b6b7a;
+  --pulse-border: #eadfe3;
+  --pulse-error: #d64545;
+  --pulse-success: #2f9e7a;
+  --pulse-shadow: 0 20px 45px rgba(201, 24, 74, 0.08);
+  --pulse-radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  width: 100%;
+  background: var(--pulse-bg-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  color: var(--pulse-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--pulse-card);
+  border-radius: var(--pulse-radius);
+  box-shadow: var(--pulse-shadow);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---------- Brand / Logo ---------- */
+.pulse-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pulse-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--pulse-primary-dark);
+}
+
+.pulse-logo-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--pulse-primary);
+  box-shadow: 0 0 0 0 rgba(255, 77, 109, 0.6);
+  animation: pulse-beat 1.6s ease-out infinite;
+}
+
+@keyframes pulse-beat {
+  0%   { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 77, 109, 0.55); }
+  70%  { transform: scale(1);   box-shadow: 0 0 0 14px rgba(255, 77, 109, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 77, 109, 0); }
+}
+
+.pulse-tagline {
+  font-size: 14px;
+  color: var(--pulse-text-muted);
+  text-align: center;
+}
+
+/* ---------- Headings ---------- */
+.auth-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.auth-subtitle {
+  margin: -10px 0 4px;
+  font-size: 14px;
+  color: var(--pulse-text-muted);
+  text-align: center;
+}
+
+/* ---------- Form ---------- */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulse-text);
+}
+
+.field input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid var(--pulse-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pulse-text);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--pulse-primary);
+  box-shadow: 0 0 0 3px rgba(255, 77, 109, 0.15);
+}
+
+.field input.invalid {
+  border-color: var(--pulse-error);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--pulse-text-muted);
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--pulse-error);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: transform 80ms ease, background 120ms ease, box-shadow 120ms ease;
+  width: 100%;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--pulse-primary);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(255, 77, 109, 0.25);
+}
+.btn-primary:hover { background: var(--pulse-primary-dark); }
+
+.btn-secondary {
+  background: #fff;
+  color: var(--pulse-primary-dark);
+  border: 1px solid var(--pulse-primary);
+}
+.btn-secondary:hover { background: #fff0f3; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--pulse-text-muted);
+}
+.btn-ghost:hover { color: var(--pulse-text); }
+
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------- Link-style text ---------- */
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--pulse-primary-dark);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: inherit;
+}
+.link-btn:hover { text-decoration: underline; }
+
+/* ---------- Row helpers ---------- */
+.auth-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--pulse-text-muted);
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 13px;
+  color: var(--pulse-text-muted);
+  margin-top: 6px;
+}
+
+/* ---------- Alert banners ---------- */
+.alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.alert-error   { background: #fdecec; color: var(--pulse-error); border: 1px solid #f5c2c2; }
+.alert-success { background: #e6f5ef; color: var(--pulse-success); border: 1px solid #bfe3d2; }
+
+/* ---------- Splash specific ---------- */
+.splash-hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.splash-title {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--pulse-primary-dark);
+}
+
+.splash-sub {
+  font-size: 15px;
+  color: var(--pulse-text-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.splash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* ---------- Home (post-login) ---------- */
+.home-shell {
+  min-height: 100vh;
+  background: var(--pulse-bg-gradient);
+  padding: 24px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--pulse-text);
+}
+
+.home-container {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-welcome h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.home-welcome p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--pulse-text-muted);
+}
+
+.domain-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .domain-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.domain-card {
+  background: var(--pulse-card);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--pulse-shadow);
+  border: 1px solid var(--pulse-border);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  text-align: left;
+}
+.domain-card:hover { transform: translateY(-2px); box-shadow: 0 25px 45px rgba(201, 24, 74, 0.12); }
+
+.domain-icon {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.domain-name {
+  font-weight: 700;
+  margin: 0;
+  font-size: 16px;
+}
+
+.domain-desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--pulse-text-muted);
+  line-height: 1.35;
+}
