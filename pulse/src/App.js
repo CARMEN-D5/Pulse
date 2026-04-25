@@ -8,6 +8,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
+import TodoList from "./pages/TodoList";
 
 import {
   signUp,
@@ -139,6 +140,14 @@ function App() {
           }}
         />
     );
+
+  case "todo":
+      return (
+          <TodoList
+              user={user}
+              onBack={() => setView("home")}
+          />
+      );
 
     case "finance":
       return <Finance user={user} onBack={() => setView("home")} />;

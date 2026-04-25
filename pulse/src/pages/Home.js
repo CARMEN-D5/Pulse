@@ -48,7 +48,7 @@ const DOMAINS = [
   },
 ];
 
-function Home({ user, onLogout }) {
+function Home({ user, onLogout, onOpenDomain, onNevigate }) {
   // Firebase user exposes `displayName` and `email`; fall back gracefully so
   // the stubbed/test paths still render a friendly greeting.
   const displayName =
@@ -85,13 +85,7 @@ function Home({ user, onLogout }) {
               key={d.key}
               type="button"
               className="domain-card"
-              onClick={() => {
-                if (d.key === "productivity") {
-                  onNevigate("todo");
-                } else {
-                  window.alert(`${d.name} screen is coming in a future sprint.`)
-                }
-              }}
+              onClick={() => openDomain(d.key)}
             >
               <div className="domain-icon" aria-hidden="true">
                 {d.icon}
