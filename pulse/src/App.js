@@ -123,7 +123,7 @@ function App() {
 
     case "home":
       return (
-        <Home
+          <Home
           user={user}
           onLogout={handleLogout}
           onNevigate={(destination) => setView(destination)}
@@ -138,18 +138,18 @@ function App() {
             );
           }}
         />
-      );
+    );
 
-      case "finance":
-          return <Finance user={user} onBack={() => setView("home")} />;
+    case "finance":
+      return <Finance user={user} onBack={() => setView("home")} />;
 
-    case "todo":
-      return (
-          <TodoList
-              user={user}
-              onBack={() => setView("home")}
-          />
-      );
+      case "todo":
+          return (
+              <TodoList
+                  user={user}
+                  onBack={() => setView("home")}
+              />
+          );
 
     case "splash":
     default:
@@ -159,6 +159,7 @@ function App() {
           onSignUp={() => setView("signup")}
         />
       );
+
   }
 }
 
