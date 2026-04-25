@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
+import TodoList from "./pages/TodoList";
 
 import {
   signUp,
@@ -117,7 +118,20 @@ function App() {
       );
 
     case "home":
-      return <Home user={user} onLogout={handleLogout} />;
+      return (<Home
+          user={user}
+          onLogout={handleLogout}
+          onNevigate={(destination) => setView(destination)}
+      />
+    );
+
+    case "todo":
+      return (
+          <TodoList
+              user={user}
+              onBack={() => setView("home")}
+          />
+      );
 
     case "splash":
     default:

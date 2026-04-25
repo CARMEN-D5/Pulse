@@ -48,7 +48,7 @@ const DOMAINS = [
   },
 ];
 
-function Home({ user, onLogout }) {
+function Home({ user, onLogout, onNevigate }) {
   // Firebase user exposes `displayName` and `email`; fall back gracefully so
   // the stubbed/test paths still render a friendly greeting.
   const displayName =
@@ -96,6 +96,16 @@ function Home({ user, onLogout }) {
               <p className="domain-desc">{d.desc}</p>
             </button>
           ))}
+        </div>
+
+        <div className="home-footer" style={{ marginTop: '2rem', textAlign: 'center'}}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '12px 24px', fontSize: '1.1rem'}}
+            onClick={() => onNevigate("todo")}>
+            📋 Open My To-Do List
+          </button>
         </div>
       </div>
     </div>
