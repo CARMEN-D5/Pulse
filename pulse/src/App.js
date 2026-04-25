@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
+import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
 
 import {
@@ -125,6 +126,7 @@ function App() {
         <Home
           user={user}
           onLogout={handleLogout}
+          onNevigate={(destination) => setView(destination)}
           onOpenDomain={(domain) => {
             if (domain === "finance") {
               setView("finance");
@@ -137,6 +139,14 @@ function App() {
           }}
         />
       );
+
+      case "todo":
+          return (
+              <TodoList
+                  user={user}
+                  onBack={() => setView("home")}
+              />
+          );
 
     case "finance":
       return <Finance user={user} onBack={() => setView("home")} />;

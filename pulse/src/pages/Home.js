@@ -48,7 +48,7 @@ const DOMAINS = [
   },
 ];
 
-function Home({ user, onLogout, onOpenDomain }) {
+function Home({ user, onLogout, onNevigate }) {
   // Firebase user exposes `displayName` and `email`; fall back gracefully so
   // the stubbed/test paths still render a friendly greeting.
   const displayName =
@@ -56,14 +56,6 @@ function Home({ user, onLogout, onOpenDomain }) {
     user?.name ||
     (user?.email ? user.email.split("@")[0] : null) ||
     "there";
-
-  const openDomain = (id) => {
-    if (onOpenDomain) {
-      onOpenDomain(id);
-    } else {
-      window.alert(`${id} screen is coming in a future sprint.`);
-    }
-  };
 
   return (
     <div className="home-shell">
@@ -93,7 +85,9 @@ function Home({ user, onLogout, onOpenDomain }) {
               key={d.key}
               type="button"
               className="domain-card"
-              onClick={() => openDomain(d.key)}
+              onClick={() =>
+                window.alert(`${d.name} screen is coming in a future sprint.`)
+              }
             >
               <div className="domain-icon" aria-hidden="true">
                 {d.icon}
@@ -102,6 +96,16 @@ function Home({ user, onLogout, onOpenDomain }) {
               <p className="domain-desc">{d.desc}</p>
             </button>
           ))}
+        </div>
+
+        <div className="home-footer" style={{ marginTop: '2rem', textAlign: 'center'}}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '12px 24px', fontSize: '1.1rem'}}
+            onClick={() => onNevigate("todo")}>
+            📋 Open My To-Do List
+          </button>
         </div>
       </div>
     </div>
