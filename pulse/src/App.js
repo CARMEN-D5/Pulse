@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
+import Onboarding from "./pages/Onboarding";
 
 import {
   signUp,
@@ -14,7 +15,8 @@ import {
   resetPassword,
   onAuthChange,
 } from "./auth/authService";
-import { ensureUserDoc } from "./firestore/users";
+import { ensureUserDoc, getUserDoc } from "./firestore/users";
+import { saveOnboardingBaseline } from "./firestore/scoring";
 
 /**
  * Top-level view state for the login branch of Pulse.
@@ -33,26 +35,40 @@ import { ensureUserDoc } from "./firestore/users";
 function App() {
   const [view, setView] = useState("splash");
   const [user, setUser] = useState(null);
+  const [userDoc, setUserDoc] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
 
   // Subscribe to Firebase auth state. Runs once on mount.
   useEffect(() => {
-    const unsubscribe = onAuthChange((firebaseUser) => {
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
       setUser(firebaseUser);
       setAuthReady(true);
-      // Backfill / touch the users/{uid} doc whenever someone's logged in.
-      // Fire-and-forget — don't block UI on Firestore.
-      if (firebaseUser) ensureUserDoc(firebaseUser);
-      // Auto-route: logged-in users land on home, logged-out users on splash
-      // unless they've navigated somewhere explicit already.
-      setView((current) => {
-        if (firebaseUser) return "home";
-        if (current === "home") return "splash";
-        return current;
-      });
+
+      if (firebaseUser) {
+        await ensureUserDoc(firebaseUser);
+        const { data } = await getUserDoc(firebaseUser.uid);
+        setUserDoc(data);
+        // Route to onboarding if the user hasn't completed baseline ratings yet
+        setView(data?.onboardingCompletedAt ? "home" : "onboarding");
+      } else {
+        setUserDoc(null);
+        setView((current) => (current === "home" || current === "onboarding" ? "splash" : current));
+      }
     });
     return unsubscribe;
   }, []);
+
+  const handleOnboardingComplete = async (ratings) => {
+    setOnboardingLoading(true);
+    const result = await saveOnboardingBaseline(user.uid, ratings);
+    if (result.ok) {
+      const { data } = await getUserDoc(user.uid);
+      setUserDoc(data);
+      setView("home");
+    }
+    setOnboardingLoading(false);
+  };
 
   const handleLoginSubmit = async ({ email, password }) => {
     const result = await logIn({ email, password });
@@ -116,8 +132,16 @@ function App() {
         />
       );
 
+    case "onboarding":
+      return (
+        <Onboarding
+          onComplete={handleOnboardingComplete}
+          loading={onboardingLoading}
+        />
+      );
+
     case "home":
-      return <Home user={user} onLogout={handleLogout} />;
+      return <Home user={user} userDoc={userDoc} onLogout={handleLogout} />;
 
     case "splash":
     default:

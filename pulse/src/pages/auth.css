@@ -340,3 +340,250 @@
   color: var(--pulse-text-muted);
   line-height: 1.35;
 }
+
+.domain-card-score {
+  margin: 6px 0 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--pulse-primary-dark);
+}
+
+/* ---------- Onboarding ---------- */
+.onboarding-card {
+  width: 100%;
+  max-width: 560px;
+  background: var(--pulse-card);
+  border-radius: var(--pulse-radius);
+  box-shadow: var(--pulse-shadow);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.onboarding-intro {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pulse-text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.onboarding-domains {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.onboarding-domain {
+  border: 1px solid var(--pulse-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onboarding-domain-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.onboarding-domain-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.onboarding-domain-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.onboarding-domain-prompt {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--pulse-text-muted);
+}
+
+.rating-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.rating-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border: 1.5px solid var(--pulse-border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: border-color 100ms ease, background 100ms ease;
+}
+
+.rating-btn:hover {
+  border-color: var(--pulse-accent);
+  background: #fff5f7;
+}
+
+.rating-btn--active {
+  border-color: var(--pulse-primary);
+  background: #fff0f3;
+}
+
+.rating-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pulse-text);
+}
+
+.rating-btn--active .rating-num {
+  color: var(--pulse-primary-dark);
+}
+
+.rating-label {
+  font-size: 10px;
+  color: var(--pulse-text-muted);
+}
+
+.rating-btn--active .rating-label {
+  color: var(--pulse-primary-dark);
+}
+
+.onboarding-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulse-text-muted);
+  text-align: center;
+}
+
+/* ---------- Score card ---------- */
+.score-card {
+  background: var(--pulse-card);
+  border-radius: var(--pulse-radius);
+  box-shadow: var(--pulse-shadow);
+  border: 1px solid var(--pulse-border);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.score-card--loading {
+  align-items: center;
+  padding: 28px;
+  color: var(--pulse-text-muted);
+  font-size: 14px;
+}
+
+.score-card-ring {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.score-ring {
+  width: 128px;
+  height: 128px;
+  flex-shrink: 0;
+}
+
+.score-ring-track {
+  fill: none;
+  stroke: #f3e6ea;
+  stroke-width: 10;
+}
+
+.score-ring-fill {
+  fill: none;
+  stroke: var(--pulse-primary);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray 600ms ease;
+}
+
+.score-ring-num {
+  font-size: 26px;
+  font-weight: 800;
+  fill: var(--pulse-primary-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.score-ring-label {
+  font-size: 12px;
+  fill: var(--pulse-text-muted);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.score-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.score-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.score-card-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulse-text-muted);
+}
+
+/* ---------- Domain bars ---------- */
+.domain-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.domain-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.domain-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.domain-bar-icon {
+  font-size: 14px;
+}
+
+.domain-bar-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.domain-bar-score {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: right;
+}
+
+.domain-bar-track {
+  height: 6px;
+  background: #f3e6ea;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.domain-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 600ms ease;
+}
