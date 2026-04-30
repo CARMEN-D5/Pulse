@@ -6,15 +6,17 @@ rules_version = '2';
 // Paste the contents of this file into Firebase Console →
 //   Firestore Database → Rules → Publish.
 //
-// These rules cover the login branch only. Extend them as new collections
-// (journals, budgets, missions, streaks, etc.) land in later sprints.
+// Covers the login + finance-budget-tracker branches. Extend as new
+// collections (journals, missions, streaks, etc.) land in later sprints.
 // ============================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ------------------------------------------------------------------------
     // /users/{uid} — a user's private profile document.
     // Only the signed-in user with the matching uid may read or write it.
+    // ------------------------------------------------------------------------
     match /users/{uid} {
       allow read, update, delete: if request.auth != null
                                   && request.auth.uid == uid;
@@ -25,10 +27,29 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.auth.uid == uid
                     && request.resource.data.uid == uid;
+
+      // ----------------------------------------------------------------------
+      // /users/{uid}/budgets/{category}
+      // Per-category monthly cap. Owner-only.
+      // ----------------------------------------------------------------------
+      match /budgets/{category} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
+      // ----------------------------------------------------------------------
+      // /users/{uid}/expenses/{expenseId}
+      // Logged transactions. Owner-only.
+      // ----------------------------------------------------------------------
+      match /expenses/{expenseId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
     }
 
-    // Default deny — any other collection is blocked until its rules are
-    // written. Safer than leaving the database world-readable.
+    // ------------------------------------------------------------------------
+    // Default deny — anything not explicitly matched above is blocked.
+    // ------------------------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
     }
