@@ -1,5 +1,6 @@
 import React from "react";
 import "./auth.css";
+import { addWeekData } from "../firestore/scores";
 
 /**
  * Placeholder Home page shown after a successful login / registration.
@@ -85,9 +86,15 @@ function Home({ user, onLogout }) {
               key={d.key}
               type="button"
               className="domain-card"
-              onClick={() =>
-                window.alert(`${d.name} screen is coming in a future sprint.`)
-              }
+              onClick={async () => {
+                console.log("Clicked domain");
+                try {
+                  await addWeekData();
+                  console.log("Done");
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
             >
               <div className="domain-icon" aria-hidden="true">
                 {d.icon}
