@@ -6,8 +6,9 @@ rules_version = '2';
 // Paste the contents of this file into Firebase Console →
 //   Firestore Database → Rules → Publish.
 //
-// Covers the login + finance-budget-tracker branches. Extend as new
-// collections (journals, missions, streaks, etc.) land in later sprints.
+// Covers the login + finance-budget-tracker + to-do-list branches.
+// Extend as new collections (journals, missions, streaks, etc.) land
+// in later sprints.
 // ============================================================================
 
 service cloud.firestore {
@@ -42,6 +43,24 @@ service cloud.firestore {
       // Logged transactions. Owner-only.
       // ----------------------------------------------------------------------
       match /expenses/{expenseId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
+      // ----------------------------------------------------------------------
+      // /users/{uid}/todos/{docId}
+      // To-do list items. Owner-only.
+      // ----------------------------------------------------------------------
+      match /todos/{docId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
+      // ----------------------------------------------------------------------
+      // /users/{uid}/accounts/{accountId}
+      // Bank accounts / payment methods. Owner-only.
+      // ----------------------------------------------------------------------
+      match /accounts/{accountId} {
         allow read, write: if request.auth != null
                            && request.auth.uid == uid;
       }
