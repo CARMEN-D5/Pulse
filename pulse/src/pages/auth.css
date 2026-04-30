@@ -587,3 +587,134 @@
   border-radius: 3px;
   transition: width 600ms ease;
 }
+
+/* ---------- Domain page ---------- */
+.domain-page-container {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.domain-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.domain-back-btn {
+  width: auto;
+  align-self: flex-start;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.domain-page-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.domain-page-icon {
+  font-size: 36px;
+}
+
+.domain-page-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.domain-page-score {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--pulse-text-muted);
+}
+
+.domain-section {
+  background: var(--pulse-card);
+  border-radius: var(--pulse-radius);
+  box-shadow: var(--pulse-shadow);
+  border: 1px solid var(--pulse-border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.domain-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.domain-section-prompt {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pulse-text);
+  line-height: 1.5;
+}
+
+.domain-section-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulse-text-muted);
+}
+
+/* ---------- Action buttons ---------- */
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1.5px solid var(--pulse-border);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 100ms ease, background 100ms ease;
+  width: 100%;
+  text-align: left;
+}
+
+.action-btn:hover:not(:disabled) {
+  border-color: var(--pulse-primary);
+  background: #fff5f7;
+}
+
+.action-btn--done {
+  border-color: var(--pulse-success);
+  background: #e6f5ef;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-btn-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pulse-text);
+}
+
+.action-btn--done .action-btn-label {
+  color: var(--pulse-success);
+}
+
+.action-btn-points {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pulse-primary-dark);
+  white-space: nowrap;
+}
+
+.action-btn--done .action-btn-points {
+  color: var(--pulse-success);
+}

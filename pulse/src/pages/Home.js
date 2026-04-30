@@ -50,7 +50,7 @@ function DomainBar({ domainKey, score }) {
   );
 }
 
-function Home({ user, userDoc, onLogout }) {
+function Home({ user, userDoc, scoreVersion, onDomainSelect, onLogout }) {
   const [scores, setScores] = useState(null);
   const [scoresLoading, setScoresLoading] = useState(true);
 
@@ -60,13 +60,14 @@ function Home({ user, userDoc, onLogout }) {
     (user?.email ? user.email.split('@')[0] : null) ||
     'there';
 
+  // Re-fetch scores when scoreVersion increments (i.e. after logging an activity)
   useEffect(() => {
     if (!user?.uid || !userDoc) return;
     setScoresLoading(true);
     computeCurrentScores(user.uid, userDoc)
       .then(result => setScores(result))
       .finally(() => setScoresLoading(false));
-  }, [user?.uid, userDoc]);
+  }, [user?.uid, userDoc, scoreVersion]);
 
   return (
     <div className="home-shell">
@@ -131,7 +132,7 @@ function Home({ user, userDoc, onLogout }) {
                 key={key}
                 type="button"
                 className="domain-card"
-                onClick={() => window.alert(`${d.label} screen is coming in a future sprint.`)}
+                onClick={() => onDomainSelect(key)}
               >
                 <div className="domain-icon" aria-hidden="true">{d.icon}</div>
                 <p className="domain-name">{d.label}</p>

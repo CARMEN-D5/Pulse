@@ -7,7 +7,11 @@ import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
-
+import SpiritualityPage from "./pages/SpiritualityPage";
+import RelationshipsPage from "./pages/RelationshipsPage";
+import ProductivityPage from "./pages/ProductivityPage";
+import HealthPage from "./pages/HealthPage";
+import FinancePage from "./pages/FinancePage";
 import {
   signUp,
   logIn,
@@ -17,6 +21,14 @@ import {
 } from "./auth/authService";
 import { ensureUserDoc, getUserDoc } from "./firestore/users";
 import { saveOnboardingBaseline } from "./firestore/scoring";
+
+const DOMAIN_PAGE_MAP = {
+  spirituality:  SpiritualityPage,
+  relationships: RelationshipsPage,
+  productivity:  ProductivityPage,
+  health:        HealthPage,
+  finance:       FinancePage,
+};
 
 /**
  * Top-level view state for the login branch of Pulse.
@@ -38,6 +50,8 @@ function App() {
   const [userDoc, setUserDoc] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [activeDomain, setActiveDomain] = useState(null);
+  const [scoreVersion, setScoreVersion] = useState(0);
 
   // Subscribe to Firebase auth state. Runs once on mount.
   useEffect(() => {
@@ -86,6 +100,22 @@ function App() {
   const handleLogout = async () => {
     await logOut();
     setView("splash");
+  };
+
+  const handleDomainSelect = (domainKey) => {
+    setActiveDomain(domainKey);
+    setView("domain");
+  };
+
+  const handleDomainBack = () => {
+    setActiveDomain(null);
+    setView("home");
+  };
+
+  // Called whenever a reflection or action is logged inside a domain page.
+  // Incrementing scoreVersion causes Home to re-fetch and recompute scores.
+  const handleActivityLogged = () => {
+    setScoreVersion(v => v + 1);
   };
 
   // Brief splash-coloured placeholder while Firebase restores the session.
@@ -140,8 +170,28 @@ function App() {
         />
       );
 
+    case "domain": {
+      const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
+      return DomainPage ? (
+        <DomainPage
+          domainScore={userDoc?.domainScores?.[activeDomain] ?? userDoc?.onboardingBaseline?.[activeDomain]}
+          user={user}
+          onBack={handleDomainBack}
+          onActivityLogged={handleActivityLogged}
+        />
+      ) : null;
+    }
+
     case "home":
-      return <Home user={user} userDoc={userDoc} onLogout={handleLogout} />;
+      return (
+        <Home
+          user={user}
+          userDoc={userDoc}
+          scoreVersion={scoreVersion}
+          onDomainSelect={handleDomainSelect}
+          onLogout={handleLogout}
+        />
+      );
 
     case "splash":
     default:
