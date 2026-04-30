@@ -140,16 +140,16 @@ function App() {
         />
       );
 
-      case "todo":
-          return (
-              <TodoList
-                  user={user}
-                  onBack={() => setView("home")}
-              />
-          );
+      case "finance":
+          return <Finance user={user} onBack={() => setView("home")} />;
 
-    case "finance":
-      return <Finance user={user} onBack={() => setView("home")} />;
+    case "todo":
+      return (
+          <TodoList
+              user={user}
+              onBack={() => setView("home")}
+          />
+      );
 
     case "splash":
     default:
