@@ -120,6 +120,10 @@ export async function addExpense(uid, expense) {
     await addDoc(expensesCol(uid), {
       amount: Number(expense.amount) || 0,
       category: expense.category || "other",
+      // Which account / payment method this came out of. Stored as the
+      // account doc id so renaming the account later doesn't orphan
+      // historical expenses.
+      account: expense.account || "",
       note: expense.note?.trim() || "",
       date: Timestamp.fromDate(date),
       // Future-proof: tag the source so CSV / bank imports can join later
@@ -182,4 +186,123 @@ export function monthBounds(date = new Date()) {
 /** Pretty label like "April 2026". */
 export function monthLabel(date = new Date()) {
   return date.toLocaleString("en-AU", { month: "long", year: "numeric" });
+}
+
+/** Number of days in the calendar month containing `date`. */
+export function daysInMonth(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
+
+/** YYYY-MM-DD key used to bucket expenses by day in the calendar. */
+export function dayKey(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// ===========================================================================
+// Accounts (bank account / payment method)
+// ===========================================================================
+
+/**
+ * Default accounts seeded the first time a user visits Finance. Once seeded,
+ * the user fully owns this list — they can rename, recolor, add or delete.
+ */
+export const DEFAULT_ACCOUNTS = [
+  { id: "everyday", name: "Everyday",   icon: "💳", color: "#4d96ff" },
+  { id: "savings",  name: "Savings",    icon: "🏦", color: "#80b918" },
+  { id: "credit",   name: "Credit Card", icon: "🪪", color: "#9b5de5" },
+  { id: "cash",     name: "Cash",       icon: "💵", color: "#f6c453" },
+];
+
+function accountsCol(uid) {
+  return collection(db, "users", uid, "accounts");
+}
+
+/** List all of a user's accounts. Returns [] if none exist yet. */
+export async function getAccounts(uid) {
+  if (!uid) return { ok: false, error: "No user" };
+  try {
+    const snap = await getDocs(accountsCol(uid));
+    const out = [];
+    snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
+    return { ok: true, data: out };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+}
+
+/**
+ * Create the default accounts on first visit. Idempotent — checks the
+ * collection first and only writes if it's empty.
+ */
+export async function ensureDefaultAccounts(uid) {
+  if (!uid) return { ok: false, error: "No user" };
+  try {
+    const snap = await getDocs(accountsCol(uid));
+    if (!snap.empty) return { ok: true, data: snap.size };
+
+    await Promise.all(
+      DEFAULT_ACCOUNTS.map((a) =>
+        setDoc(doc(db, "users", uid, "accounts", a.id), {
+          ...a,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      )
+    );
+    return { ok: true, seeded: true };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+}
+
+/** Create or replace an account. */
+export async function saveAccount(uid, account) {
+  if (!uid) return { ok: false, error: "No user" };
+  if (!account?.id) return { ok: false, error: "Account id is required" };
+  try {
+    await setDoc(
+      doc(db, "users", uid, "accounts", account.id),
+      {
+        id: account.id,
+        name: account.name || "Untitled",
+        icon: account.icon || "💳",
+        color: account.color || "#4d96ff",
+        updatedAt: serverTimestamp(),
+        createdAt: account.createdAt || serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+}
+
+/** Permanently remove an account. Existing expenses keep their account id
+ *  string and just render with a fallback icon. */
+export async function deleteAccount(uid, accountId) {
+  if (!uid) return { ok: false, error: "No user" };
+  try {
+    await deleteDoc(doc(db, "users", uid, "accounts", accountId));
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+}
+
+/** Look up an account in a list by id, with a soft fallback. */
+export function accountById(accounts, id) {
+  if (!id) return { id: "", name: "—", icon: "•", color: "#bbb" };
+  return (
+    accounts.find((a) => a.id === id) || {
+      id,
+      name: id,
+      icon: "•",
+      color: "#bbb",
+    }
+  );
 }
