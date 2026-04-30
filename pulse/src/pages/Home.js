@@ -85,9 +85,13 @@ function Home({ user, onLogout, onNevigate }) {
               key={d.key}
               type="button"
               className="domain-card"
-              onClick={() =>
-                window.alert(`${d.name} screen is coming in a future sprint.`)
-              }
+              onClick={() => {
+                if (d.key === "productivity") {
+                  onNevigate("todo");
+                } else {
+                  window.alert(`${d.name} screen is coming in a future sprint.`)
+                }
+              }}
             >
               <div className="domain-icon" aria-hidden="true">
                 {d.icon}
@@ -96,16 +100,6 @@ function Home({ user, onLogout, onNevigate }) {
               <p className="domain-desc">{d.desc}</p>
             </button>
           ))}
-        </div>
-
-        <div className="home-footer" style={{ marginTop: '2rem', textAlign: 'center'}}>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ padding: '12px 24px', fontSize: '1.1rem'}}
-            onClick={() => onNevigate("todo")}>
-            📋 Open My To-Do List
-          </button>
         </div>
       </div>
     </div>

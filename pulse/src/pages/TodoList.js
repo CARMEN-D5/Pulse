@@ -30,11 +30,13 @@ import "./TodoList.css";
 function TodoList({ user, onBack }) {
     const [todos, setTodos] = useState([]);
     const [input, setInput] = useState('');
+    const [descInput, setDescInput] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [priority, setPriority] = useState('Medium');
     const [tab, setTab] = useState('pending');
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
+    const [editDesc, setEditDesc] = useState('');
     const [menuPos, setMenuPos] = useState(null);
 
     // 1. Listen to Firestore
@@ -74,13 +76,15 @@ function TodoList({ user, onBack }) {
 
     const startEdit = (todo) => {
         setMenuPos(null);
-       setEditingId(todo.id);
-       setEditText(todo.text);
+        setEditingId(todo.id);
+        setEditText(todo.text);
+        setEditDesc(todo.description||'');
     };
 
     const saveEdit = async (id, updatedFields = {}) => {
         const finalFields = {
             text:editText,
+            description:editDesc,
             ...updatedFields
         };
         if (finalFields.text && finalFields.text.trim() === "") {
@@ -121,6 +125,7 @@ function TodoList({ user, onBack }) {
 
         await addDoc(collection(db, 'users', user.uid, 'todos'), {
             text: input,
+            description: descInput,
             completed: false,
             createdAt: serverTimestamp(),
             dueDate: dueDate || "9999-12-31",
@@ -128,6 +133,7 @@ function TodoList({ user, onBack }) {
             priority: priority,
         });
         setInput('');
+        setDescInput('');
         setDueDate('');
         setPriority('Medium');
     };
@@ -166,6 +172,13 @@ function TodoList({ user, onBack }) {
                             placeholder="New task..."
                             style={{ flex: 1, padding: '8px' }}
                         />
+                        <textarea
+                            className="input-field-styled"
+                            value={descInput}
+                            onChange={(e) => setDescInput(e.target.value)}
+                            placeholder="Add a description(optional)..."
+                            />
+
                         <div style={{ display: 'flex', gap: '10px' }}>
                             <input
                                 type="date"
@@ -228,6 +241,13 @@ function TodoList({ user, onBack }) {
                                             onChange={(e) => setEditText(e.target.value)}
                                             onKeyDown={(e) => handleKeyDown(e, todo.id)}
                                             />
+                                        <textarea
+                                            className="edit-desc-textarea"
+                                            placeholder="Add a description..."
+                                            value={editDesc}
+                                            onChange={(e) => setEditDesc(e.target.value)}
+                                            />
+
                                         <div className="item-meta-edit">
                                             <select
                                                 className="edit-select-mini"
@@ -252,7 +272,7 @@ function TodoList({ user, onBack }) {
                                                 onChange={(e) => saveEdit(todo.id, {dueDate: e.target.value || "9999-12-31"})}
                                             />
 
-                                            <span className="done-text" onClick={() => setEditingId(null)}>
+                                            <span className="done-text" onClick={() => saveEdit(todo.id)}>
                                                 Done
                                             </span>
                                         </div>
@@ -266,6 +286,17 @@ function TodoList({ user, onBack }) {
                                         }}>
                                             {todo.text}
                                         </span>
+                                        {todo.description && (
+                                            <p className="item-description"
+                                               style={{
+                                                   fontSize:'0.85rem',
+                                                   color:'#666',
+                                                   margin:'4px 0',
+                                                   lineHeight: '1.4'
+                                               }}>
+                                                {todo.description}
+                                            </p>
+                                        )}
                                         <div className="item-meta">
                                             <span style={{
                                                 color: todo.priority === 'High' ? '#c9184a' : '#1a827d',

@@ -194,8 +194,6 @@
 .item-content {
     flex: 1;
     cursor: pointer;
-    /*display: flex;*/
-    /*flex-direction: column;*/
 }
 
 .item-text {
@@ -217,7 +215,6 @@
     align-items: center;
     display: flex;
     gap: 10px;
-    /*animation: fadeIn 0.3s ease;*/
 }
 
 .edit-input-styled {
@@ -249,6 +246,28 @@
     color: #1a5e5a;
     outline: none;
     cursor: pointer;
+}
+
+.item-description {
+    white-space: pre-wrap;
+    word-break: break-word;
+    opacity: 0.8;
+}
+
+
+.edit-desc-textarea:focus {
+    border-bottom-color: #388e8a;
+}
+
+
+.todo-form-card textarea.input-field-styled, edit-desc-textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 60px;
+    max-height: 200px;
+    display: block;
 }
 
 .edit-select-mini:hover, .edit-date-mini:hover {
