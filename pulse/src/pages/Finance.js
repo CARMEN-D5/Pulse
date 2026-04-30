@@ -2,55 +2,71 @@ import React, { useEffect, useMemo, useState } from "react";
 import "./auth.css";
 
 import DonutChart from "./DonutChart";
+import SpendingCalendar from "./SpendingCalendar";
 import {
   DEFAULT_CATEGORIES,
+  DEFAULT_ACCOUNTS,
   categoryById,
+  accountById,
   addExpense,
   listExpenses,
   deleteExpense,
   getBudgets,
   setBudget,
+  getAccounts,
+  saveAccount,
+  deleteAccount,
+  ensureDefaultAccounts,
   monthBounds,
   monthLabel,
+  daysInMonth,
 } from "../firestore/finance";
 
 /**
  * Finance / budget tracker page.
  *
- * Layout:
- *   - Header with back button + month
- *   - Donut chart (this-month spending breakdown) + legend
+ * Layout (top -> bottom):
+ *   - Header (back, title, settings cog)
+ *   - Donut chart + legend (this-month spending split by category)
+ *   - Spending P&L calendar (per-day vs daily allowance)
  *   - Per-category progress bars vs each budget cap
- *   - Add expense form (amount, category chips, optional note + date)
- *   - Recent transactions list with delete
- *   - Edit budgets modal (cog icon)
+ *   - Add expense form (amount + category + account + date + note)
+ *   - Recent transactions with delete
+ *   - Settings modal: Budgets tab + Accounts tab
  */
 function Finance({ user, onBack }) {
   const uid = user?.uid;
 
   const [expenses, setExpenses] = useState([]);
   const [budgets, setBudgets] = useState({}); // { category: { monthlyLimit } }
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { monthStart, monthEnd } = useMemo(() => monthBounds(), []);
   const monthName = useMemo(() => monthLabel(), []);
+  const monthDayCount = useMemo(() => daysInMonth(), []);
 
   // ---- load --------------------------------------------------------------
   const refresh = async () => {
     if (!uid) return;
     setLoading(true);
     setError("");
-    const [exp, bud] = await Promise.all([
+    // Seed default accounts on first visit. Idempotent.
+    await ensureDefaultAccounts(uid);
+    const [exp, bud, acc] = await Promise.all([
       listExpenses(uid, { monthStart, monthEnd }),
       getBudgets(uid),
+      getAccounts(uid),
     ]);
     if (!exp.ok) setError(exp.error || "Could not load expenses.");
-    if (!bud.ok) setError(bud.error || "Could not load budgets.");
+    else if (!bud.ok) setError(bud.error || "Could not load budgets.");
+    else if (!acc.ok) setError(acc.error || "Could not load accounts.");
     setExpenses(exp.data || []);
     setBudgets(bud.data || {});
+    setAccounts(acc.data?.length ? acc.data : DEFAULT_ACCOUNTS);
     setLoading(false);
   };
 
@@ -83,6 +99,11 @@ function Finance({ user, onBack }) {
     [budgets]
   );
 
+  const dailyAllowance = useMemo(
+    () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
+    [totalBudget, monthDayCount]
+  );
+
   const donutData = useMemo(
     () =>
       DEFAULT_CATEGORIES.filter((c) => spentByCategory[c.id] > 0).map((c) => ({
@@ -93,6 +114,12 @@ function Finance({ user, onBack }) {
       })),
     [spentByCategory]
   );
+
+  // Track most-recently-used account so the form can preselect it.
+  const lastUsedAccount = useMemo(() => {
+    const e = expenses.find((x) => x.account);
+    return e?.account || accounts[0]?.id || "";
+  }, [expenses, accounts]);
 
   // ---- handlers ----------------------------------------------------------
   const handleAddExpense = async (payload) => {
@@ -112,16 +139,24 @@ function Finance({ user, onBack }) {
   };
 
   const handleSaveBudgets = async (next) => {
-    // next: { category: monthlyLimit }
     const writes = Object.entries(next).map(([cat, lim]) =>
       setBudget(uid, cat, lim)
     );
     const results = await Promise.all(writes);
     const fail = results.find((r) => !r.ok);
-    if (fail) {
-      setError(fail.error || "Couldn't save budgets.");
+    if (fail) setError(fail.error || "Couldn't save budgets.");
+    await refresh();
+  };
+
+  const handleSaveAccounts = async (nextAccounts, deletedIds) => {
+    for (const id of deletedIds) {
+      const res = await deleteAccount(uid, id);
+      if (!res.ok) setError(res.error || "Couldn't delete account.");
     }
-    setShowBudgetModal(false);
+    for (const a of nextAccounts) {
+      const res = await saveAccount(uid, a);
+      if (!res.ok) setError(res.error || "Couldn't save account.");
+    }
     await refresh();
   };
 
@@ -140,9 +175,9 @@ function Finance({ user, onBack }) {
           <button
             type="button"
             className="cog-btn"
-            onClick={() => setShowBudgetModal(true)}
-            aria-label="Edit budgets"
-            title="Edit budgets"
+            onClick={() => setShowSettings(true)}
+            aria-label="Settings"
+            title="Settings"
           >
             ⚙️
           </button>
@@ -187,6 +222,15 @@ function Finance({ user, onBack }) {
           </div>
         </div>
 
+        {/* ---------- Daily P&L calendar ---------- */}
+        <div className="finance-card">
+          <SpendingCalendar
+            expenses={expenses}
+            monthStart={monthStart}
+            dailyAllowance={dailyAllowance}
+          />
+        </div>
+
         {/* ---------- Per-category bars ---------- */}
         <div className="finance-card">
           <div className="section-title">Category limits</div>
@@ -227,7 +271,11 @@ function Finance({ user, onBack }) {
         {/* ---------- Add expense ---------- */}
         <div className="finance-card">
           <div className="section-title">Add an expense</div>
-          <AddExpenseForm onSubmit={handleAddExpense} />
+          <AddExpenseForm
+            accounts={accounts}
+            defaultAccount={lastUsedAccount}
+            onSubmit={handleAddExpense}
+          />
         </div>
 
         {/* ---------- Recent transactions ---------- */}
@@ -243,6 +291,7 @@ function Finance({ user, onBack }) {
             <div className="tx-list">
               {expenses.slice(0, 12).map((e) => {
                 const cat = categoryById(e.category);
+                const acc = accountById(accounts, e.account);
                 const date = e.date?.toDate
                   ? e.date.toDate()
                   : new Date(e.date);
@@ -255,8 +304,18 @@ function Finance({ user, onBack }) {
                       {cat.icon}
                     </div>
                     <div className="tx-main">
-                      <div className="tx-cat">{cat.label}</div>
+                      <div className="tx-cat">
+                        <span
+                          className="tx-account-icon"
+                          title={acc.name}
+                          style={{ background: acc.color + "22" }}
+                        >
+                          {acc.icon}
+                        </span>
+                        {cat.label}
+                      </div>
                       <div className="tx-meta">
+                        {acc.name} ·{" "}
                         {date.toLocaleDateString("en-AU", {
                           day: "numeric",
                           month: "short",
@@ -282,11 +341,13 @@ function Finance({ user, onBack }) {
         </div>
       </div>
 
-      {showBudgetModal && (
-        <BudgetModal
-          initial={budgets}
-          onSave={handleSaveBudgets}
-          onClose={() => setShowBudgetModal(false)}
+      {showSettings && (
+        <SettingsModal
+          budgets={budgets}
+          accounts={accounts}
+          onSaveBudgets={handleSaveBudgets}
+          onSaveAccounts={handleSaveAccounts}
+          onClose={() => setShowSettings(false)}
         />
       )}
     </div>
@@ -297,7 +358,7 @@ function Finance({ user, onBack }) {
 // Add expense sub-component
 // ============================================================================
 
-function AddExpenseForm({ onSubmit }) {
+function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
   const todayIso = useMemo(() => {
     const d = new Date();
     const off = d.getTimezoneOffset();
@@ -306,11 +367,17 @@ function AddExpenseForm({ onSubmit }) {
 
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("food");
+  const [account, setAccount] = useState(defaultAccount || "");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(todayIso);
   const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = Number(amount) > 0 && !submitting;
+  // If parent learns a better default after first render, sync it.
+  useEffect(() => {
+    if (defaultAccount && !account) setAccount(defaultAccount);
+  }, [defaultAccount, account]);
+
+  const canSubmit = Number(amount) > 0 && !!account && !submitting;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -319,6 +386,7 @@ function AddExpenseForm({ onSubmit }) {
     const ok = await onSubmit({
       amount: Number(amount),
       category,
+      account,
       note,
       date,
     });
@@ -327,6 +395,8 @@ function AddExpenseForm({ onSubmit }) {
       setAmount("");
       setNote("");
       setCategory("food");
+      // keep account selection for the next entry — most people use the
+      // same account multiple times in a row
       setDate(todayIso);
     }
   };
@@ -360,12 +430,28 @@ function AddExpenseForm({ onSubmit }) {
         ))}
       </div>
 
+      <div className="account-chips" role="radiogroup" aria-label="Account">
+        {accounts.map((a) => (
+          <button
+            type="button"
+            key={a.id}
+            className={`account-chip ${account === a.id ? "selected" : ""}`}
+            onClick={() => setAccount(a.id)}
+            role="radio"
+            aria-checked={account === a.id}
+          >
+            <span className="account-swatch" style={{ background: a.color }} />
+            <span aria-hidden="true">{a.icon}</span>
+            {a.name}
+          </button>
+        ))}
+      </div>
+
       <div className="field-row">
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="field-input"
           style={{
             padding: "10px 12px",
             border: "1px solid var(--pulse-border)",
@@ -399,27 +485,73 @@ function AddExpenseForm({ onSubmit }) {
 }
 
 // ============================================================================
-// Edit budgets modal
+// Settings modal: Budgets tab + Accounts tab
 // ============================================================================
 
-function BudgetModal({ initial, onSave, onClose }) {
-  const [draft, setDraft] = useState(() => {
+function SettingsModal({
+  budgets,
+  accounts,
+  onSaveBudgets,
+  onSaveAccounts,
+  onClose,
+}) {
+  const [tab, setTab] = useState("budgets");
+
+  // ----- Budgets tab state -----
+  const [budgetDraft, setBudgetDraft] = useState(() => {
     const out = {};
     for (const c of DEFAULT_CATEGORIES) {
-      out[c.id] = String(initial?.[c.id]?.monthlyLimit || "");
+      out[c.id] = String(budgets?.[c.id]?.monthlyLimit || "");
     }
     return out;
   });
+
+  // ----- Accounts tab state -----
+  // Working copy of accounts so edits don't hit Firestore until "Save".
+  const [acctDraft, setAcctDraft] = useState(
+    () => accounts.map((a) => ({ ...a })) || []
+  );
+  const [deletedIds, setDeletedIds] = useState([]);
+
   const [saving, setSaving] = useState(false);
 
-  const save = async () => {
+  // ---- handlers ----
+  const saveBudgets = async () => {
     setSaving(true);
     const next = {};
-    for (const k of Object.keys(draft)) {
-      next[k] = Number(draft[k]) || 0;
+    for (const k of Object.keys(budgetDraft)) {
+      next[k] = Number(budgetDraft[k]) || 0;
     }
-    await onSave(next);
+    await onSaveBudgets(next);
     setSaving(false);
+    onClose();
+  };
+
+  const saveAccounts = async () => {
+    setSaving(true);
+    await onSaveAccounts(acctDraft, deletedIds);
+    setSaving(false);
+    onClose();
+  };
+
+  const updateAcct = (idx, patch) => {
+    setAcctDraft((prev) =>
+      prev.map((a, i) => (i === idx ? { ...a, ...patch } : a))
+    );
+  };
+
+  const deleteAcct = (idx) => {
+    const a = acctDraft[idx];
+    setDeletedIds((d) => (a.id ? [...d, a.id] : d));
+    setAcctDraft((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const addAcct = () => {
+    const newId = `acc-${Date.now().toString(36)}`;
+    setAcctDraft((prev) => [
+      ...prev,
+      { id: newId, name: "New account", icon: "💳", color: "#4d96ff" },
+    ]);
   };
 
   return (
@@ -429,59 +561,166 @@ function BudgetModal({ initial, onSave, onClose }) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-card" role="dialog" aria-label="Edit budgets">
-        <h3>Monthly budgets</h3>
-        <p
-          style={{
-            margin: 0,
-            color: "var(--pulse-text-muted)",
-            fontSize: 13,
-          }}
-        >
-          Set the most you want to spend in each category each month.
-        </p>
+      <div
+        className="modal-card"
+        role="dialog"
+        aria-label="Settings"
+        style={{ maxWidth: 460 }}
+      >
+        <h3>Settings</h3>
 
-        {DEFAULT_CATEGORIES.map((c) => (
-          <div key={c.id} className="budget-edit-row">
-            <label htmlFor={`bud-${c.id}`}>
-              <span aria-hidden="true">{c.icon}</span>
-              {c.label}
-            </label>
-            <span style={{ color: "var(--pulse-text-muted)" }}>$</span>
-            <input
-              id={`bud-${c.id}`}
-              type="number"
-              min="0"
-              step="1"
-              inputMode="decimal"
-              placeholder="0"
-              value={draft[c.id]}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, [c.id]: e.target.value }))
-              }
-            />
-          </div>
-        ))}
-
-        <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+        <div className="tabs" role="tablist">
           <button
             type="button"
-            className="btn btn-ghost"
-            onClick={onClose}
-            style={{ flex: 1 }}
+            role="tab"
+            aria-selected={tab === "budgets"}
+            className={`tab ${tab === "budgets" ? "active" : ""}`}
+            onClick={() => setTab("budgets")}
           >
-            Cancel
+            Budgets
           </button>
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={save}
-            disabled={saving}
-            style={{ flex: 1 }}
+            role="tab"
+            aria-selected={tab === "accounts"}
+            className={`tab ${tab === "accounts" ? "active" : ""}`}
+            onClick={() => setTab("accounts")}
           >
-            {saving ? "Saving…" : "Save"}
+            Accounts
           </button>
         </div>
+
+        {tab === "budgets" ? (
+          <>
+            <p
+              style={{
+                margin: 0,
+                color: "var(--pulse-text-muted)",
+                fontSize: 13,
+              }}
+            >
+              Set the most you want to spend in each category each month.
+            </p>
+            {DEFAULT_CATEGORIES.map((c) => (
+              <div key={c.id} className="budget-edit-row">
+                <label htmlFor={`bud-${c.id}`}>
+                  <span aria-hidden="true">{c.icon}</span>
+                  {c.label}
+                </label>
+                <span style={{ color: "var(--pulse-text-muted)" }}>$</span>
+                <input
+                  id={`bud-${c.id}`}
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={budgetDraft[c.id]}
+                  onChange={(e) =>
+                    setBudgetDraft((d) => ({ ...d, [c.id]: e.target.value }))
+                  }
+                />
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={onClose}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={saveBudgets}
+                disabled={saving}
+                style={{ flex: 1 }}
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p
+              style={{
+                margin: 0,
+                color: "var(--pulse-text-muted)",
+                fontSize: 13,
+              }}
+            >
+              Manage the bank accounts and payment methods you spend from.
+            </p>
+
+            {acctDraft.map((a, i) => (
+              <div key={a.id} className="account-edit-row">
+                <input
+                  className="acc-icon"
+                  type="text"
+                  value={a.icon}
+                  onChange={(e) =>
+                    updateAcct(i, { icon: e.target.value.slice(0, 2) })
+                  }
+                  aria-label="Icon"
+                />
+                <input
+                  className="acc-name"
+                  type="text"
+                  value={a.name}
+                  onChange={(e) => updateAcct(i, { name: e.target.value })}
+                  aria-label="Account name"
+                />
+                <input
+                  className="acc-color"
+                  type="color"
+                  value={a.color}
+                  onChange={(e) => updateAcct(i, { color: e.target.value })}
+                  aria-label="Color"
+                />
+                <button
+                  type="button"
+                  className="delete-acc"
+                  onClick={() => deleteAcct(i)}
+                  aria-label="Delete account"
+                  title="Delete"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="add-account-btn"
+              onClick={addAcct}
+            >
+              + Add account
+            </button>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={onClose}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={saveAccounts}
+                disabled={saving}
+                style={{ flex: 1 }}
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
