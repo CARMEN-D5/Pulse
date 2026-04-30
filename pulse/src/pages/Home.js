@@ -48,7 +48,7 @@ const DOMAINS = [
   },
 ];
 
-function Home({ user, onLogout, onNevigate }) {
+function Home({ user, onLogout }) {
   // Firebase user exposes `displayName` and `email`; fall back gracefully so
   // the stubbed/test paths still render a friendly greeting.
   const displayName =

@@ -7,6 +7,7 @@ import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import TodoList from "./pages/TodoList";
+import Finance from "./pages/Finance";
 
 import {
   signUp,
@@ -44,12 +45,15 @@ function App() {
       // Backfill / touch the users/{uid} doc whenever someone's logged in.
       // Fire-and-forget — don't block UI on Firestore.
       if (firebaseUser) ensureUserDoc(firebaseUser);
-      // Auto-route: logged-in users land on home, logged-out users on splash
-      // unless they've navigated somewhere explicit already.
+      // Auto-route: logged-in users land on home (unless they've already
+      // navigated deeper — keep them on finance / etc.). Logged-out users
+      // bounce out of any authed view back to splash.
+      const AUTHED_VIEWS = ["home", "finance"];
       setView((current) => {
-        if (firebaseUser) return "home";
-        if (current === "home") return "splash";
-        return current;
+        if (firebaseUser) {
+          return AUTHED_VIEWS.includes(current) ? current : "home";
+        }
+        return AUTHED_VIEWS.includes(current) ? "splash" : current;
       });
     });
     return unsubscribe;
@@ -118,20 +122,34 @@ function App() {
       );
 
     case "home":
-      return (<Home
+      return (
+          <Home
           user={user}
           onLogout={handleLogout}
           onNevigate={(destination) => setView(destination)}
-      />
+          onOpenDomain={(domain) => {
+              if (domain === "finance") {
+                  setView("finance");
+                  return;
+              }
+              // Other domains land in their own sprints.
+              window.alert(
+                  `${domain[0].toUpperCase() + domain.slice(1)} is coming in a future sprint.`
+              );
+          }}
+        />
     );
 
-    case "todo":
-      return (
-          <TodoList
-              user={user}
-              onBack={() => setView("home")}
-          />
-      );
+    case "finance":
+      return <Finance user={user} onBack={() => setView("home")} />;
+
+      case "todo":
+          return (
+              <TodoList
+                  user={user}
+                  onBack={() => setView("home")}
+              />
+          );
 
     case "splash":
     default:
@@ -141,6 +159,7 @@ function App() {
           onSignUp={() => setView("signup")}
         />
       );
+
   }
 }
 
