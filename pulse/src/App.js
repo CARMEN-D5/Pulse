@@ -55,28 +55,6 @@ function App() {
         if (!firebaseUser) {
           setView((current) => (current === "home" ? "splash" : current));
         }
-
-        /*// new sign-ups are sent to the entry quiz; returning users are sent to home
-        if (isNewSignUp.current) {
-          isNewSignUp.current = false;
-          setView("entryQuiz");
-        } else {
-          setView("home");
-        }
-      } else {
-        setView((current) => (current === "home" ? "splash" : current));
-      }
-      /*
-      // Backfill / touch the users/{uid} doc whenever someone's logged in.
-      // Fire-and-forget — don't block UI on Firestore.
-      if (firebaseUser) ensureUserDoc(firebaseUser);
-      // Auto-route: logged-in users land on home, logged-out users on splash
-      // unless they've navigated somewhere explicit already.
-      setView((current) => {
-        if (firebaseUser) return "home";
-        if (current === "home") return "splash";
-        return current;
-      }); */
     });
     return unsubscribe;
   }, []);
