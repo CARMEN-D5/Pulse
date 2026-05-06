@@ -47,10 +47,13 @@ function App() {
       setUser(firebaseUser);
       setAuthReady(true);
 
-      if (firebaseUser && !isNewSignUp.current) {
-        // returning user restoring their session/page refresh
-        await ensureUserDoc(firebaseUser);
-        setView("home");
+      if (firebaseUser) {
+        if (isNewSignUp.current) {
+          setView("entryQuiz");
+        } else {
+          await ensureUserDoc(firebaseUser);
+          setView("home");
+        }
       }
         if (!firebaseUser) {
           setView((current) => (current === "home" ? "splash" : current));
@@ -85,6 +88,7 @@ function App() {
     * Note from Anthea
     * need to send results to backend (will setup later)
     */
+    isNewSignUp.current = false;
     setView("home");
   }
 

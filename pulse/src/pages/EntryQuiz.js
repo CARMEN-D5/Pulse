@@ -4,11 +4,11 @@ import "./auth.css";
 
 
 const SCALE = [
-    { value: 1, label: "Poor" },
-    { value: 2, label: "Struggling" },
-    { value: 3, label: "Could be better" },
-    { value: 4, label: "Good" },
-    { value: 5, label: "Great" },
+    { value: 1, label: "Never" },
+    { value: 2, label: "Sometimes" },
+    { value: 3, label: "At times" },
+    { value: 4, label: "Often" },
+    { value: 5, label: "All the time" },
 ];
 
 function getScaleColor(val) {

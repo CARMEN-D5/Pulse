@@ -5,7 +5,7 @@ export const DOMAINS = [
         focus: 'Presence, purpose, inner calm',
         icon:'🧘',
         questions: [
-            'How fulfilled do you feel in your day-to-day life?',
+            'How often do you take time to slow down, be present, and clear your mind?',
         ],
     },
     {
@@ -14,7 +14,7 @@ export const DOMAINS = [
         focus: 'Connection, relationships, support',
         icon: '💞',
         questions: [
-            'How would do you find your relationships with friends and family?',
+            'How often do you have meaningful, distraction-free time with people important to you?',
         ],
     },
     {
@@ -23,7 +23,7 @@ export const DOMAINS = [
         focus: 'Focus, output, discipline',
         icon: '📈',
         questions: [
-            'How difficult is it to meet deadlines and stay organised?',
+            'How consistent fo you complete the most important tasks in your day?',
         ],
     },
     {
@@ -32,7 +32,7 @@ export const DOMAINS = [
         focus: 'Physical + mental wellbeing',
         icon: '⚕️',
         questions: [
-            'How would you rate your fitness and activity levels',
+            'How consistently do you take care of your physical and mental wellbeing?',
         ],
     },
     {
@@ -41,7 +41,7 @@ export const DOMAINS = [
         focus: 'Control, awareness, discipline',
         icon: '💸',
         questions: [
-            'How would you rate your finances?',
+            'How in control do you feel over your daily spending and financial decisions?',
         ],
     },
 ];
