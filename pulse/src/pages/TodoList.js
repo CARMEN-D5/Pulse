@@ -38,6 +38,7 @@ function TodoList({ user, onBack }) {
     const [editText, setEditText] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [menuPos, setMenuPos] = useState(null);
+    const [error, setError] = useState(null);
 
     // 1. Listen to Firestore
     // Subscribe to this user's todo collection, ordered by most recent.
@@ -91,11 +92,18 @@ function TodoList({ user, onBack }) {
             setEditingId(null);
             return;
         }
-        const todoRef = doc(db, 'users', user.uid, 'todos', id);
-        await updateDoc(todoRef, finalFields);
-        if(Object.keys(updatedFields).length === 0){
-            setEditingId(null);
+        try{
+            setError(null);
+            const todoRef = doc(db, 'users', user.uid, 'todos', id);
+            await updateDoc(todoRef, finalFields);
+            if(Object.keys(updatedFields).length === 0){
+                setEditingId(null);
+            }
+        }catch (err){
+            console.err("Save error", err);
+            setError("Could not update task. Please try again.");
         }
+
     };
 
     const handleKeyDown = (e, id) => {
@@ -123,38 +131,63 @@ function TodoList({ user, onBack }) {
         e.preventDefault();
         if (!input.trim()) return;
 
-        await addDoc(collection(db, 'users', user.uid, 'todos'), {
-            text: input,
-            description: descInput,
-            completed: false,
-            createdAt: serverTimestamp(),
-            dueDate: dueDate || "9999-12-31",
-            reminderSet: false,
-            priority: priority,
-        });
-        setInput('');
-        setDescInput('');
-        setDueDate('');
-        setPriority('Medium');
+        try{
+            setError(null);
+            await addDoc(collection(db, 'users', user.uid, 'todos'), {
+                text: input,
+                description: descInput,
+                completed: false,
+                createdAt: serverTimestamp(),
+                dueDate: dueDate || "9999-12-31",
+                reminderSet: false,
+                priority: priority,
+            });
+            setInput('');
+            setDescInput('');
+            setDueDate('');
+            setPriority('Medium');
+        }catch(err){
+            console.error("Add error:", err);
+            setError("Failed to add task. Please try again.");
+        }
+
     };
 
     // 3. update
     // Update the 'completed' field.
     // This state change is reflected instantly in the UI via the onSnapshot listener.
     const toggleComplete = async (todo) => {
-        const todoRef = doc(db, 'users', user.uid, 'todos', todo.id);
-        await updateDoc(todoRef, {
-            completed: !todo.completed
-        });
+        try{
+            setError(null);
+            const todoRef = doc(db, 'users', user.uid, 'todos', todo.id);
+            await updateDoc(todoRef, {
+                completed: !todo.completed
+            });
+        }catch(err){
+            console.error("Toggle error:", err);
+            setError("Failed to update status.");
+        }
+
     };
 
     // 4. delete task
     const deleteTodo = async (id) => {
-        await deleteDoc(doc(db, 'users', user.uid, 'todos', id));
+        try{
+            setError(null);
+            await deleteDoc(doc(db, 'users', user.uid, 'todos', id));
+        }catch (err){
+            console.error("Delete error:", err);
+            setError("Could not delete task.");
+        }
     };
 
     return (
         <div className="todo-shell">
+            {error && (
+                <div className="error-banner" onClick={() => setError(null)}>
+                    ⚠️ {error} <span className="close-error">×</span>
+                </div>
+            )}
             <div className="todo-container">
                 <div className="todo-header">
                     <button onClick={onBack} className="btn-back">
@@ -318,7 +351,6 @@ function TodoList({ user, onBack }) {
                 <div
                     className="custom-context-menu"
                     style={{ top: menuPos.y, left: menuPos.x}}
-                    handleGlobalClick
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div
