@@ -119,11 +119,6 @@ function TodoList({ user, onBack }) {
         setMenuPos({ x: e.pageX, y: e.pageY, id: id });
     };
 
-    const closeAll = () => {
-        setEditingId(null);
-        setMenuPos(null);
-    };
-
     // 2. create tasks
     // Add a new task to Firestore.
     // Use serverTimestamp to ensure consistent sorting across time zones.
