@@ -9,7 +9,7 @@ rules_version = '2';
 // Covers the login + finance-budget-tracker + to-do-list + scoring branches.
 // Extend as new collections (journals, missions, streaks, etc.) land
 // in later sprints.
-// ============================================================================
+// =======================npm=====================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
