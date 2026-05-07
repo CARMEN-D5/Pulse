@@ -8,7 +8,6 @@ import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
-import TodoList from "./pages/TodoList";
 
 import {
   signUp,
@@ -20,7 +19,7 @@ import {
 import { ensureUserDoc } from "./firestore/users";
 
 /**
- * Top-level view state for the login branch of Pulse.
+ * Top-level view state for Pulse.
  *
  * Flow (mirrors the user-flow chart):
  *   splash     -> entry / "Already a member?"
@@ -28,6 +27,8 @@ import { ensureUserDoc } from "./firestore/users";
  *   signup     -> "Complete Registration"
  *   reset      -> "Reset Password"
  *   home       -> "User Logged In -> Home Page"
+ *   finance    -> Finance / budget-tracker domain
+ *   todo       -> To-do list (productivity domain)
  *
  * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
  * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
@@ -47,9 +48,9 @@ function App() {
       // Fire-and-forget — don't block UI on Firestore.
       if (firebaseUser) ensureUserDoc(firebaseUser);
       // Auto-route: logged-in users land on home (unless they've already
-      // navigated deeper — keep them on finance / etc.). Logged-out users
-      // bounce out of any authed view back to splash.
-      const AUTHED_VIEWS = ["home", "finance"];
+      // navigated deeper — keep them on finance / todo / etc). Logged-out
+      // users bounce out of any authed view back to splash.
+      const AUTHED_VIEWS = ["home", "finance", "todo"];
       setView((current) => {
         if (firebaseUser) {
           return AUTHED_VIEWS.includes(current) ? current : "home";
@@ -124,41 +125,31 @@ function App() {
 
     case "home":
       return (
-          <Home
+        <Home
           user={user}
           onLogout={handleLogout}
-          onNevigate={(destination) => setView(destination)}
-          onOpenDomain={(domain) => {
-              if (domain === "finance") {
-                  setView("finance");
-                  return;
-              }
-              // Other domains land in their own sprints.
-              window.alert(
-                  `${domain[0].toUpperCase() + domain.slice(1)} is coming in a future sprint.`
-              );
+          // Single nav callback. `destination` is one of the domain keys
+          // ("productivity", "finance", "spirituality", …) or a real view
+          // id like "todo". Built domains route to their view; the rest
+          // get a "coming soon" alert.
+          onNevigate={(destination) => {
+            const REAL_VIEWS = ["finance", "todo"];
+            if (REAL_VIEWS.includes(destination)) {
+              setView(destination);
+              return;
+            }
+            window.alert(
+              `${destination[0].toUpperCase() + destination.slice(1)} is coming in a future sprint.`
+            );
           }}
         />
-    );
-
-  case "todo":
-      return (
-          <TodoList
-              user={user}
-              onBack={() => setView("home")}
-          />
       );
+
+    case "todo":
+      return <TodoList user={user} onBack={() => setView("home")} />;
 
     case "finance":
       return <Finance user={user} onBack={() => setView("home")} />;
-
-      case "todo":
-          return (
-              <TodoList
-                  user={user}
-                  onBack={() => setView("home")}
-              />
-          );
 
     case "splash":
     default:
@@ -168,7 +159,6 @@ function App() {
           onSignUp={() => setView("signup")}
         />
       );
-
   }
 }
 
