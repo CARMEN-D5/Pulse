@@ -2,12 +2,16 @@ import React from "react";
 import "./auth.css";
 
 /**
- * Placeholder Home page shown after a successful login / registration.
+ * Home page shown after a successful login / registration.
  *
- * This is intentionally light — it exists so the login branch has a clear
- * "User Logged In -> Home Page" destination that matches the user-flow
- * chart's 5 domains plus Profile. The actual domain screens are owned by
- * other sprints / branches.
+ * Renders the 5 domains of life (Spirituality, Finance, Health,
+ * Productivity, Relationships) plus Profile as cards. Each card calls
+ * back to the parent via `onNevigate(destination)`; the parent decides
+ * which destination is a real view and which still pops a "coming soon"
+ * message.
+ *
+ * Productivity is mapped to the to-do list (the first feature delivered
+ * for that domain), Finance is mapped to its own screen.
  */
 const DOMAINS = [
   {
@@ -48,7 +52,7 @@ const DOMAINS = [
   },
 ];
 
-function Home({ user, onLogout, onOpenDomain }) {
+function Home({ user, onLogout, onNevigate }) {
   // Firebase user exposes `displayName` and `email`; fall back gracefully so
   // the stubbed/test paths still render a friendly greeting.
   const displayName =
@@ -57,12 +61,11 @@ function Home({ user, onLogout, onOpenDomain }) {
     (user?.email ? user.email.split("@")[0] : null) ||
     "there";
 
-  const openDomain = (id) => {
-    if (onOpenDomain) {
-      onOpenDomain(id);
-    } else {
-      window.alert(`${id} screen is coming in a future sprint.`);
-    }
+  // Productivity card → to-do list view. Everything else passes its own
+  // key through to the parent, which will alert for any unbuilt domain.
+  const handleDomainClick = (key) => {
+    if (!onNevigate) return;
+    onNevigate(key === "productivity" ? "todo" : key);
   };
 
   return (
@@ -93,7 +96,7 @@ function Home({ user, onLogout, onOpenDomain }) {
               key={d.key}
               type="button"
               className="domain-card"
-              onClick={() => openDomain(d.key)}
+              onClick={() => handleDomainClick(d.key)}
             >
               <div className="domain-icon" aria-hidden="true">
                 {d.icon}
