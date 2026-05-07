@@ -86,8 +86,8 @@ function Home({ user, onLogout, onNevigate }) {
               type="button"
               className="domain-card"
               onClick={() => {
-                  if (d.key === "productivity"){
-                    onNevigate("todo");
+                  if (d.key === "productivity") {
+                      onNevigate("todo");
                   }else{
                      openDomain(d.key)}
             }}
