@@ -50,9 +50,15 @@ function DomainBar({ domainKey, score }) {
   );
 }
 
-function Home({ user, userDoc, scoreVersion, onDomainSelect, onLogout }) {
+function Home({ user, userDoc, scoreVersion, onDomainSelect, onOpenDomain, onLogout }) {
   const [scores, setScores] = useState(null);
   const [scoresLoading, setScoresLoading] = useState(true);
+
+  // Accept either `onDomainSelect` (scoring branch) or `onOpenDomain`
+  // (Finance-BudgetTracker branch) as the navigation handler.
+  const openDomain = onDomainSelect || onOpenDomain || ((id) => {
+    window.alert(`${id} screen is coming in a future sprint.`);
+  });
 
   const displayName =
     user?.displayName ||
@@ -132,7 +138,7 @@ function Home({ user, userDoc, scoreVersion, onDomainSelect, onLogout }) {
                 key={key}
                 type="button"
                 className="domain-card"
-                onClick={() => onDomainSelect(key)}
+                onClick={() => openDomain(key)}
               >
                 <div className="domain-icon" aria-hidden="true">{d.icon}</div>
                 <p className="domain-name">{d.label}</p>

@@ -11,7 +11,7 @@ import SpiritualityPage from "./pages/SpiritualityPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
 import ProductivityPage from "./pages/ProductivityPage";
 import HealthPage from "./pages/HealthPage";
-import FinancePage from "./pages/FinancePage";
+import Finance from "./pages/Finance";
 import {
   signUp,
   logIn,
@@ -22,23 +22,28 @@ import {
 import { ensureUserDoc, getUserDoc } from "./firestore/users";
 import { saveOnboardingBaseline } from "./firestore/scoring";
 
+// Maps a domain key to the page component used when the user opens that
+// domain from Home. Finance has its own rich budget-tracker page (Finance.js
+// from the Finance-BudgetTracker branch) and is routed separately.
 const DOMAIN_PAGE_MAP = {
   spirituality:  SpiritualityPage,
   relationships: RelationshipsPage,
   productivity:  ProductivityPage,
   health:        HealthPage,
-  finance:       FinancePage,
 };
 
 /**
- * Top-level view state for the login branch of Pulse.
+ * Top-level view state for Pulse.
  *
- * Flow (mirrors the user-flow chart):
+ * Flow:
  *   splash     -> entry / "Already a member?"
  *   login      -> "Enter username/email and password"
  *   signup     -> "Complete Registration"
  *   reset      -> "Reset Password"
- *   home       -> "User Logged In -> Home Page"
+ *   onboarding -> first-time 1-5 baseline ratings
+ *   home       -> dashboard
+ *   domain     -> per-domain reflection/action logging
+ *   finance    -> rich budget-tracker (Finance-BudgetTracker branch)
  *
  * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
  * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
@@ -63,11 +68,19 @@ function App() {
         await ensureUserDoc(firebaseUser);
         const { data } = await getUserDoc(firebaseUser.uid);
         setUserDoc(data);
-        // Route to onboarding if the user hasn't completed baseline ratings yet
-        setView(data?.onboardingCompletedAt ? "home" : "onboarding");
+
+        // Route to onboarding if the user hasn't completed baseline ratings yet.
+        // Otherwise preserve any current authed view (home / finance / domain),
+        // defaulting to home for fresh logins.
+        const AUTHED_VIEWS = ["home", "finance", "domain"];
+        setView((current) => {
+          if (!data?.onboardingCompletedAt) return "onboarding";
+          return AUTHED_VIEWS.includes(current) ? current : "home";
+        });
       } else {
         setUserDoc(null);
-        setView((current) => (current === "home" || current === "onboarding" ? "splash" : current));
+        const AUTHED_VIEWS = ["home", "finance", "domain", "onboarding"];
+        setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
     });
     return unsubscribe;
@@ -102,9 +115,17 @@ function App() {
     setView("splash");
   };
 
+  // Domain card on Home was clicked. Finance has its own rich page; the rest
+  // share the generic DomainPage flow.
   const handleDomainSelect = (domainKey) => {
-    setActiveDomain(domainKey);
-    setView("domain");
+    if (domainKey === "finance") {
+      setView("finance");
+      return;
+    }
+    if (DOMAIN_PAGE_MAP[domainKey]) {
+      setActiveDomain(domainKey);
+      setView("domain");
+    }
   };
 
   const handleDomainBack = () => {
@@ -182,6 +203,9 @@ function App() {
       ) : null;
     }
 
+    case "finance":
+      return <Finance user={user} onBack={() => setView("home")} />;
+
     case "home":
       return (
         <Home
@@ -189,6 +213,7 @@ function App() {
           userDoc={userDoc}
           scoreVersion={scoreVersion}
           onDomainSelect={handleDomainSelect}
+          onOpenDomain={handleDomainSelect}
           onLogout={handleLogout}
         />
       );
