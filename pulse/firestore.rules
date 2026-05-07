@@ -26,14 +26,41 @@ service cloud.firestore {
                     && request.auth.uid == uid
                     && request.resource.data.uid == uid;
 
+      match /budgets/{category} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
+      match /expenses/{expenseId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
+      match /todos/{docId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
+      match /accounts/{accountId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
       // Scoring subcollections: reflections and actions.
       // Only the owning user may read or write their own events.
       match /reflections/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
       }
 
       match /actions/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
+      }
+
+      match /weeklyScores/{weekId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == uid;
       }
     }
 

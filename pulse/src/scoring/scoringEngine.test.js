@@ -6,6 +6,7 @@ import {
   calcDomainScore,
   calcAwardPoint,
   computeDomainScore,
+  computeDomainBreakdown,
   calcLifeStrength,
   calcEvenness,
   calcBalancedLifeScore,
@@ -219,6 +220,52 @@ describe('computeDomainScore', () => {
       activeDays: 3,
     });
     expect(withReflections).toBeCloseTo(withoutReflections);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeDomainBreakdown
+// ---------------------------------------------------------------------------
+describe('computeDomainBreakdown', () => {
+  test('returns full R/A/C/observed/award/finalScore', () => {
+    const b = computeDomainBreakdown({
+      previousScore: 60,
+      reflections: [4, 4, 4],   // R = 80
+      actionPoints: 100,        // A = 50
+      activeDays: 3,            // C ≈ 42.86
+      weeklyTarget: 200,
+    });
+    expect(b.reflectionScore).toBeCloseTo(80);
+    expect(b.actionScore).toBeCloseTo(50);
+    expect(b.consistencyScore).toBeCloseTo(42.86);
+    expect(b.observed).toBeCloseTo(0.3 * 80 + 0.4 * 50 + 0.3 * 42.86);
+    expect(b.awardPoints).toBeCloseTo((b.observed / 100) * 4 - 2);
+    expect(b.finalScore).toBeCloseTo(60 + b.awardPoints);
+  });
+
+  test('no activity → finalScore = previousScore, A = C = 0', () => {
+    const b = computeDomainBreakdown({
+      previousScore: 60,
+      reflections: [],
+      actionPoints: 0,
+      activeDays: 0,
+      weeklyTarget: 200,
+    });
+    expect(b.finalScore).toBe(60);
+    expect(b.actionScore).toBe(0);
+    expect(b.consistencyScore).toBe(0);
+    expect(b.awardPoints).toBe(0);
+  });
+
+  test('finalScore matches computeDomainScore (back-compat)', () => {
+    const args = {
+      previousScore: 60,
+      reflections: [5, 5, 5, 5, 5, 5, 5],
+      actionPoints: 200,
+      activeDays: 7,
+      weeklyTarget: 200,
+    };
+    expect(computeDomainBreakdown(args).finalScore).toBeCloseTo(computeDomainScore(args));
   });
 });
 

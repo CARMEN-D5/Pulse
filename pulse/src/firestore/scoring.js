@@ -4,9 +4,11 @@
 //   users/{uid}                        — profile doc (onboardingBaseline field added here)
 //   users/{uid}/reflections/{id}       — daily reflection events
 //   users/{uid}/actions/{id}           — action/behaviour events
+//   users/{uid}/weeklyScores/{weekId}  — per-week snapshot (e.g. "2026-W18")
 
 import {
   doc,
+  setDoc,
   updateDoc,
   collection,
   addDoc,
@@ -22,7 +24,7 @@ import {
   DOMAINS,
   DOMAIN_KEYS,
   ratingToScore,
-  computeDomainScore,
+  computeDomainBreakdown,
   computeGlobalScores,
 } from '../scoring/scoringEngine';
 
@@ -139,21 +141,25 @@ export async function computeCurrentScores(uid, userDoc) {
 
   // Compute each domain score using the award-point delta approach:
   //   observed (0-100) → award (-2 to +2) → newScore = previousScore + award
+  // We also keep the R/A/C breakdown around for the weekly snapshot.
   const domainScores = {};
+  const domainBreakdowns = {};
   for (const key of DOMAIN_KEYS) {
     const previousScore = (userDoc.domainScores?.[key] ?? baseline[key]) ?? 60;
-    domainScores[key] = computeDomainScore({
+    const breakdown = computeDomainBreakdown({
       previousScore,
       reflections: reflByDomain[key],
       actionPoints: pointsByDomain[key],
       activeDays: activeDaysByDomain[key].size,
       weeklyTarget: DOMAINS[key].weeklyTarget,
     });
+    domainScores[key] = breakdown.finalScore;
+    domainBreakdowns[key] = breakdown;
   }
 
   const global = computeGlobalScores(domainScores);
 
-  // ✅ FIX: persist the new domain scores back to the user doc so the next
+  // Persist the new domain scores back to the user doc so the next
   // computation uses the updated previousScore instead of the original baseline.
   try {
     await updateDoc(doc(db, 'users', uid), {
@@ -165,6 +171,25 @@ export async function computeCurrentScores(uid, userDoc) {
     });
   } catch (err) {
     console.debug('[Pulse] failed to persist domain scores', err?.code);
+  }
+
+  // Snapshot this week's scores into users/{uid}/weeklyScores/{weekId}.
+  // The snapshot includes the R/A/C breakdown per domain so we can audit
+  // later "why was productivity 25 last week?" — full math trail preserved.
+  // setDoc with merge means re-running mid-week overwrites the same
+  // weekly bucket rather than appending duplicates.
+  try {
+    const weekId = getWeekId();
+    await setDoc(doc(db, 'users', uid, 'weeklyScores', weekId), {
+      weekId,
+      lifeStrength: global.lifeStrength,
+      evenness: global.evenness,
+      balancedLifeScore: global.balancedLifeScore,
+      domains: domainBreakdowns, // { spirituality: { reflectionScore, actionScore, ... }, ... }
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (err) {
+    console.debug('[Pulse] failed to write weekly snapshot', err?.code);
   }
 
   return { domainScores, ...global };
@@ -185,4 +210,15 @@ function getWeekStart() {
   start.setDate(now.getDate() - day);
   start.setHours(0, 0, 0, 0);
   return start;
+}
+
+// ISO 8601 week id, e.g. "2026-W18". Sorts lexically in chronological order.
+function getWeekId(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  // Thursday in current week decides the year per ISO 8601
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }

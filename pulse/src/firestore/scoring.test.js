@@ -3,6 +3,7 @@ jest.mock('../firebase', () => ({ db: {} }));
 
 jest.mock('firebase/firestore', () => ({
   doc:             jest.fn(),
+  setDoc:          jest.fn(),
   updateDoc:       jest.fn(),
   collection:      jest.fn(),
   addDoc:          jest.fn(),
@@ -15,7 +16,7 @@ jest.mock('firebase/firestore', () => ({
   },
 }));
 
-import { updateDoc, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { setDoc, updateDoc, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import {
   saveOnboardingBaseline,
   logReflection,
@@ -33,6 +34,7 @@ const EMPTY_SNAP = makeSnap([]);
 beforeEach(() => {
   jest.clearAllMocks();
   updateDoc.mockResolvedValue(undefined);
+  setDoc.mockResolvedValue(undefined);
   addDoc.mockResolvedValue({ id: 'mock-doc-id' });
   getDocs.mockResolvedValue(EMPTY_SNAP);
   // clearAllMocks wipes the implementation set in jest.mock() factory — restore it
@@ -203,6 +205,33 @@ describe('computeCurrentScores', () => {
     expect(patch).toHaveProperty('evenness');
     expect(patch).toHaveProperty('balancedLifeScore');
     expect(patch).toHaveProperty('scoresUpdatedAt');
+  });
+
+  test('writes a weekly snapshot to weeklyScores subcollection', async () => {
+    await computeCurrentScores('uid-123', mockUserDoc);
+
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    const [, snapshot, options] = setDoc.mock.calls[0];
+
+    expect(snapshot.weekId).toMatch(/^\d{4}-W\d{2}$/);
+    expect(snapshot).toHaveProperty('lifeStrength');
+    expect(snapshot).toHaveProperty('evenness');
+    expect(snapshot).toHaveProperty('balancedLifeScore');
+    expect(snapshot.updatedAt).toBe('SERVER_TIMESTAMP');
+    expect(options).toEqual({ merge: true });
+
+    // Snapshot must contain the full R/A/C breakdown per domain
+    expect(snapshot.domains).toBeDefined();
+    for (const key of ['spirituality', 'relationships', 'productivity', 'health', 'finance']) {
+      expect(snapshot.domains[key]).toEqual(expect.objectContaining({
+        reflectionScore:  expect.any(Number),
+        actionScore:      expect.any(Number),
+        consistencyScore: expect.any(Number),
+        observed:         expect.any(Number),
+        awardPoints:      expect.any(Number),
+        finalScore:       expect.any(Number),
+      }));
+    }
   });
 
   test('uses saved domainScores as previousScore on second run', async () => {
