@@ -75,26 +75,26 @@ function Home({ user, onLogout }) {
             style={{ width: "auto" }}
             onClick={onLogout}
           >
-              Log out
-            </button>
+            Log out
+          </button>
         </div>
 
         <div className="domain-grid">
           {DOMAINS.map((d) => (
-              <button
-                  key={d.key}
-                  type="button"
-                  className="domain-card"
-                  onClick={() =>
-                      window.alert(`${d.name} screen is coming in a future sprint.`)
-                  }
-              >
-                <div className="domain-icon" aria-hidden="true">
-                  {d.icon}
-                </div>
-                <p className="domain-name">{d.name}</p>
-                <p className="domain-desc">{d.desc}</p>
-              </button>
+            <button
+              key={d.key}
+              type="button"
+              className="domain-card"
+              onClick={() =>
+                window.alert(`${d.name} screen is coming in a future sprint.`)
+              }
+            >
+              <div className="domain-icon" aria-hidden="true">
+                {d.icon}
+              </div>
+              <p className="domain-name">{d.name}</p>
+              <p className="domain-desc">{d.desc}</p>
+            </button>
           ))}
         </div>
       </div>
