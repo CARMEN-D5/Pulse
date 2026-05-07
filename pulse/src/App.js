@@ -7,6 +7,8 @@ import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import EntryQuiz from "./pages/EntryQuiz"
+import TodoList from "./pages/TodoList";
+import Finance from "./pages/Finance";
 
 import {
   signUp,
@@ -18,7 +20,7 @@ import {
 import { ensureUserDoc } from "./firestore/users";
 
 /**
- * Top-level view state for the login branch of Pulse.
+ * Top-level view state for Pulse.
  *
  * Flow (mirrors the user-flow chart):
  *   splash     -> entry / "Already a member?"
@@ -27,6 +29,8 @@ import { ensureUserDoc } from "./firestore/users";
  *   reset      -> "Reset Password"
  *   entry quiz -> one-time prompt/onboarding step for new users
  *   home       -> "User Logged In -> Home Page"
+ *   finance    -> Finance / budget-tracker domain
+ *   todo       -> To-do list (productivity domain)
  *
  * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
  * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
@@ -37,7 +41,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
 
-  // tracks whteher the current auth event was triggered by a new sign-up.
+  // tracks whether the current auth event was triggered by a new sign-up.
   // using a ref so handleSignUpSubmit can set it before onAuthChange fires
   const isNewSignUp = useRef(false);
 
@@ -46,17 +50,20 @@ function App() {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       setUser(firebaseUser);
       setAuthReady(true);
-
       if (firebaseUser) {
         if (isNewSignUp.current) {
           setView("entryQuiz");
         } else {
           await ensureUserDoc(firebaseUser);
-          setView("home");
+          const AUTHED_VIEWS = ["home", "finance", "todo"];
+          setView((current) => {
+              return AUTHED_VIEWS.includes(current) ? current : "home";
+            });
         }
       }
-        if (!firebaseUser) {
-          setView((current) => (current === "home" ? "splash" : current));
+      if (!firebaseUser) {
+          const AUTHED_VIEWS = ["home", "finance", "todo"];
+          setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
         }
     });
     return unsubscribe;
@@ -144,7 +151,32 @@ function App() {
       )
 
     case "home":
-      return <Home user={user} onLogout={handleLogout} />;
+      return (
+        <Home
+          user={user}
+          onLogout={handleLogout}
+          // Single nav callback. `destination` is one of the domain keys
+          // ("productivity", "finance", "spirituality", …) or a real view
+          // id like "todo". Built domains route to their view; the rest
+          // get a "coming soon" alert.
+          onNevigate={(destination) => {
+            const REAL_VIEWS = ["finance", "todo"];
+            if (REAL_VIEWS.includes(destination)) {
+              setView(destination);
+              return;
+            }
+            window.alert(
+              `${destination[0].toUpperCase() + destination.slice(1)} is coming in a future sprint.`
+            );
+          }}
+        />
+      );
+
+    case "todo":
+      return <TodoList user={user} onBack={() => setView("home")} />;
+
+    case "finance":
+      return <Finance user={user} onBack={() => setView("home")} />;
 
     case "splash":
     default:
