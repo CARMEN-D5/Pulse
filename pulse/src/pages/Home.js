@@ -2,12 +2,16 @@ import React from "react";
 import "./auth.css";
 
 /**
- * Placeholder Home page shown after a successful login / registration.
+ * Home page shown after a successful login / registration.
  *
- * This is intentionally light — it exists so the login branch has a clear
- * "User Logged In -> Home Page" destination that matches the user-flow
- * chart's 5 domains plus Profile. The actual domain screens are owned by
- * other sprints / branches.
+ * Renders the 5 domains of life (Spirituality, Finance, Health,
+ * Productivity, Relationships) plus Profile as cards. Each card calls
+ * back to the parent via `onNevigate(destination)`; the parent decides
+ * which destination is a real view and which still pops a "coming soon"
+ * message.
+ *
+ * Productivity is mapped to the to-do list (the first feature delivered
+ * for that domain), Finance is mapped to its own screen.
  */
 const DOMAINS = [
   {
@@ -57,6 +61,13 @@ function Home({ user, onLogout, onNevigate }) {
     (user?.email ? user.email.split("@")[0] : null) ||
     "there";
 
+  // Productivity card → to-do list view. Everything else passes its own
+  // key through to the parent, which will alert for any unbuilt domain.
+  const handleDomainClick = (key) => {
+    if (!onNevigate) return;
+    onNevigate(key === "productivity" ? "todo" : key);
+  };
+
   return (
     <div className="home-shell">
       <div className="home-container">
@@ -85,12 +96,7 @@ function Home({ user, onLogout, onNevigate }) {
               key={d.key}
               type="button"
               className="domain-card"
-              onClick={() => {
-                  if (d.key === "productivity") {
-                      onNevigate("todo");
-                  }else{
-                     openDomain(d.key)}
-            }}
+              onClick={() => handleDomainClick(d.key)}
             >
               <div className="domain-icon" aria-hidden="true">
                 {d.icon}
@@ -99,16 +105,6 @@ function Home({ user, onLogout, onNevigate }) {
               <p className="domain-desc">{d.desc}</p>
             </button>
           ))}
-        {/*</div>*/}
-
-        {/*/!*<div className="home-footer" style={{ marginTop: '2rem', textAlign: 'center'}}>*!/*/}
-        {/*/!*  <button*!/*/}
-        {/*/!*    type="button"*!/*/}
-        {/*/!*    className="btn btn-primary"*!/*/}
-        {/*/!*    style={{ padding: '12px 24px', fontSize: '1.1rem'}}*!/*/}
-        {/*/!*    onClick={() => onNevigate("todo")}>*!/*/}
-        {/*/!*    📋 Open My To-Do List*!/*/}
-        {/*/!*  </button>*!/*/}
         </div>
       </div>
     </div>
