@@ -6,10 +6,12 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
-import EntryQuiz from "./pages/EntryQuiz"
+import EntryQuiz from "./pages/EntryQuiz";
+import SpiritualityPage from "./pages/SpiritualityPage";
+import RelationshipsPage from "./pages/RelationshipsPage";
+import HealthPage from "./pages/HealthPage";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
-
 import {
   signUp,
   logIn,
@@ -17,20 +19,31 @@ import {
   resetPassword,
   onAuthChange,
 } from "./auth/authService";
-import { ensureUserDoc } from "./firestore/users";
+import { ensureUserDoc, getUserDoc } from "./firestore/users";
+import { saveOnboardingBaseline } from "./firestore/scoring";
+
+// Maps a domain key to the page component used when the user opens that
+// domain from Home. Finance has its own rich budget-tracker page and
+// Productivity routes to the To-Do list — both handled separately below.
+const DOMAIN_PAGE_MAP = {
+  spirituality:  SpiritualityPage,
+  relationships: RelationshipsPage,
+  health:        HealthPage,
+};
 
 /**
  * Top-level view state for Pulse.
  *
- * Flow (mirrors the user-flow chart):
+ * Flow:
  *   splash     -> entry / "Already a member?"
  *   login      -> "Enter username/email and password"
  *   signup     -> "Complete Registration"
  *   reset      -> "Reset Password"
- *   entry quiz -> one-time prompt/onboarding step for new users
- *   home       -> "User Logged In -> Home Page"
- *   finance    -> Finance / budget-tracker domain
- *   todo       -> To-do list (productivity domain)
+ *   entryQuiz  -> first-time 1-5 baseline ratings
+ *   home       -> dashboard
+ *   domain     -> generic per-domain reflection/action logging
+ *   finance    -> rich budget-tracker (Finance-BudgetTracker branch)
+ *   todo       -> To-do list (productivity domain, to-do-list branch)
  *
  * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
  * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
@@ -39,10 +52,14 @@ import { ensureUserDoc } from "./firestore/users";
 function App() {
   const [view, setView] = useState("splash");
   const [user, setUser] = useState(null);
+  const [userDoc, setUserDoc] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [activeDomain, setActiveDomain] = useState(null);
+  const [scoreVersion, setScoreVersion] = useState(0);
 
-  // tracks whether the current auth event was triggered by a new sign-up.
-  // using a ref so handleSignUpSubmit can set it before onAuthChange fires
+  // Tracks whether the current auth event was triggered by a new sign-up.
+  // Using a ref so handleSignUpSubmit can set it before onAuthChange fires.
   const isNewSignUp = useRef(false);
 
   // Subscribe to Firebase auth state. Runs once on mount.
@@ -50,24 +67,58 @@ function App() {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       setUser(firebaseUser);
       setAuthReady(true);
+
       if (firebaseUser) {
-        if (isNewSignUp.current) {
-          setView("entryQuiz");
-        } else {
-          await ensureUserDoc(firebaseUser);
-          const AUTHED_VIEWS = ["home", "finance", "todo"];
-          setView((current) => {
-              return AUTHED_VIEWS.includes(current) ? current : "home";
-            });
-        }
+        await ensureUserDoc(firebaseUser);
+        const { data } = await getUserDoc(firebaseUser.uid);
+        setUserDoc(data);
+
+        // Routing rules:
+        //   1. Brand-new sign-up → entry quiz
+        //   2. Existing user without a saved baseline → entry quiz
+        //   3. Otherwise preserve any current authed view, default to home
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo"];
+        setView((current) => {
+          if (isNewSignUp.current) return "entryQuiz";
+          if (!data?.onboardingCompletedAt) return "entryQuiz";
+          return AUTHED_VIEWS.includes(current) ? current : "home";
+        });
+      } else {
+        setUserDoc(null);
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "entryQuiz"];
+        setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
-      if (!firebaseUser) {
-          const AUTHED_VIEWS = ["home", "finance", "todo"];
-          setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
-        }
     });
     return unsubscribe;
   }, []);
+
+  // EntryQuiz returns an array of { domain, score } using the entry-quiz
+  // branch's domain ids (family_friends / work_productivity / financial).
+  // Map them to the keys used by the scoring engine before saving.
+  const ENTRY_QUIZ_KEY_MAP = {
+    spirituality:      "spirituality",
+    family_friends:    "relationships",
+    work_productivity: "productivity",
+    health:            "health",
+    financial:         "finance",
+  };
+
+  const handleEntryQuizComplete = async (entries) => {
+    setOnboardingLoading(true);
+    const ratings = {};
+    for (const { domain, score } of entries) {
+      const key = ENTRY_QUIZ_KEY_MAP[domain] ?? domain;
+      ratings[key] = score;
+    }
+    const result = await saveOnboardingBaseline(user.uid, ratings);
+    if (result.ok) {
+      const { data } = await getUserDoc(user.uid);
+      setUserDoc(data);
+      isNewSignUp.current = false;
+      setView("home");
+    }
+    setOnboardingLoading(false);
+  };
 
   const handleLoginSubmit = async ({ email, password }) => {
     const result = await logIn({ email, password });
@@ -76,7 +127,7 @@ function App() {
   };
 
   const handleSignUpSubmit = async ({ name, email, password }) => {
-    // set before signUp so onAuthChange ignores auth event.
+    // Set before signUp so onAuthChange routes to the entry quiz.
     isNewSignUp.current = true;
     const result = await signUp({ name, email, password });
     return result;
@@ -89,15 +140,35 @@ function App() {
     setView("splash");
   };
 
-  // in progress. for results to be saved
-  const handleEntryQuizComplete = (results) => {
-    /*
-    * Note from Anthea
-    * need to send results to backend (will setup later)
-    */
-    isNewSignUp.current = false;
+  // Domain card on Home was clicked. Each domain has its own destination:
+  //   finance       -> rich budget-tracker page
+  //   productivity  -> to-do list page
+  //   others        -> generic DomainPage (reflection + action logging)
+  const handleDomainSelect = (domainKey) => {
+    if (domainKey === "finance") {
+      setView("finance");
+      return;
+    }
+    if (domainKey === "productivity") {
+      setView("todo");
+      return;
+    }
+    if (DOMAIN_PAGE_MAP[domainKey]) {
+      setActiveDomain(domainKey);
+      setView("domain");
+    }
+  };
+
+  const handleDomainBack = () => {
+    setActiveDomain(null);
     setView("home");
-  }
+  };
+
+  // Called whenever a reflection or action is logged inside a domain page.
+  // Incrementing scoreVersion causes Home to re-fetch and recompute scores.
+  const handleActivityLogged = () => {
+    setScoreVersion(v => v + 1);
+  };
 
   // Brief splash-coloured placeholder while Firebase restores the session.
   if (!authReady) {
@@ -145,38 +216,44 @@ function App() {
 
     case "entryQuiz":
       return (
-          <div className="auth-shell">
-            <EntryQuiz onComplete={(handleEntryQuizComplete)} />
-          </div>
-      )
+        <div className="auth-shell">
+          <EntryQuiz
+            onComplete={handleEntryQuizComplete}
+            loading={onboardingLoading}
+          />
+        </div>
+      );
+
+    case "domain": {
+      const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
+      return DomainPage ? (
+        <DomainPage
+          domainScore={userDoc?.domainScores?.[activeDomain] ?? userDoc?.onboardingBaseline?.[activeDomain]}
+          user={user}
+          onBack={handleDomainBack}
+          onActivityLogged={handleActivityLogged}
+        />
+      ) : null;
+    }
+
+    case "finance":
+      return <Finance user={user} onBack={() => setView("home")} />;
+
+    case "todo":
+      return <TodoList user={user} onBack={() => setView("home")} />;
 
     case "home":
       return (
         <Home
           user={user}
+          userDoc={userDoc}
+          scoreVersion={scoreVersion}
+          onDomainSelect={handleDomainSelect}
+          onOpenDomain={handleDomainSelect}
+          onNevigate={handleDomainSelect}
           onLogout={handleLogout}
-          // Single nav callback. `destination` is one of the domain keys
-          // ("productivity", "finance", "spirituality", …) or a real view
-          // id like "todo". Built domains route to their view; the rest
-          // get a "coming soon" alert.
-          onNevigate={(destination) => {
-            const REAL_VIEWS = ["finance", "todo"];
-            if (REAL_VIEWS.includes(destination)) {
-              setView(destination);
-              return;
-            }
-            window.alert(
-              `${destination[0].toUpperCase() + destination.slice(1)} is coming in a future sprint.`
-            );
-          }}
         />
       );
-
-    case "todo":
-      return <TodoList user={user} onBack={() => setView("home")} />;
-
-    case "finance":
-      return <Finance user={user} onBack={() => setView("home")} />;
 
     case "splash":
     default:
