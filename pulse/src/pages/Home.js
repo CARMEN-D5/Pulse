@@ -48,7 +48,7 @@ const DOMAINS = [
   },
 ];
 
-function Home({ user, onLogout }) {
+function Home({ user, onLogout, onOpenDomain }) {
   // Firebase user exposes `displayName` and `email`; fall back gracefully so
   // the stubbed/test paths still render a friendly greeting.
   const displayName =
@@ -56,6 +56,14 @@ function Home({ user, onLogout }) {
     user?.name ||
     (user?.email ? user.email.split("@")[0] : null) ||
     "there";
+
+  const openDomain = (id) => {
+    if (onOpenDomain) {
+      onOpenDomain(id);
+    } else {
+      window.alert(`${id} screen is coming in a future sprint.`);
+    }
+  };
 
   return (
     <div className="home-shell">
@@ -85,9 +93,7 @@ function Home({ user, onLogout }) {
               key={d.key}
               type="button"
               className="domain-card"
-              onClick={() =>
-                window.alert(`${d.name} screen is coming in a future sprint.`)
-              }
+              onClick={() => openDomain(d.key)}
             >
               <div className="domain-icon" aria-hidden="true">
                 {d.icon}
