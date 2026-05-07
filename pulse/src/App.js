@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
-import Onboarding from "./pages/Onboarding";
+import EntryQuiz from "./pages/EntryQuiz";
 import SpiritualityPage from "./pages/SpiritualityPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
 import HealthPage from "./pages/HealthPage";
@@ -86,8 +86,24 @@ function App() {
     return unsubscribe;
   }, []);
 
-  const handleOnboardingComplete = async (ratings) => {
+  // EntryQuiz returns an array of { domain, score } using the entry-quiz
+  // branch's domain ids (family_friends / work_productivity / financial).
+  // Map them to the keys used by the scoring engine before saving.
+  const ENTRY_QUIZ_KEY_MAP = {
+    spirituality:      "spirituality",
+    family_friends:    "relationships",
+    work_productivity: "productivity",
+    health:            "health",
+    financial:         "finance",
+  };
+
+  const handleOnboardingComplete = async (entries) => {
     setOnboardingLoading(true);
+    const ratings = {};
+    for (const { domain, score } of entries) {
+      const key = ENTRY_QUIZ_KEY_MAP[domain] ?? domain;
+      ratings[key] = score;
+    }
     const result = await saveOnboardingBaseline(user.uid, ratings);
     if (result.ok) {
       const { data } = await getUserDoc(user.uid);
@@ -191,7 +207,7 @@ function App() {
 
     case "onboarding":
       return (
-        <Onboarding
+        <EntryQuiz
           onComplete={handleOnboardingComplete}
           loading={onboardingLoading}
         />
