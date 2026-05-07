@@ -29,7 +29,7 @@ function userRef(uid) {
  * every sign-in — it only writes new fields on first run.
  */
 export async function ensureUserDoc(firebaseUser) {
-  if (!firebaseUser?.uid) return { ok: false, error: "No user" };
+  if (!firebaseUser?.uid) return { ok: false, isNew: false, error: "No user" };
 
   try {
     const ref = userRef(firebaseUser.uid);
@@ -43,10 +43,11 @@ export async function ensureUserDoc(firebaseUser) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      return { ok: true, isNew: true };
     } else {
       await updateDoc(ref, { updatedAt: serverTimestamp() });
+      return { ok: true, isNew: false };
     }
-    return { ok: true };
   } catch (err) {
     // eslint-disable-next-line no-console
     console.debug("[Pulse] ensureUserDoc failed", err?.code, err?.message);

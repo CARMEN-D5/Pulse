@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 import Splash from "./pages/Splash";
@@ -39,7 +39,7 @@ const DOMAIN_PAGE_MAP = {
  *   login      -> "Enter username/email and password"
  *   signup     -> "Complete Registration"
  *   reset      -> "Reset Password"
- *   onboarding -> first-time 1-5 baseline ratings
+ *   entryQuiz  -> first-time 1-5 baseline ratings
  *   home       -> dashboard
  *   domain     -> generic per-domain reflection/action logging
  *   finance    -> rich budget-tracker (Finance-BudgetTracker branch)
@@ -58,6 +58,10 @@ function App() {
   const [activeDomain, setActiveDomain] = useState(null);
   const [scoreVersion, setScoreVersion] = useState(0);
 
+  // Tracks whether the current auth event was triggered by a new sign-up.
+  // Using a ref so handleSignUpSubmit can set it before onAuthChange fires.
+  const isNewSignUp = useRef(false);
+
   // Subscribe to Firebase auth state. Runs once on mount.
   useEffect(() => {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
@@ -69,17 +73,19 @@ function App() {
         const { data } = await getUserDoc(firebaseUser.uid);
         setUserDoc(data);
 
-        // Route to onboarding if the user hasn't completed baseline ratings yet.
-        // Otherwise preserve any current authed view (home / finance / domain /
-        // todo), defaulting to home for fresh logins.
+        // Routing rules:
+        //   1. Brand-new sign-up → entry quiz
+        //   2. Existing user without a saved baseline → entry quiz
+        //   3. Otherwise preserve any current authed view, default to home
         const AUTHED_VIEWS = ["home", "finance", "domain", "todo"];
         setView((current) => {
-          if (!data?.onboardingCompletedAt) return "onboarding";
+          if (isNewSignUp.current) return "entryQuiz";
+          if (!data?.onboardingCompletedAt) return "entryQuiz";
           return AUTHED_VIEWS.includes(current) ? current : "home";
         });
       } else {
         setUserDoc(null);
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "onboarding"];
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
     });
@@ -97,7 +103,7 @@ function App() {
     financial:         "finance",
   };
 
-  const handleOnboardingComplete = async (entries) => {
+  const handleEntryQuizComplete = async (entries) => {
     setOnboardingLoading(true);
     const ratings = {};
     for (const { domain, score } of entries) {
@@ -108,6 +114,7 @@ function App() {
     if (result.ok) {
       const { data } = await getUserDoc(user.uid);
       setUserDoc(data);
+      isNewSignUp.current = false;
       setView("home");
     }
     setOnboardingLoading(false);
@@ -115,11 +122,13 @@ function App() {
 
   const handleLoginSubmit = async ({ email, password }) => {
     const result = await logIn({ email, password });
-    // onAuthChange will push us to "home" on success.
+    // onAuthChange will push us to "home" or "entryQuiz" on success.
     return result;
   };
 
   const handleSignUpSubmit = async ({ name, email, password }) => {
+    // Set before signUp so onAuthChange routes to the entry quiz.
+    isNewSignUp.current = true;
     const result = await signUp({ name, email, password });
     return result;
   };
@@ -205,12 +214,14 @@ function App() {
         />
       );
 
-    case "onboarding":
+    case "entryQuiz":
       return (
-        <EntryQuiz
-          onComplete={handleOnboardingComplete}
-          loading={onboardingLoading}
-        />
+        <div className="auth-shell">
+          <EntryQuiz
+            onComplete={handleEntryQuizComplete}
+            loading={onboardingLoading}
+          />
+        </div>
       );
 
     case "domain": {

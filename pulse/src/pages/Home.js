@@ -56,7 +56,7 @@ function Home({
   scoreVersion,
   onDomainSelect,
   onOpenDomain,
-  onNevigate,        // legacy callback name from to-do-list branch
+  onNevigate,        // legacy callback name from to-do-list / entry-quiz branches
   onLogout,
 }) {
   const [scores, setScores] = useState(null);
@@ -64,7 +64,7 @@ function Home({
 
   // Accept any of the three callback names so this Home page stays compatible
   // with parents written for the scoring branch, the Finance-BudgetTracker
-  // branch, or the to-do-list branch.
+  // branch, or the to-do-list / entry-quiz branches.
   const openDomain = onDomainSelect || onOpenDomain || onNevigate || ((id) => {
     window.alert(`${id} screen is coming in a future sprint.`);
   });
