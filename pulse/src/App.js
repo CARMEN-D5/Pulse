@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 import Splash from "./pages/Splash";
@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
+import EntryQuiz from "./pages/EntryQuiz"
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
 
@@ -26,6 +27,7 @@ import { ensureUserDoc } from "./firestore/users";
  *   login      -> "Enter username/email and password"
  *   signup     -> "Complete Registration"
  *   reset      -> "Reset Password"
+ *   entry quiz -> one-time prompt/onboarding step for new users
  *   home       -> "User Logged In -> Home Page"
  *   finance    -> Finance / budget-tracker domain
  *   todo       -> To-do list (productivity domain)
@@ -39,35 +41,43 @@ function App() {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
 
+  // tracks whether the current auth event was triggered by a new sign-up.
+  // using a ref so handleSignUpSubmit can set it before onAuthChange fires
+  const isNewSignUp = useRef(false);
+
   // Subscribe to Firebase auth state. Runs once on mount.
   useEffect(() => {
-    const unsubscribe = onAuthChange((firebaseUser) => {
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
       setUser(firebaseUser);
       setAuthReady(true);
-      // Backfill / touch the users/{uid} doc whenever someone's logged in.
-      // Fire-and-forget — don't block UI on Firestore.
-      if (firebaseUser) ensureUserDoc(firebaseUser);
-      // Auto-route: logged-in users land on home (unless they've already
-      // navigated deeper — keep them on finance / todo / etc). Logged-out
-      // users bounce out of any authed view back to splash.
-      const AUTHED_VIEWS = ["home", "finance", "todo"];
-      setView((current) => {
-        if (firebaseUser) {
-          return AUTHED_VIEWS.includes(current) ? current : "home";
+      if (firebaseUser) {
+        if (isNewSignUp.current) {
+          setView("entryQuiz");
+        } else {
+          await ensureUserDoc(firebaseUser);
+          const AUTHED_VIEWS = ["home", "finance", "todo"];
+          setView((current) => {
+              return AUTHED_VIEWS.includes(current) ? current : "home";
+            });
         }
-        return AUTHED_VIEWS.includes(current) ? "splash" : current;
-      });
+      }
+      if (!firebaseUser) {
+          const AUTHED_VIEWS = ["home", "finance", "todo"];
+          setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
+        }
     });
     return unsubscribe;
   }, []);
 
   const handleLoginSubmit = async ({ email, password }) => {
     const result = await logIn({ email, password });
-    // onAuthChange will push us to "home" on success.
+    // onAuthChange will push us to "home" or "entryQuiz" on success.
     return result;
   };
 
   const handleSignUpSubmit = async ({ name, email, password }) => {
+    // set before signUp so onAuthChange ignores auth event.
+    isNewSignUp.current = true;
     const result = await signUp({ name, email, password });
     return result;
   };
@@ -78,6 +88,16 @@ function App() {
     await logOut();
     setView("splash");
   };
+
+  // in progress. for results to be saved
+  const handleEntryQuizComplete = (results) => {
+    /*
+    * Note from Anthea
+    * need to send results to backend (will setup later)
+    */
+    isNewSignUp.current = false;
+    setView("home");
+  }
 
   // Brief splash-coloured placeholder while Firebase restores the session.
   if (!authReady) {
@@ -122,6 +142,13 @@ function App() {
           onBackToLogin={() => setView("login")}
         />
       );
+
+    case "entryQuiz":
+      return (
+          <div className="auth-shell">
+            <EntryQuiz onComplete={(handleEntryQuizComplete)} />
+          </div>
+      )
 
     case "home":
       return (
