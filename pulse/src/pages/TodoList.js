@@ -105,6 +105,7 @@ function TodoList({ user, onBack }) {
     const [menuPos, setMenuPos] = useState(null);
     const [error, setError] = useState(null);
     const [sortMode, setSortMode] = useState('dueDate'); // 'dueDate' | 'priority'
+    const [loading, setLoading] = useState(true);
 
 
     // 1. Listen to Firestore
@@ -118,6 +119,7 @@ function TodoList({ user, onBack }) {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setLoading(false);
         });
 
         return () => unsubscribe();
@@ -341,74 +343,77 @@ function TodoList({ user, onBack }) {
                     </button>
                 </div>
 
-                <ul className="todo-list-styled">
-                    {filteredTodos.map(todo => {
-                        const expired = isExpired(todo);
-                        return(
-                            <li key={todo.id}
-                                className="todo-item-card"
-                                onContextMenu={(e) => {
-                                    e.stopPropagation();
-                                    handleContextMenu(e, todo.id);
-                                }}
-                            >
-                                <div className="checkbox-wrapper"
-                                     onClick={() => toggleComplete(todo)}>
-                                    <div className={`custom-checkbox ${todo.completed? 'checked': ''}`}>
-                                        {todo.completed && "✓"}
-                                    </div>
-                                </div>
-
-                                <div className="item-content">
-                                    {editingId === todo.id ? (
-                                        <div className="edit-mode-container">
-                                            <input
-                                                className="edit-input-styled"
-                                                value={editText}
-                                                autoFocus
-                                                onChange={(e) => setEditText(e.target.value)}
-                                                onKeyDown={(e) => handleKeyDown(e, todo.id)}
-                                                />
-                                            <textarea
-                                                className="edit-desc-textarea"
-                                                placeholder="Add a description..."
-                                                value={editDesc}
-                                                onChange={(e) => setEditDesc(e.target.value)}
-                                                />
-
-                                            <div className="item-meta-edit">
-                                                <select
-                                                    className="edit-select-mini"
-                                                    value={todo.priority}
-                                                    onChange={(e) => saveEdit(todo.id, {priority : e.target.value})}
-                                                    style={{
-                                                        borderLeft: `4px solid ${
-                                                            todo.priority === 'High' ? '#c9184a' :
-                                                                todo.priority === 'Medium' ? '#f57c00' : '#2d6a4f'
-                                                        }`
-                                                    }}
-                                                >
-                                                    <option value="High">🔴 High</option>
-                                                    <option value="Medium">🟠 Medium</option>
-                                                    <option value="Low">🟢 Low</option>
-                                                </select>
-
-                                                <input
-                                                    type = "date"
-                                                    className="edit-date-mini"
-                                                    defaultValue={todo.dueDate === "9999-12-31" ? "" : todo.dueDate}
-                                                    onChange={(e) => saveEdit(todo.id, {dueDate: e.target.value || "9999-12-31"})}
-                                                />
-
-                                                <span className="done-text" onClick={() => saveEdit(todo.id)}>
-                                                    Done
-                                                </span>
-                                            </div>
+                {loading ? (
+                    <p style={{ textAlign: 'center', color: 'var(--pulse-text-muted)' }}>Loading…</p>
+                ) : (
+                    <ul className="todo-list-styled">
+                        {filteredTodos.map(todo => {
+                            const expired = isExpired(todo);
+                            return(
+                                <li key={todo.id}
+                                    className="todo-item-card"
+                                    onContextMenu={(e) => {
+                                        e.stopPropagation();
+                                        handleContextMenu(e, todo.id);
+                                    }}
+                                >
+                                    <div className="checkbox-wrapper"
+                                         onClick={() => toggleComplete(todo)}>
+                                        <div className={`custom-checkbox ${todo.completed? 'checked': ''}`}>
+                                            {todo.completed && "✓"}
                                         </div>
-                                    ):(
-                                        <div onDoubleClick={() => startEdit(todo)} title="Double click to edit">
-                                            {/* Task title row — includes expired tag when applicable */}
-                                            <div className="item-title-row">
+                                    </div>
+
+                                    <div className="item-content">
+                                        {editingId === todo.id ? (
+                                            <div className="edit-mode-container">
+                                                <input
+                                                    className="edit-input-styled"
+                                                    value={editText}
+                                                    autoFocus
+                                                    onChange={(e) => setEditText(e.target.value)}
+                                                    onKeyDown={(e) => handleKeyDown(e, todo.id)}
+                                                    />
+                                                <textarea
+                                                    className="edit-desc-textarea"
+                                                    placeholder="Add a description..."
+                                                    value={editDesc}
+                                                    onChange={(e) => setEditDesc(e.target.value)}
+                                                    />
+
+                                                <div className="item-meta-edit">
+                                                    <select
+                                                        className="edit-select-mini"
+                                                        value={todo.priority}
+                                                        onChange={(e) => saveEdit(todo.id, {priority : e.target.value})}
+                                                        style={{
+                                                            borderLeft: `4px solid ${
+                                                                todo.priority === 'High' ? '#c9184a' :
+                                                                    todo.priority === 'Medium' ? '#f57c00' : '#2d6a4f'
+                                                            }`
+                                                        }}
+                                                    >
+                                                        <option value="High">🔴 High</option>
+                                                        <option value="Medium">🟠 Medium</option>
+                                                        <option value="Low">🟢 Low</option>
+                                                    </select>
+
+                                                    <input
+                                                        type = "date"
+                                                        className="edit-date-mini"
+                                                        defaultValue={todo.dueDate === "9999-12-31" ? "" : todo.dueDate}
+                                                        onChange={(e) => saveEdit(todo.id, {dueDate: e.target.value || "9999-12-31"})}
+                                                    />
+
+                                                    <span className="done-text" onClick={() => saveEdit(todo.id)}>
+                                                        Done
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ):(
+                                            <div onDoubleClick={() => startEdit(todo)} title="Double click to edit">
+                                                {/* Task title row — includes expired tag when applicable */}
+                                                <div className="item-title-row">
                                                     <span
                                                         className="item-text"
                                                         style={{
@@ -422,41 +427,43 @@ function TodoList({ user, onBack }) {
                                                     >
                                                         {todo.text}
                                                     </span>
-                                                {expired && (
-                                                    <span className="expired-tag">Expired</span>
-                                                )}
-                                            </div>
+                                                    {expired && (
+                                                        <span className="expired-tag">Expired</span>
+                                                    )}
+                                                </div>
 
-                                            {todo.description && (
-                                                <p className="item-description"
-                                                   style={{
-                                                       fontSize:'0.85rem',
-                                                       color:'#666',
-                                                       margin:'4px 0',
-                                                       lineHeight: '1.4'
-                                                   }}>
-                                                    {todo.description}
-                                                </p>
-                                            )}
-                                            <div className="item-meta">
-                                                <span style={{
-                                                    color: todo.priority === 'High' ? '#c9184a' : '#1a827d',
-                                                    fontWeight: 'bold'}}>
-                                                    {todo.priority === 'High' ? ' 🔴 HIGH' : (todo.priority === 'Medium' ? ' 🟠 Medium' : ' 🟢 Low')}
-                                                </span>
-                                                {todo.dueDate !== '9999-12-31' && (
-                                                    <span style={{ color: expired ? '#c9184a' : undefined }}>
-                                                             📅 Due: {formatDueDate(todo.dueDate)}
-                                                        </span>
+                                                {todo.description && (
+                                                    <p className="item-description"
+                                                       style={{
+                                                           fontSize:'0.85rem',
+                                                           color:'#666',
+                                                           margin:'4px 0',
+                                                           lineHeight: '1.4'
+                                                       }}>
+                                                        {todo.description}
+                                                    </p>
                                                 )}
+                                                <div className="item-meta">
+                                                    <span style={{
+                                                        color: todo.priority === 'High' ? '#c9184a' : '#1a827d',
+                                                        fontWeight: 'bold'}}>
+                                                        {todo.priority === 'High' ? ' 🔴 HIGH' : (todo.priority === 'Medium' ? ' 🟠 Medium' : ' 🟢 Low')}
+                                                    </span>
+                                                    {todo.dueDate !== '9999-12-31' && (
+                                                        <span style={{ color: expired ? '#c9184a' : undefined }}>
+                                                                 📅 Due: {formatDueDate(todo.dueDate)}
+                                                            </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </li>
-                         );
-                     })}
-                </ul>
+                                        )}
+                                    </div>
+                                </li>
+                             );
+                         })}
+                    </ul>
+                )}
+
             </div>
             {menuPos && (
                 <div
