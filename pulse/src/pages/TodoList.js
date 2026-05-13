@@ -14,6 +14,71 @@ import {
 import "./TodoList.css";
 
 /**
+ * Returns true if the task is expired:
+ * - has a real due date (not the sentinel "9999-12-31")
+ * - that date is strictly before today (local date)
+ * - the task is not yet completed
+ */
+function isExpired(todo) {
+    if (todo.completed) return false;
+    if (!todo.dueDate || todo.dueDate === '9999-12-31') return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(todo.dueDate + 'T00:00:00');
+    return due < today;
+}
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };
+
+/**
+ * Sort mode A — due date first:
+ *   1. Tasks with a due date, sorted by soonest
+ *   2. Tasks without a due date, sorted by priority then createdAt (oldest first)
+ *
+ * Sort mode B — priority first:
+ *   1. Priority rank (High < Medium < Low)
+ *   2. Within same priority: tasks with a due date (soonest first),
+ *      then tasks without a due date (oldest createdAt first)
+ */
+function sortTodos(todos, mode) {
+    const hasDue = t => t.dueDate && t.dueDate !== '9999-12-31';
+    const createdMs = t => t.createdAt?.toMillis?.() ?? 0;
+
+    return [...todos].sort((a, b) => {
+        if (mode === 'dueDate') {
+            const aDue = hasDue(a);
+            const bDue = hasDue(b);
+            if (aDue && bDue) return a.dueDate.localeCompare(b.dueDate);
+            if (aDue) return -1;
+            if (bDue) return 1;
+            // both have no due date → priority then createdAt
+            const pr = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+            return pr !== 0 ? pr : createdMs(a) - createdMs(b);
+        }
+        // mode === 'priority'
+        const pr = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+        if (pr !== 0) return pr;
+        const aDue = hasDue(a);
+        const bDue = hasDue(b);
+        if (aDue && bDue) return a.dueDate.localeCompare(b.dueDate);
+        if (aDue) return -1;
+        if (bDue) return 1;
+        return createdMs(a) - createdMs(b);
+    });
+}
+
+/**
+ * Returns a display string like "2025-08-10 (Sun)"
+ * Uses local date parsing to avoid UTC-offset day shifts.
+ */
+function formatDueDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const day = WEEKDAYS[new Date(y, m - 1, d).getDay()];
+    return `${dateStr} (${day})`;
+}
+
+/**
  * TodoList page
  *
  * Maps to the "User Logged In -> Home Page -> To-do List"
@@ -39,6 +104,9 @@ function TodoList({ user, onBack }) {
     const [editDesc, setEditDesc] = useState('');
     const [menuPos, setMenuPos] = useState(null);
     const [error, setError] = useState(null);
+    const [sortMode, setSortMode] = useState('dueDate'); // 'dueDate' | 'priority'
+    const [loading, setLoading] = useState(true);
+
 
     // 1. Listen to Firestore
     // Subscribe to this user's todo collection, ordered by most recent.
@@ -51,6 +119,7 @@ function TodoList({ user, onBack }) {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setLoading(false);
         });
 
         return () => unsubscribe();
@@ -68,12 +137,18 @@ function TodoList({ user, onBack }) {
         };
     }, []);
 
+    const pendingCount   = todos.filter(t => !t.completed).length;
+    const completedCount = todos.filter(t => t.completed).length;
+    const totalCount     = todos.length;
 
-    const filteredTodos = todos.filter(todo => {
+    const filteredTodos = sortTodos(
+        todos.filter(todo => {
         if (tab === 'pending') return todo.completed === false;
         if (tab === 'completed') return todo.completed === true;
         return true;
-    });
+        }),
+        sortMode
+    );
 
     const startEdit = (todo) => {
         setMenuPos(null);
@@ -232,115 +307,163 @@ function TodoList({ user, onBack }) {
                 </div>
 
                 <div className="todo-tabs-card">
-                    {['pending', 'completed', 'all'].map(t => (
-                        <button
-                            key={t}
-                            className={`tab-btn ${tab === t ? 'active' : ''}`}
-                            onClick={() => setTab(t)}
-                        >
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </button>
-                    ))}
+                    <button
+                        className={`tab-btn ${tab === 'pending' ? 'active' : ''}`}
+                        onClick={() => setTab('pending')}
+                    >
+                        Pending <span className="tab-count">{pendingCount}</span>
+                    </button>
+                    <button
+                        className={`tab-btn ${tab === 'completed' ? 'active' : ''}`}
+                        onClick={() => setTab('completed')}
+                    >
+                        Completed <span className="tab-count">{completedCount}</span>
+                    </button>
+                    <button
+                        className={`tab-btn ${tab === 'all' ? 'active' : ''}`}
+                        onClick={() => setTab('all')}
+                    >
+                        All <span className="tab-count tab-count-all">{completedCount}/{totalCount}</span>
+                    </button>
                 </div>
 
-                <ul className="todo-list-styled">
-                    {filteredTodos.map(todo => (
-                        <li key={todo.id}
-                            className="todo-item-card"
-                            onContextMenu={(e) => {
-                                e.stopPropagation();
-                                handleContextMenu(e, todo.id);
-                            }}
-                        >
-                            <div className="checkbox-wrapper"
-                                 onClick={() => toggleComplete(todo)}>
-                                <div className={`custom-checkbox ${todo.completed? 'checked': ''}`}>
-                                    {todo.completed && "✓"}
-                                </div>
-                            </div>
+                <div className="sort-bar">
+                    <span className="sort-label">Sort by</span>
+                    <button
+                        className={`sort-btn ${sortMode === 'dueDate' ? 'active' : ''}`}
+                        onClick={() => setSortMode('dueDate')}
+                    >
+                        📅 Due date
+                    </button>
+                    <button
+                        className={`sort-btn ${sortMode === 'priority' ? 'active' : ''}`}
+                        onClick={() => setSortMode('priority')}
+                    >
+                        🔴 Priority
+                    </button>
+                </div>
 
-                            <div className="item-content">
-                                {editingId === todo.id ? (
-                                    <div className="edit-mode-container">
-                                        <input
-                                            className="edit-input-styled"
-                                            value={editText}
-                                            autoFocus
-                                            onChange={(e) => setEditText(e.target.value)}
-                                            onKeyDown={(e) => handleKeyDown(e, todo.id)}
-                                            />
-                                        <textarea
-                                            className="edit-desc-textarea"
-                                            placeholder="Add a description..."
-                                            value={editDesc}
-                                            onChange={(e) => setEditDesc(e.target.value)}
-                                            />
-
-                                        <div className="item-meta-edit">
-                                            <select
-                                                className="edit-select-mini"
-                                                value={todo.priority}
-                                                onChange={(e) => saveEdit(todo.id, {priority : e.target.value})}
-                                                style={{
-                                                    borderLeft: `4px solid ${
-                                                        todo.priority === 'High' ? '#c9184a' :
-                                                            todo.priority === 'Medium' ? '#f57c00' : '#2d6a4f'
-                                                    }`
-                                                }}
-                                            >
-                                                <option value="High">🔴 High</option>
-                                                <option value="Medium">🟠 Medium</option>
-                                                <option value="Low">🟢 Low</option>
-                                            </select>
-
-                                            <input
-                                                type = "date"
-                                                className="edit-date-mini"
-                                                defaultValue={todo.dueDate === "9999-12-31" ? "" : todo.dueDate}
-                                                onChange={(e) => saveEdit(todo.id, {dueDate: e.target.value || "9999-12-31"})}
-                                            />
-
-                                            <span className="done-text" onClick={() => saveEdit(todo.id)}>
-                                                Done
-                                            </span>
+                {loading ? (
+                    <p style={{ textAlign: 'center', color: 'var(--pulse-text-muted)' }}>Loading…</p>
+                ) : (
+                    <ul className="todo-list-styled">
+                        {filteredTodos.map(todo => {
+                            const expired = isExpired(todo);
+                            return(
+                                <li key={todo.id}
+                                    className="todo-item-card"
+                                    onContextMenu={(e) => {
+                                        e.stopPropagation();
+                                        handleContextMenu(e, todo.id);
+                                    }}
+                                >
+                                    <div className="checkbox-wrapper"
+                                         onClick={() => toggleComplete(todo)}>
+                                        <div className={`custom-checkbox ${todo.completed? 'checked': ''}`}>
+                                            {todo.completed && "✓"}
                                         </div>
                                     </div>
-                                ):(
-                                    <div onDoubleClick={() => startEdit(todo)} title="Double click to edit">
-                                        <span
-                                            className="item-text" style={{
-                                            textDecoration: todo.completed ? 'line-through' : 'none',
-                                            color: todo.completed ? '#aaa' : '#1a5e5a'
-                                        }}>
-                                            {todo.text}
-                                        </span>
-                                        {todo.description && (
-                                            <p className="item-description"
-                                               style={{
-                                                   fontSize:'0.85rem',
-                                                   color:'#666',
-                                                   margin:'4px 0',
-                                                   lineHeight: '1.4'
-                                               }}>
-                                                {todo.description}
-                                            </p>
+
+                                    <div className="item-content">
+                                        {editingId === todo.id ? (
+                                            <div className="edit-mode-container">
+                                                <input
+                                                    className="edit-input-styled"
+                                                    value={editText}
+                                                    autoFocus
+                                                    onChange={(e) => setEditText(e.target.value)}
+                                                    onKeyDown={(e) => handleKeyDown(e, todo.id)}
+                                                    />
+                                                <textarea
+                                                    className="edit-desc-textarea"
+                                                    placeholder="Add a description..."
+                                                    value={editDesc}
+                                                    onChange={(e) => setEditDesc(e.target.value)}
+                                                    />
+
+                                                <div className="item-meta-edit">
+                                                    <select
+                                                        className="edit-select-mini"
+                                                        value={todo.priority}
+                                                        onChange={(e) => saveEdit(todo.id, {priority : e.target.value})}
+                                                        style={{
+                                                            borderLeft: `4px solid ${
+                                                                todo.priority === 'High' ? '#c9184a' :
+                                                                    todo.priority === 'Medium' ? '#f57c00' : '#2d6a4f'
+                                                            }`
+                                                        }}
+                                                    >
+                                                        <option value="High">🔴 High</option>
+                                                        <option value="Medium">🟠 Medium</option>
+                                                        <option value="Low">🟢 Low</option>
+                                                    </select>
+
+                                                    <input
+                                                        type = "date"
+                                                        className="edit-date-mini"
+                                                        defaultValue={todo.dueDate === "9999-12-31" ? "" : todo.dueDate}
+                                                        onChange={(e) => saveEdit(todo.id, {dueDate: e.target.value || "9999-12-31"})}
+                                                    />
+
+                                                    <span className="done-text" onClick={() => saveEdit(todo.id)}>
+                                                        Done
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ):(
+                                            <div onDoubleClick={() => startEdit(todo)} title="Double click to edit">
+                                                {/* Task title row — includes expired tag when applicable */}
+                                                <div className="item-title-row">
+                                                    <span
+                                                        className="item-text"
+                                                        style={{
+                                                            textDecoration: todo.completed ? 'line-through' : 'none',
+                                                            color: todo.completed
+                                                                ? '#aaa'
+                                                                : expired
+                                                                    ? '#c9184a'
+                                                                    : 'var(--pulse-text)',
+                                                        }}
+                                                    >
+                                                        {todo.text}
+                                                    </span>
+                                                    {expired && (
+                                                        <span className="expired-tag">Expired</span>
+                                                    )}
+                                                </div>
+
+                                                {todo.description && (
+                                                    <p className="item-description"
+                                                       style={{
+                                                           fontSize:'0.85rem',
+                                                           color:'#666',
+                                                           margin:'4px 0',
+                                                           lineHeight: '1.4'
+                                                       }}>
+                                                        {todo.description}
+                                                    </p>
+                                                )}
+                                                <div className="item-meta">
+                                                    <span style={{
+                                                        color: todo.priority === 'High' ? '#c9184a' : '#1a827d',
+                                                        fontWeight: 'bold'}}>
+                                                        {todo.priority === 'High' ? ' 🔴 HIGH' : (todo.priority === 'Medium' ? ' 🟠 Medium' : ' 🟢 Low')}
+                                                    </span>
+                                                    {todo.dueDate !== '9999-12-31' && (
+                                                        <span style={{ color: expired ? '#c9184a' : undefined }}>
+                                                                 📅 Due: {formatDueDate(todo.dueDate)}
+                                                            </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         )}
-                                        <div className="item-meta">
-                                            <span style={{
-                                                color: todo.priority === 'High' ? '#c9184a' : '#1a827d',
-                                                fontWeight: 'bold'}}>
-                                                {todo.priority === 'High' ? ' 🔴 HIGH' : (todo.priority === 'Medium' ? ' 🟠 Medium' : ' 🟢 Low')}
-                                            </span>
-                                            {todo.dueDate !== "9999-12-31" && (
-                                                <span>📅 Due: {todo.dueDate}</span>
-                                            )}
-                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        </li>
-                    ))}
-                </ul>
+                                </li>
+                             );
+                         })}
+                    </ul>
+                )}
+
             </div>
             {menuPos && (
                 <div
