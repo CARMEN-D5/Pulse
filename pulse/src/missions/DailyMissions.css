@@ -1,0 +1,184 @@
+/* ── DailyMissions.css ──────────────────────────────────────────────────── */
+
+/* Card wrapper */
+.dm-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.dm-card--loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    color: #888;
+    font-size: 14px;
+}
+
+/* Header */
+.dm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.dm-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dm-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.dm-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.dm-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.dm-progress-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c9184a;
+    white-space: nowrap;
+}
+
+.dm-history-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c9184a;
+    background: #fff0f3;
+    border: 1.5px solid #ffb3c1;
+    border-radius: 20px;
+    padding: 4px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.18s, border-color 0.18s;
+}
+
+.dm-history-btn:hover {
+    background: #ffe0e8;
+    border-color: #c9184a;
+}
+
+/* Progress bar */
+.dm-bar-track {
+    height: 6px;
+    background: #f0e0e6;
+    border-radius: 99px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.dm-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #c9184a, #ff4d6d);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+}
+
+/* Mission list */
+.dm-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dm-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #fdf4f6;
+    border-radius: 12px;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.dm-item--done {
+    background: #f0faf5;
+    opacity: 0.8;
+}
+
+/* Checkbox */
+.dm-checkbox {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid #c9184a;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    transition: background 0.2s, border-color 0.2s;
+    margin-top: 1px;
+    padding: 0;
+}
+
+.dm-checkbox:hover {
+    opacity: 0.85;
+}
+
+/* Mission text + domain tag */
+.dm-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.dm-text {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a1a1a;
+    line-height: 1.4;
+}
+
+.dm-item--done .dm-text {
+    text-decoration: line-through;
+    color: #888;
+}
+
+.dm-domain-tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+/* All-done banner */
+.dm-done-banner {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #e8f7f1, #d4f0e5);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f7a5c;
+    text-align: center;
+}
