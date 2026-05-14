@@ -10,8 +10,8 @@ import EntryQuiz from "./pages/EntryQuiz";
 import SpiritualityPage from "./pages/SpiritualityPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
 import HealthPage from "./pages/HealthPage";
-import TodoList from "./pages/TodoList";
-import Finance from "./pages/Finance";
+import ProductivityPage from "./pages/ProductivityPage";
+import FinancePage from "./pages/FinancePage";
 import {
   signUp,
   logIn,
@@ -22,33 +22,14 @@ import {
 import { ensureUserDoc, getUserDoc } from "./firestore/users";
 import { saveOnboardingBaseline } from "./firestore/scoring";
 
-// Maps a domain key to the page component used when the user opens that
-// domain from Home. Finance has its own rich budget-tracker page and
-// Productivity routes to the To-Do list — both handled separately below.
 const DOMAIN_PAGE_MAP = {
   spirituality:  SpiritualityPage,
   relationships: RelationshipsPage,
   health:        HealthPage,
+  productivity:  ProductivityPage,
+  finance:       FinancePage,
 };
 
-/**
- * Top-level view state for Pulse.
- *
- * Flow:
- *   splash     -> entry / "Already a member?"
- *   login      -> "Enter username/email and password"
- *   signup     -> "Complete Registration"
- *   reset      -> "Reset Password"
- *   entryQuiz  -> first-time 1-5 baseline ratings
- *   home       -> dashboard
- *   domain     -> generic per-domain reflection/action logging
- *   finance    -> rich budget-tracker (Finance-BudgetTracker branch)
- *   todo       -> To-do list (productivity domain, to-do-list branch)
- *
- * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
- * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
- * a returning user is taken straight to Home on refresh.
- */
 function App() {
   const [view, setView] = useState("splash");
   const [user, setUser] = useState(null);
@@ -73,11 +54,7 @@ function App() {
         const { data } = await getUserDoc(firebaseUser.uid);
         setUserDoc(data);
 
-        // Routing rules:
-        //   1. Brand-new sign-up → entry quiz
-        //   2. Existing user without a saved baseline → entry quiz
-        //   3. Otherwise preserve any current authed view, default to home
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo"];
+        const AUTHED_VIEWS = ["home", "domain"];
         setView((current) => {
           if (isNewSignUp.current) return "entryQuiz";
           if (!data?.onboardingCompletedAt) return "entryQuiz";
@@ -85,7 +62,7 @@ function App() {
         });
       } else {
         setUserDoc(null);
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "entryQuiz"];
+        const AUTHED_VIEWS = ["home", "domain", "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
     });
@@ -140,19 +117,7 @@ function App() {
     setView("splash");
   };
 
-  // Domain card on Home was clicked. Each domain has its own destination:
-  //   finance       -> rich budget-tracker page
-  //   productivity  -> to-do list page
-  //   others        -> generic DomainPage (reflection + action logging)
   const handleDomainSelect = (domainKey) => {
-    if (domainKey === "finance") {
-      setView("finance");
-      return;
-    }
-    if (domainKey === "productivity") {
-      setView("todo");
-      return;
-    }
     if (DOMAIN_PAGE_MAP[domainKey]) {
       setActiveDomain(domainKey);
       setView("domain");
@@ -225,9 +190,9 @@ function App() {
       );
 
     case "domain": {
-      const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
-      return DomainPage ? (
-        <DomainPage
+      const DomainComp = DOMAIN_PAGE_MAP[activeDomain];
+      return DomainComp ? (
+        <DomainComp
           domainScore={userDoc?.domainScores?.[activeDomain] ?? userDoc?.onboardingBaseline?.[activeDomain]}
           user={user}
           onBack={handleDomainBack}
@@ -235,12 +200,6 @@ function App() {
         />
       ) : null;
     }
-
-    case "finance":
-      return <Finance user={user} onBack={() => setView("home")} />;
-
-    case "todo":
-      return <TodoList user={user} onBack={() => setView("home")} />;
 
     case "home":
       return (
