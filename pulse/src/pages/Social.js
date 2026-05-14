@@ -21,6 +21,15 @@ import {
   subscribeToMessages,
   subscribeToConversations,
 } from "../firestore/messaging";
+import {
+  sendFriendRequest,
+  acceptFriendRequest,
+  declineFriendRequest,
+  unfriend,
+  subscribeToFriendships,
+  subscribeToIncomingRequests,
+  subscribeToOutgoingRequests,
+} from "../firestore/friendship";
 
 /**
  * Social — feed of daily posts, your own daily post composer, and DMs.
@@ -37,12 +46,59 @@ function Social({ user, onBack }) {
 
   // The open conversation (id + other-user metadata). Null = no overlay.
   const [openThread, setOpenThread] = useState(null);
-  // Top-level error banner — used when conversation creation fails so the
-  // user isn't left wondering why nothing happened.
+  // Top-level error banner — used when an action fails so the user isn't
+  // left wondering why nothing happened.
   const [socialError, setSocialError] = useState("");
+
+  // -----------------------------------------------------------------------
+  // Friendship layer — shared by FeedTab (post visibility filter) and
+  // MessagesTab (friends list + request inbox). Subscribing once here keeps
+  // the two tabs in lock-step and avoids duplicate listeners.
+  // -----------------------------------------------------------------------
+  const [friendships, setFriendships] = useState([]);
+  const [incomingRequests, setIncomingRequests] = useState([]);
+  const [outgoingRequests, setOutgoingRequests] = useState([]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsubF = subscribeToFriendships(user.uid, setFriendships);
+    const unsubIn = subscribeToIncomingRequests(user.uid, setIncomingRequests);
+    const unsubOut = subscribeToOutgoingRequests(user.uid, setOutgoingRequests);
+    return () => {
+      unsubF();
+      unsubIn();
+      unsubOut();
+    };
+  }, [user?.uid]);
+
+  // Fast-lookup set of friend uids — derived from the friendships list.
+  const friendUids = useMemo(() => {
+    const out = new Set();
+    for (const f of friendships) {
+      for (const p of f.participants || []) {
+        if (p && p !== user?.uid) out.add(p);
+      }
+    }
+    return out;
+  }, [friendships, user?.uid]);
+
+  // Feed query uses [self, ...friends] as the author whitelist. Posts are
+  // friends-only at the Firestore rule level, so an unfiltered feed query
+  // would be rejected with permission-denied; this list keeps the query
+  // safe and minimal.
+  const visibleAuthorUids = useMemo(() => {
+    if (!user?.uid) return [];
+    return [user.uid, ...Array.from(friendUids)];
+  }, [user?.uid, friendUids]);
 
   const startConversation = async (otherUser) => {
     setSocialError("");
+    // Mirror the Firestore rule client-side so the error is friendly —
+    // creating a conversation will be denied unless we're already friends.
+    if (!friendUids.has(otherUser.uid)) {
+      setSocialError("You can only message friends.");
+      return;
+    }
     const res = await getOrCreateConversation(
       { uid: user.uid, name: displayNameFor(user), email: user.email },
       otherUser
@@ -58,6 +114,9 @@ function Social({ user, onBack }) {
     }
   };
 
+  // Badge on the Messages tab for unread incoming friend requests.
+  const requestBadge = incomingRequests.length;
+
   return (
     <div className="social-shell">
       <div className="social-container">
@@ -71,7 +130,15 @@ function Social({ user, onBack }) {
 
         {socialError && (
           <div className="alert alert-error" role="alert">
-            {socialError}
+            <span>{socialError}</span>
+            <button
+              type="button"
+              onClick={() => setSocialError("")}
+              className="alert-dismiss"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -79,7 +146,10 @@ function Social({ user, onBack }) {
           {[
             { id: "feed", label: "Feed" },
             { id: "today", label: "Today" },
-            { id: "messages", label: "Messages" },
+            {
+              id: "messages",
+              label: requestBadge > 0 ? `Messages (${requestBadge})` : "Messages",
+            },
           ].map((t) => (
             <button
               key={t.id}
@@ -95,14 +165,24 @@ function Social({ user, onBack }) {
         </div>
 
         {tab === "feed" && (
-          <FeedTab user={user} onStartConversation={startConversation} />
+          <FeedTab
+            user={user}
+            visibleAuthorUids={visibleAuthorUids}
+            friendUids={friendUids}
+            onStartConversation={startConversation}
+          />
         )}
         {tab === "today" && <TodayTab user={user} />}
         {tab === "messages" && (
           <MessagesTab
             user={user}
+            friendships={friendships}
+            friendUids={friendUids}
+            incomingRequests={incomingRequests}
+            outgoingRequests={outgoingRequests}
             onOpenThread={(t) => setOpenThread(t)}
             onStartConversation={startConversation}
+            onError={setSocialError}
           />
         )}
       </div>
@@ -156,21 +236,35 @@ function timeAgo(ts) {
 // Feed tab
 // ============================================================================
 
-function FeedTab({ user, onStartConversation }) {
+function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Live feed subscription. New posts (from anyone) appear automatically.
+  // Live feed subscription, scoped to [self, ...friends]. Re-subscribes
+  // whenever the friend list changes (a new accepted request, an unfriend).
+  // We serialise the uids to a string for the dep array so React only
+  // re-runs the effect when the set actually changes.
+  const authorsKey = visibleAuthorUids.join("|");
   useEffect(() => {
-    const unsub = subscribeToFeed((incoming) => {
+    setLoading(true);
+    const unsub = subscribeToFeed(visibleAuthorUids, (incoming) => {
       setPosts(incoming);
       setLoading(false);
     });
     return unsub;
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorsKey]);
 
   if (loading) {
     return <div className="social-card social-empty">Loading feed…</div>;
+  }
+  if (friendUids.size === 0 && posts.length === 0) {
+    return (
+      <div className="social-card social-empty">
+        Add friends from the Messages tab to start seeing posts from people
+        you know. Your own posts will show up here once you check in.
+      </div>
+    );
   }
   if (posts.length === 0) {
     return (
@@ -567,23 +661,59 @@ function TodayTab({ user }) {
 // Messages tab — conversation list + new-conversation search
 // ============================================================================
 
-function MessagesTab({ user, onOpenThread, onStartConversation }) {
-  const [convs, setConvs] = useState([]);
-  const [loading, setLoading] = useState(true);
+function MessagesTab({
+  user,
+  friendships,
+  friendUids,
+  incomingRequests,
+  outgoingRequests,
+  onOpenThread,
+  onStartConversation,
+  onError,
+}) {
   const [searchEmail, setSearchEmail] = useState("");
   const [searchState, setSearchState] = useState({ status: "idle" });
 
-  // Live conversation list — new conversations and last-message previews
-  // update without a refresh.
+  // Last-message previews come from the conversations collection. We
+  // subscribe so the friends list shows the latest message inline.
+  const [conversations, setConversations] = useState([]);
   useEffect(() => {
     if (!user?.uid) return;
-    const unsub = subscribeToConversations(user.uid, (list) => {
-      setConvs(list);
-      setLoading(false);
-    });
+    const unsub = subscribeToConversations(user.uid, setConversations);
     return unsub;
   }, [user?.uid]);
 
+  // Index conversations by the other participant's uid so each friend
+  // row can look up its own preview in O(1).
+  const convByOther = useMemo(() => {
+    const out = {};
+    for (const c of conversations) {
+      const otherUid = (c.participants || []).find((p) => p !== user?.uid);
+      if (otherUid) out[otherUid] = c;
+    }
+    return out;
+  }, [conversations, user?.uid]);
+
+  // ---------------------------------------------------------------------
+  // Relationship resolver — turns another user's uid into one of:
+  //   "friend"
+  //   { kind: "incoming", request }     they sent us a request
+  //   { kind: "outgoing", request }     we sent them one
+  //   "none"
+  // ---------------------------------------------------------------------
+  const relWith = (otherUid) => {
+    if (!otherUid) return "none";
+    if (friendUids.has(otherUid)) return "friend";
+    const incoming = incomingRequests.find((r) => r.from === otherUid);
+    if (incoming) return { kind: "incoming", request: incoming };
+    const outgoing = outgoingRequests.find((r) => r.to === otherUid);
+    if (outgoing) return { kind: "outgoing", request: outgoing };
+    return "none";
+  };
+
+  // ---------------------------------------------------------------------
+  // Actions
+  // ---------------------------------------------------------------------
   const onSearch = async (e) => {
     e.preventDefault();
     if (!searchEmail.trim()) return;
@@ -604,25 +734,57 @@ function MessagesTab({ user, onOpenThread, onStartConversation }) {
     setSearchState({ status: "found", user: res.data });
   };
 
-  const onPick = async (otherUser) => {
-    setSearchState({ status: "idle" });
-    setSearchEmail("");
-    await onStartConversation({
-      uid: otherUser.uid,
-      name: otherUser.displayName,
-      email: otherUser.email,
-      displayName: otherUser.displayName,
+  const onSendRequest = async (other) => {
+    const me = { uid: user.uid, name: displayNameFor(user), email: user.email };
+    const them = {
+      uid: other.uid,
+      name: other.displayName || other.name || null,
+      email: other.email || null,
+    };
+    const res = await sendFriendRequest(me, them);
+    if (!res.ok) onError(res.error || "Couldn't send the request.");
+  };
+
+  const onAccept = async (requestId) => {
+    const res = await acceptFriendRequest(requestId, { uid: user.uid });
+    if (!res.ok) onError(res.error || "Couldn't accept the request.");
+  };
+
+  const onDecline = async (requestId) => {
+    const res = await declineFriendRequest(requestId);
+    if (!res.ok) onError(res.error || "Couldn't decline the request.");
+  };
+
+  const onUnfriend = async (otherUid, name) => {
+    if (!window.confirm(`Remove ${name || "this friend"} from your friends?`)) {
+      return;
+    }
+    const res = await unfriend(user.uid, otherUid);
+    if (!res.ok) onError(res.error || "Couldn't remove friend.");
+  };
+
+  const onOpenFriendChat = (otherUid, info) => {
+    const name = info?.name || info?.email || "Someone";
+    onStartConversation({
+      uid: otherUid,
+      name,
+      email: info?.email || null,
+      displayName: name,
     });
-    // No manual refresh — subscribeToConversations will pick up the new doc.
   };
 
   return (
     <>
+      {/* ------------------------------------------------------------ */}
+      {/* Find a friend                                                 */}
+      {/* ------------------------------------------------------------ */}
       <div className="social-card">
         <div className="composer">
-          <h3 style={{ margin: 0, fontSize: 16 }}>Start a new conversation</h3>
+          <h3 style={{ margin: 0, fontSize: 16 }}>Add a friend</h3>
           <p className="composer-hint" style={{ marginTop: -4 }}>
-            Search for a Pulse user by email.
+            Search for a Pulse user by email and send a friend request.
+            Once they accept, you'll see each other's posts and be able to
+            message.
           </p>
           <form className="search-row" onSubmit={onSearch}>
             <input
@@ -631,7 +793,11 @@ function MessagesTab({ user, onOpenThread, onStartConversation }) {
               value={searchEmail}
               onChange={(e) => setSearchEmail(e.target.value)}
             />
-            <button type="submit" className="btn btn-primary" style={{ width: "auto" }}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ width: "auto" }}
+            >
               Find
             </button>
           </form>
@@ -640,9 +806,7 @@ function MessagesTab({ user, onOpenThread, onStartConversation }) {
             <div className="composer-hint">Searching…</div>
           )}
           {searchState.status === "not_found" && (
-            <div className="composer-hint">
-              No Pulse user with that email.
-            </div>
+            <div className="composer-hint">No Pulse user with that email.</div>
           )}
           {searchState.status === "self" && (
             <div className="composer-hint">That's you 🙂</div>
@@ -651,84 +815,262 @@ function MessagesTab({ user, onOpenThread, onStartConversation }) {
             <div className="alert alert-error">{searchState.message}</div>
           )}
           {searchState.status === "found" && (
-            <button
-              type="button"
-              className="conv-row"
-              onClick={() => onPick(searchState.user)}
-              style={{ marginTop: 4 }}
-            >
-              <div className="conv-avatar">
-                {initialsFor(
-                  searchState.user.displayName || searchState.user.email
-                )}
-              </div>
-              <div className="conv-body">
-                <div className="conv-name">
-                  {searchState.user.displayName ||
-                    searchState.user.email.split("@")[0]}
-                </div>
-                <div className="conv-last">
-                  Start a conversation with {searchState.user.email}
-                </div>
-              </div>
-            </button>
+            <SearchResultRow
+              other={searchState.user}
+              rel={relWith(searchState.user.uid)}
+              onAccept={onAccept}
+              onDecline={onDecline}
+              onSendRequest={() => onSendRequest(searchState.user)}
+              onOpenChat={() => {
+                onOpenFriendChat(searchState.user.uid, {
+                  name: searchState.user.displayName,
+                  email: searchState.user.email,
+                });
+                setSearchState({ status: "idle" });
+                setSearchEmail("");
+              }}
+            />
           )}
         </div>
       </div>
 
-      <div className="social-card">
-        <div
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 0.4,
-            textTransform: "uppercase",
-            color: "var(--pulse-text-muted)",
-            marginBottom: 8,
-          }}
-        >
-          Conversations
+      {/* ------------------------------------------------------------ */}
+      {/* Incoming friend requests                                      */}
+      {/* ------------------------------------------------------------ */}
+      {incomingRequests.length > 0 && (
+        <div className="social-card">
+          <SectionLabel>Friend requests</SectionLabel>
+          <div className="conv-list">
+            {incomingRequests.map((r) => (
+              <div key={r.id} className="conv-row request-row">
+                <div className="conv-avatar">
+                  {initialsFor(r.fromName || r.fromEmail)}
+                </div>
+                <div className="conv-body">
+                  <div className="conv-name">
+                    {r.fromName || r.fromEmail || "Someone"}
+                  </div>
+                  <div className="conv-last">{r.fromEmail}</div>
+                </div>
+                <div className="request-actions">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => onAccept(r.id)}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => onDecline(r.id)}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        {loading ? (
-          <div className="social-empty">Loading…</div>
-        ) : convs.length === 0 ? (
+      )}
+
+      {/* ------------------------------------------------------------ */}
+      {/* Outgoing pending requests                                     */}
+      {/* ------------------------------------------------------------ */}
+      {outgoingRequests.length > 0 && (
+        <div className="social-card">
+          <SectionLabel>Pending</SectionLabel>
+          <div className="conv-list">
+            {outgoingRequests.map((r) => (
+              <div key={r.id} className="conv-row request-row">
+                <div className="conv-avatar">
+                  {initialsFor(r.toName || r.toEmail)}
+                </div>
+                <div className="conv-body">
+                  <div className="conv-name">
+                    {r.toName || r.toEmail || "Someone"}
+                  </div>
+                  <div className="conv-last">Request sent ⏳</div>
+                </div>
+                <div className="request-actions">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => onDecline(r.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------ */}
+      {/* Friends list — tap a friend to open or create a DM thread     */}
+      {/* ------------------------------------------------------------ */}
+      <div className="social-card">
+        <SectionLabel>Friends</SectionLabel>
+        {friendships.length === 0 ? (
           <div className="social-empty">
-            No conversations yet — search for someone above to say hi.
+            No friends yet. Use the search above to send your first request.
           </div>
         ) : (
           <div className="conv-list">
-            {convs.map((c) => {
-              const otherUid = c.participants.find((p) => p !== user.uid);
-              const info = c.participantInfo?.[otherUid] || {};
+            {friendships.map((f) => {
+              const otherUid = (f.participants || []).find(
+                (p) => p !== user.uid
+              );
+              const info = f.participantInfo?.[otherUid] || {};
               const name = info.name || info.email || "Someone";
+              const conv = convByOther[otherUid];
               return (
-                <button
-                  key={c.id}
-                  type="button"
-                  className="conv-row"
-                  onClick={() =>
-                    onOpenThread({
-                      convId: c.id,
-                      otherUid,
-                      otherName: name,
-                    })
-                  }
-                >
-                  <div className="conv-avatar">{initialsFor(name)}</div>
-                  <div className="conv-body">
-                    <div className="conv-name">{name}</div>
-                    <div className="conv-last">
-                      {c.lastMessage || "Say hi 👋"}
+                <div key={f.id} className="conv-row friend-row">
+                  <button
+                    type="button"
+                    className="friend-main"
+                    onClick={() => {
+                      const c = convByOther[otherUid];
+                      if (c) {
+                        onOpenThread({
+                          convId: c.id,
+                          otherUid,
+                          otherName: name,
+                        });
+                      } else {
+                        onOpenFriendChat(otherUid, info);
+                      }
+                    }}
+                  >
+                    <div className="conv-avatar">{initialsFor(name)}</div>
+                    <div className="conv-body">
+                      <div className="conv-name">{name}</div>
+                      <div className="conv-last">
+                        {conv?.lastMessage || "Say hi 👋"}
+                      </div>
                     </div>
-                  </div>
-                  <div className="conv-when">{timeAgo(c.lastMessageAt)}</div>
-                </button>
+                    <div className="conv-when">
+                      {conv?.lastMessageAt ? timeAgo(conv.lastMessageAt) : ""}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="unfriend-btn"
+                    onClick={() => onUnfriend(otherUid, name)}
+                    aria-label={`Remove ${name} from friends`}
+                    title="Remove friend"
+                  >
+                    ×
+                  </button>
+                </div>
               );
             })}
           </div>
         )}
       </div>
     </>
+  );
+}
+
+// ============================================================================
+// Small presentational helpers used by MessagesTab
+// ============================================================================
+
+function SectionLabel({ children }) {
+  return (
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: 700,
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
+        color: "var(--pulse-text-muted)",
+        marginBottom: 8,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Single search-result row. Right-side action(s) change based on the
+ * current relationship state with the searched user:
+ *   "friend"        → "Message"
+ *   "none"          → "Add friend"
+ *   incoming req    → "Accept" / "Decline"
+ *   outgoing req    → "Request sent" pill + "Cancel"
+ */
+function SearchResultRow({
+  other,
+  rel,
+  onAccept,
+  onDecline,
+  onSendRequest,
+  onOpenChat,
+}) {
+  const name = other.displayName || other.email?.split("@")[0] || "Someone";
+  const isObj = rel && typeof rel === "object";
+
+  return (
+    <div className="conv-row search-result" style={{ marginTop: 4 }}>
+      <div className="conv-avatar">{initialsFor(name)}</div>
+      <div className="conv-body">
+        <div className="conv-name">{name}</div>
+        <div className="conv-last">{other.email}</div>
+      </div>
+      <div className="request-actions">
+        {rel === "friend" && (
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            onClick={onOpenChat}
+          >
+            Message
+          </button>
+        )}
+        {rel === "none" && (
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            onClick={onSendRequest}
+          >
+            Add friend
+          </button>
+        )}
+        {isObj && rel.kind === "outgoing" && (
+          <>
+            <span className="pill pill-pending">Request sent</span>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => onDecline(rel.request.id)}
+            >
+              Cancel
+            </button>
+          </>
+        )}
+        {isObj && rel.kind === "incoming" && (
+          <>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={() => onAccept(rel.request.id)}
+            >
+              Accept
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => onDecline(rel.request.id)}
+            >
+              Decline
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 

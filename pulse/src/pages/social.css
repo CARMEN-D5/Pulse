@@ -551,3 +551,118 @@
   margin-right: 8px;
 }
 .home-social-btn:hover { background: var(--pulse-primary-dark); }
+
+/* ==========================================================================
+   Friend requests (Messages tab)
+   ========================================================================== */
+
+/* A conv-row used purely as a static container (not a button). */
+.conv-row.request-row,
+.conv-row.search-result {
+  cursor: default;
+  background: transparent;
+}
+
+/* Action buttons aligned to the right of a row. */
+.request-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Small button variants for inline row actions. */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--pulse-text-muted);
+  border-color: var(--pulse-border);
+}
+.btn-ghost:hover {
+  background: #f6e9ee;
+  color: var(--pulse-text);
+}
+
+/* "Request sent" pill. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pill-pending {
+  background: #fff4d6;
+  color: #8a5d00;
+}
+
+/* Friend row — main button + small × on the right. */
+.conv-row.friend-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+}
+.friend-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background 120ms ease;
+}
+.friend-main:hover { background: #fbeef2; }
+
+.unfriend-btn {
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--pulse-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.unfriend-btn:hover {
+  background: #fde2e7;
+  color: #c9184a;
+}
+
+/* Top-level error banner gets a tiny dismiss × at the right. */
+.alert {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.alert-dismiss {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  padding: 0 4px;
+  opacity: 0.7;
+}
+.alert-dismiss:hover { opacity: 1; }
+

@@ -8,11 +8,23 @@ rules_version = '2';
 //
 // Covers all branches currently merged in:
 //   login, finance-budget-tracker, to-do-list, scoring, entry-quiz,
-//   social-media, plus teammates' physical-activity + missions collections.
+//   social-media (with friend-request layer), plus teammates'
+//   physical-activity + missions collections.
 // ============================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper — does a friendship exist between uidA and uidB?
+    //
+    // Friendship docs are keyed by the sorted-and-joined uid pair, so we
+    // check both possible orderings (rules don't have a sort function).
+    // ------------------------------------------------------------------------
+    function areFriends(uidA, uidB) {
+      return exists(/databases/$(database)/documents/friendships/$(uidA + "_" + uidB))
+          || exists(/databases/$(database)/documents/friendships/$(uidB + "_" + uidA));
+    }
 
     // ------------------------------------------------------------------------
     // /users/{uid} — a user's profile document.
@@ -104,14 +116,72 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // FRIEND REQUESTS — pending requests, keyed by sorted-uid pair.
+    // ========================================================================
+    //
+    // A request doc is created by the sender; the recipient can read it
+    // (their inbox), accept it (which creates the friendship and deletes
+    // the request), or decline it (just delete). Sender can also delete to
+    // cancel an outgoing request.
+    // ------------------------------------------------------------------------
+    match /friendRequests/{requestId} {
+      // Either party can read so they see incoming/outgoing requests live.
+      allow read: if request.auth != null
+                  && (request.auth.uid == resource.data.from
+                      || request.auth.uid == resource.data.to);
+
+      // Only the sender can create; the `from` field must match their uid.
+      // We also require `to != from` and that they aren't already friends.
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.from
+                    && request.resource.data.from != request.resource.data.to
+                    && !areFriends(request.resource.data.from,
+                                   request.resource.data.to);
+
+      // Either party can delete (sender cancels, recipient declines,
+      // or both delete after acceptance).
+      allow delete: if request.auth != null
+                    && (request.auth.uid == resource.data.from
+                        || request.auth.uid == resource.data.to);
+    }
+
+    // ========================================================================
+    // FRIENDSHIPS — accepted friendships, keyed by sorted-uid pair.
+    // ========================================================================
+    //
+    // Created by the accepter when they accept a friend request. Either
+    // participant can read it (it's how the feed and DMs decide what to
+    // show), and either may unfriend by deleting the doc.
+    // ------------------------------------------------------------------------
+    match /friendships/{friendshipId} {
+      allow read: if request.auth != null
+                  && request.auth.uid in resource.data.participants;
+
+      // On create, the writer must be one of the two participants, the
+      // participants array must contain exactly two distinct uids, and
+      // a matching friend request must exist (i.e. the relationship was
+      // actually requested by one side and accepted by the other).
+      allow create: if request.auth != null
+                    && request.auth.uid in request.resource.data.participants
+                    && request.resource.data.participants.size() == 2
+                    && exists(/databases/$(database)/documents/friendRequests/$(friendshipId));
+
+      allow delete: if request.auth != null
+                    && request.auth.uid in resource.data.participants;
+    }
+
+    // ========================================================================
     // SOCIAL — daily posts, likes, comments. (social-media branch.)
     // ========================================================================
     //
-    // Posts are public to every signed-in user. Only the author can edit or
-    // delete their own post. Likes and comments are owner-write only.
+    // Posts are friends-only: a signed-in user can read a post if they
+    // are the author OR they have a friendship with the author. Only the
+    // author can edit or delete their own post.
     // ------------------------------------------------------------------------
     match /posts/{postId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null
+                  && (request.auth.uid == resource.data.authorUid
+                      || areFriends(request.auth.uid, resource.data.authorUid));
       allow create: if request.auth != null
                     && request.auth.uid == request.resource.data.authorUid;
       allow update, delete: if request.auth != null
@@ -119,20 +189,28 @@ service cloud.firestore {
 
       // /posts/{postId}/likes/{uid} — existence == liked.
       // The doc id IS the liker's uid so they can only ever like or unlike
-      // on their own behalf.
+      // on their own behalf. Like reads inherit the same friends-only
+      // visibility as the parent post.
       match /likes/{uid} {
-        allow read: if request.auth != null;
+        allow read: if request.auth != null
+                    && (request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.authorUid
+                        || areFriends(request.auth.uid, get(/databases/$(database)/documents/posts/$(postId)).data.authorUid));
         allow create, delete: if request.auth != null
-                              && request.auth.uid == uid;
+                              && request.auth.uid == uid
+                              && (request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.authorUid
+                                  || areFriends(request.auth.uid, get(/databases/$(database)/documents/posts/$(postId)).data.authorUid));
       }
 
       // /posts/{postId}/comments/{commentId}
-      // Anyone signed in can read or comment; only the comment author may
-      // edit or delete their own.
+      // Friends-only read; comment author may edit or delete their own.
       match /comments/{commentId} {
-        allow read: if request.auth != null;
+        allow read: if request.auth != null
+                    && (request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.authorUid
+                        || areFriends(request.auth.uid, get(/databases/$(database)/documents/posts/$(postId)).data.authorUid));
         allow create: if request.auth != null
-                      && request.auth.uid == request.resource.data.authorUid;
+                      && request.auth.uid == request.resource.data.authorUid
+                      && (request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.authorUid
+                          || areFriends(request.auth.uid, get(/databases/$(database)/documents/posts/$(postId)).data.authorUid));
         allow update, delete: if request.auth != null
                               && request.auth.uid == resource.data.authorUid;
       }
@@ -142,16 +220,21 @@ service cloud.firestore {
     // DMs — 1-on-1 conversations + messages. (social-media branch.)
     // ========================================================================
     //
-    // Only the two participants of a conversation may read or write it.
-    // Messages live in a sub-collection; the parent doc holds participants
-    // and a last-message preview for the inbox list.
+    // Conversation ids share the same sorted-uid-pair shape as friendship
+    // ids, so a friendship is required to create a conversation. Only the
+    // two participants of a conversation may read or write it.
     // ------------------------------------------------------------------------
     match /conversations/{convId} {
       allow read: if request.auth != null
                   && request.auth.uid in resource.data.participants;
+
+      // Create requires (a) caller is a participant, (b) exactly two
+      // participants, (c) a friendship doc exists at the same id.
       allow create: if request.auth != null
                     && request.auth.uid in request.resource.data.participants
-                    && request.resource.data.participants.size() == 2;
+                    && request.resource.data.participants.size() == 2
+                    && exists(/databases/$(database)/documents/friendships/$(convId));
+
       allow update: if request.auth != null
                     && request.auth.uid in resource.data.participants;
 

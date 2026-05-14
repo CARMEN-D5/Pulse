@@ -129,12 +129,20 @@ export async function deletePost(postId) {
   }
 }
 
-/** Most-recent N posts, across all users. */
-export async function listFeed({ pageSize = 30 } = {}) {
+/**
+ * Most-recent N posts from a specific set of authors (yourself + friends).
+ *
+ * Posts are friends-only at the rule level, so the query MUST filter by
+ * authorUid — an unfiltered query gets rejected with permission-denied
+ * because some matching docs are unreadable. The caller passes in the
+ * list of uids to include (typically [self, ...friendUids]).
+ */
+export async function listFeed(authorUids, { pageSize = 30 } = {}) {
+  if (!Array.isArray(authorUids) || authorUids.length === 0) {
+    return { ok: true, data: [] };
+  }
   try {
-    const snap = await getDocs(
-      query(postsCol(), orderBy("createdAt", "desc"), limit(pageSize))
-    );
+    const snap = await getDocs(buildFeedQuery(authorUids, pageSize));
     const out = [];
     snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
     return { ok: true, data: out };
@@ -274,11 +282,45 @@ export { collectionGroup };
 // cleanup. New posts, likes and comments will then flow into the UI without
 // the user having to refresh.
 
-/** Live feed of the most-recent N posts. */
-export function subscribeToFeed(callback, { pageSize = 30 } = {}) {
-  const q = query(postsCol(), orderBy("createdAt", "desc"), limit(pageSize));
+/**
+ * Build the friends-only feed query.
+ *
+ * Firestore's `in` operator allows up to 30 values, which comfortably
+ * covers a uni-student-scale friend list. If a user ever exceeds 30
+ * friends we'd need to chunk this into multiple queries and merge.
+ */
+function buildFeedQuery(authorUids, pageSize) {
+  const slice = authorUids.slice(0, 30);
+  // Single-author special case: `==` is cheaper than `in` of length 1.
+  if (slice.length === 1) {
+    return query(
+      postsCol(),
+      where("authorUid", "==", slice[0]),
+      orderBy("createdAt", "desc"),
+      limit(pageSize)
+    );
+  }
+  return query(
+    postsCol(),
+    where("authorUid", "in", slice),
+    orderBy("createdAt", "desc"),
+    limit(pageSize)
+  );
+}
+
+/**
+ * Live feed of the most-recent N posts authored by the given uids
+ * (typically [self, ...friendUids]). Returns a no-op unsubscribe if
+ * the list is empty.
+ */
+export function subscribeToFeed(authorUids, callback, { pageSize = 30 } = {}) {
+  if (!Array.isArray(authorUids) || authorUids.length === 0) {
+    // No authors to read from — return [] and a no-op cleanup.
+    callback([]);
+    return () => {};
+  }
   return onSnapshot(
-    q,
+    buildFeedQuery(authorUids, pageSize),
     (snap) => {
       const out = [];
       snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
