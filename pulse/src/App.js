@@ -237,10 +237,10 @@ function App() {
     }
 
     case "finance":
-      return <Finance user={user} onBack={() => setView("home")} />;
+      return <Finance user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
 
     case "todo":
-      return <TodoList user={user} onBack={() => setView("home")} />;
+      return <TodoList user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
 
     case "home":
       return (

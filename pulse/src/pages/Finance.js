@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./auth.css";
 
+import { logAction } from "../firestore/scoring";
 import DonutChart from "./DonutChart";
 import SpendingCalendar from "./SpendingCalendar";
 import {
@@ -34,7 +35,7 @@ import {
  *   - Recent transactions with delete
  *   - Settings modal: Budgets tab + Accounts tab
  */
-function Finance({ user, onBack }) {
+function Finance({ user, onBack, onActivityLogged }) {
   const uid = user?.uid;
 
   const [expenses, setExpenses] = useState([]);
@@ -142,6 +143,8 @@ function Finance({ user, onBack }) {
       setError(res.error || "Couldn't save the expense.");
       return false;
     }
+    logAction(uid, 'finance', 'expense');
+    onActivityLogged?.();
     await refresh();
     return true;
   };
