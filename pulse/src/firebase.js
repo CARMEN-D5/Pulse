@@ -13,7 +13,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -37,5 +37,22 @@ if (!firebaseConfig.apiKey) {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// `initializeFirestore` (instead of `getFirestore`) lets us pass transport
+// options. `experimentalAutoDetectLongPolling: true` makes Firestore fall
+// back to long-polling on networks where the default WebSocket transport
+// gets stuck — corporate firewalls, some VPNs, and the ANU campus Wi-Fi
+// have all been known to trip the watch stream into a corrupt state and
+// surface as:
+//
+//   FIRESTORE (11.x) INTERNAL ASSERTION FAILED:
+//   Unexpected state (ID: ca9) CONTEXT: {"ve":-1}
+//
+// Long-polling is slower to start (~250ms extra) but rock-solid. The
+// auto-detect variant uses WebSockets where they work and only falls
+// back when they don't, so it's safe to leave on for everyone.
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
+
 export const storage = getStorage(app);
