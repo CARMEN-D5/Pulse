@@ -12,6 +12,7 @@ import RelationshipsPage from "./pages/RelationshipsPage";
 import HealthPage from "./pages/HealthPage";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
+import Social from "./pages/Social";
 import {
   signUp,
   logIn,
@@ -77,7 +78,7 @@ function App() {
         //   1. Brand-new sign-up → entry quiz
         //   2. Existing user without a saved baseline → entry quiz
         //   3. Otherwise preserve any current authed view, default to home
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo"];
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "social"];
         setView((current) => {
           if (isNewSignUp.current) return "entryQuiz";
           if (!data?.onboardingCompletedAt) return "entryQuiz";
@@ -85,7 +86,7 @@ function App() {
         });
       } else {
         setUserDoc(null);
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "entryQuiz"];
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "social", "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
     });
@@ -242,6 +243,9 @@ function App() {
     case "todo":
       return <TodoList user={user} onBack={() => setView("home")} />;
 
+    case "social":
+      return <Social user={user} onBack={() => setView("home")} />;
+
     case "home":
       return (
         <Home
@@ -251,6 +255,7 @@ function App() {
           onDomainSelect={handleDomainSelect}
           onOpenDomain={handleDomainSelect}
           onNevigate={handleDomainSelect}
+          onOpenSocial={() => setView("social")}
           onLogout={handleLogout}
         />
       );
