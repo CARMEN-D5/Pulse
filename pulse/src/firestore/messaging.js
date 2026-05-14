@@ -56,6 +56,13 @@ const convsCol = () => collection(db, "conversations");
 /**
  * Return the conversation between me and `otherUser`, creating it if needed.
  * `otherUser` should have at least { uid, name, email }.
+ *
+ * Note on the try/catch around `getDoc`: Firestore rules for the
+ * /conversations/{convId} read predicate reference `resource.data.participants`,
+ * which is undefined when the doc doesn't yet exist. The rules engine then
+ * denies the read with "Missing or insufficient permissions" instead of
+ * returning a "doc doesn't exist" snapshot. We treat that specific failure
+ * as "doesn't exist yet" and fall through to the create branch.
  */
 export async function getOrCreateConversation(me, otherUser) {
   if (!me?.uid || !otherUser?.uid) {
@@ -65,39 +72,54 @@ export async function getOrCreateConversation(me, otherUser) {
     return { ok: false, error: "Can't message yourself." };
   }
 
-  try {
-    const convId = conversationIdFor(me.uid, otherUser.uid);
-    const ref = doc(db, "conversations", convId);
-    const snap = await getDoc(ref);
+  const convId = conversationIdFor(me.uid, otherUser.uid);
+  const ref = doc(db, "conversations", convId);
 
-    if (!snap.exists()) {
-      const participants = [me.uid, otherUser.uid].sort();
-      const participantInfo = {
-        [me.uid]: { name: me.name || null, email: me.email || null },
-        [otherUser.uid]: {
-          name: otherUser.name || null,
-          email: otherUser.email || null,
-        },
-      };
-      await setDoc(ref, {
+  // Probe for an existing conversation. Either a real read error or a
+  // "doesn't exist" snapshot both fall through to create — setDoc with
+  // merge: true is idempotent so a doubly-created doc isn't a problem.
+  let existing = null;
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists()) existing = snap.data();
+  } catch (err) {
+    // Most likely permission-denied on a non-existent doc; ignore.
+  }
+
+  if (existing) {
+    return { ok: true, data: { id: convId, ...existing } };
+  }
+
+  try {
+    const participants = [me.uid, otherUser.uid].sort();
+    const participantInfo = {
+      [me.uid]: { name: me.name || null, email: me.email || null },
+      [otherUser.uid]: {
+        name: otherUser.name || null,
+        email: otherUser.email || null,
+      },
+    };
+    await setDoc(
+      ref,
+      {
         participants,
         participantInfo,
         lastMessage: null,
         lastMessageAt: null,
         createdAt: serverTimestamp(),
-      });
-      return {
-        ok: true,
-        data: {
-          id: convId,
-          participants,
-          participantInfo,
-          lastMessage: null,
-          lastMessageAt: null,
-        },
-      };
-    }
-    return { ok: true, data: { id: convId, ...snap.data() } };
+      },
+      { merge: true }
+    );
+    return {
+      ok: true,
+      data: {
+        id: convId,
+        participants,
+        participantInfo,
+        lastMessage: null,
+        lastMessageAt: null,
+      },
+    };
   } catch (err) {
     return { ok: false, error: err?.message };
   }
@@ -173,6 +195,38 @@ export async function sendMessage(convId, { senderUid, text }) {
   } catch (err) {
     return { ok: false, error: err?.message };
   }
+}
+
+/**
+ * Subscribe to the user's conversation list in real time. New conversations
+ * and updates to lastMessage/lastMessageAt push instantly into the UI.
+ */
+export function subscribeToConversations(uid, callback) {
+  if (!uid) return () => {};
+  const q = query(convsCol(), where("participants", "array-contains", uid));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const out = [];
+      snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
+      // Sort newest activity first. Doing it client-side avoids needing a
+      // composite index on (participants, lastMessageAt).
+      out.sort((a, b) => {
+        const ta = a.lastMessageAt?.toMillis?.() || 0;
+        const tb = b.lastMessageAt?.toMillis?.() || 0;
+        return tb - ta;
+      });
+      callback(out);
+    },
+    (err) => {
+      // eslint-disable-next-line no-console
+      console.debug(
+        "[Pulse] subscribeToConversations error",
+        err?.code,
+        err?.message
+      );
+    }
+  );
 }
 
 /**

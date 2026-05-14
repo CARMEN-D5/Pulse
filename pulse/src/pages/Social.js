@@ -4,26 +4,22 @@ import "./social.css";
 
 import {
   createPost,
-  updatePost,
   deletePost,
-  listFeed,
   getMyTodayPost,
   toggleLike,
-  getLikeSummary,
   addComment,
-  listComments,
   deleteComment,
-  getCommentCount,
-  todayKey,
+  subscribeToFeed,
+  subscribeToLikes,
+  subscribeToComments,
 } from "../firestore/social";
 import { uploadPostImage, deletePostImage } from "../storage/uploads";
 import { searchUserByEmail } from "../firestore/users";
 import {
-  conversationIdFor,
   getOrCreateConversation,
-  listConversations,
   sendMessage,
   subscribeToMessages,
+  subscribeToConversations,
 } from "../firestore/messaging";
 
 /**
@@ -41,8 +37,12 @@ function Social({ user, onBack }) {
 
   // The open conversation (id + other-user metadata). Null = no overlay.
   const [openThread, setOpenThread] = useState(null);
+  // Top-level error banner — used when conversation creation fails so the
+  // user isn't left wondering why nothing happened.
+  const [socialError, setSocialError] = useState("");
 
   const startConversation = async (otherUser) => {
+    setSocialError("");
     const res = await getOrCreateConversation(
       { uid: user.uid, name: displayNameFor(user), email: user.email },
       otherUser
@@ -53,6 +53,8 @@ function Social({ user, onBack }) {
         otherUid: otherUser.uid,
         otherName: otherUser.displayName || otherUser.name || otherUser.email,
       });
+    } else {
+      setSocialError(res.error || "Couldn't open that conversation.");
     }
   };
 
@@ -66,6 +68,12 @@ function Social({ user, onBack }) {
           <h1>Social</h1>
           <div style={{ width: 60 }} />
         </div>
+
+        {socialError && (
+          <div className="alert alert-error" role="alert">
+            {socialError}
+          </div>
+        )}
 
         <div className="social-tabs" role="tablist">
           {[
@@ -152,15 +160,13 @@ function FeedTab({ user, onStartConversation }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = async () => {
-    setLoading(true);
-    const res = await listFeed({ pageSize: 30 });
-    if (res.ok) setPosts(res.data);
-    setLoading(false);
-  };
-
+  // Live feed subscription. New posts (from anyone) appear automatically.
   useEffect(() => {
-    refresh();
+    const unsub = subscribeToFeed((incoming) => {
+      setPosts(incoming);
+      setLoading(false);
+    });
+    return unsub;
   }, []);
 
   if (loading) {
@@ -180,7 +186,6 @@ function FeedTab({ user, onStartConversation }) {
           key={p.id}
           post={p}
           user={user}
-          onChanged={refresh}
           onStartConversation={onStartConversation}
         />
       ))}
@@ -192,56 +197,35 @@ function FeedTab({ user, onStartConversation }) {
 // PostCard — two-slide post, likes, comments
 // ============================================================================
 
-function PostCard({ post, user, onChanged, onStartConversation }) {
+function PostCard({ post, user, onStartConversation, onDeleted }) {
   const [slide, setSlide] = useState(post.imageUrl ? 0 : 1);
   const [likeSummary, setLikeSummary] = useState({ count: 0, likedByMe: false });
-  const [commentCount, setCommentCount] = useState(0);
-  const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
+  const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const isMine = post.authorUid === user?.uid;
 
-  // Load like/comment counts once on mount.
+  // Live subscriptions — likes and comments update without a refresh.
+  // Both are scoped to this post, so leaving the page (component unmount)
+  // unsubscribes via the returned cleanup function.
   useEffect(() => {
-    let active = true;
-    (async () => {
-      const [ls, cc] = await Promise.all([
-        getLikeSummary(post.id, user?.uid),
-        getCommentCount(post.id),
-      ]);
-      if (!active) return;
-      if (ls.ok) setLikeSummary(ls.data);
-      if (cc.ok) setCommentCount(cc.data);
-    })();
+    const unsubLikes = subscribeToLikes(post.id, user?.uid, setLikeSummary);
+    const unsubComments = subscribeToComments(post.id, setComments);
     return () => {
-      active = false;
+      unsubLikes();
+      unsubComments();
     };
   }, [post.id, user?.uid]);
 
-  // Comments load on first reveal.
-  useEffect(() => {
-    if (!showComments) return;
-    (async () => {
-      const res = await listComments(post.id);
-      if (res.ok) setComments(res.data);
-    })();
-  }, [showComments, post.id]);
+  // Comment count is just `comments.length` now that they're always loaded.
+  const commentCount = comments.length;
 
   const onToggleLike = async () => {
-    // Optimistic update.
-    setLikeSummary((s) => ({
-      count: s.likedByMe ? s.count - 1 : s.count + 1,
-      likedByMe: !s.likedByMe,
-    }));
-    const res = await toggleLike(post.id, user.uid);
-    if (!res.ok) {
-      // Revert on failure.
-      setLikeSummary((s) => ({
-        count: s.likedByMe ? s.count - 1 : s.count + 1,
-        likedByMe: !s.likedByMe,
-      }));
-    }
+    // No optimistic update — the snapshot listener fires within ~100ms of
+    // the write completing, which is plenty snappy and avoids the brief
+    // flicker that an optimistic-then-snapshot-overwrite pattern can cause.
+    await toggleLike(post.id, user.uid);
   };
 
   const onSubmitComment = async (e) => {
@@ -257,26 +241,23 @@ function PostCard({ post, user, onChanged, onStartConversation }) {
     setSubmitting(false);
     if (res.ok) {
       setCommentText("");
-      const fresh = await listComments(post.id);
-      if (fresh.ok) setComments(fresh.data);
-      setCommentCount((c) => c + 1);
+      // No manual re-fetch — the subscription will pick up the new comment.
     }
   };
 
   const onDeleteComment = async (commentId) => {
-    const res = await deleteComment(post.id, commentId);
-    if (res.ok) {
-      setComments((cs) => cs.filter((c) => c.id !== commentId));
-      setCommentCount((c) => Math.max(0, c - 1));
-    }
+    await deleteComment(post.id, commentId);
+    // Subscription handles the UI update.
   };
 
   const onDeletePost = async () => {
     if (!window.confirm("Delete this post?")) return;
-    // Best-effort image cleanup, then doc.
+    // Best-effort image cleanup, then doc. The feed subscription drops it
+    // from the list automatically; the Today tab uses onDeleted to swap
+    // back to the compose form.
     if (post.imagePath) await deletePostImage(post.imagePath);
-    const res = await deletePost(post.id);
-    if (res.ok && onChanged) onChanged();
+    await deletePost(post.id);
+    if (onDeleted) onDeleted();
   };
 
   const onMessageAuthor = () => {
@@ -519,7 +500,7 @@ function TodayTab({ user }) {
             Come back tomorrow to share another moment.
           </p>
         </div>
-        <PostCard post={myPost} user={user} onChanged={refresh} />
+        <PostCard post={myPost} user={user} onDeleted={refresh} />
       </>
     );
   }
@@ -592,16 +573,16 @@ function MessagesTab({ user, onOpenThread, onStartConversation }) {
   const [searchEmail, setSearchEmail] = useState("");
   const [searchState, setSearchState] = useState({ status: "idle" });
 
-  const refresh = async () => {
-    setLoading(true);
-    const res = await listConversations(user.uid);
-    if (res.ok) setConvs(res.data);
-    setLoading(false);
-  };
-
+  // Live conversation list — new conversations and last-message previews
+  // update without a refresh.
   useEffect(() => {
-    refresh();
-  }, [user.uid]);
+    if (!user?.uid) return;
+    const unsub = subscribeToConversations(user.uid, (list) => {
+      setConvs(list);
+      setLoading(false);
+    });
+    return unsub;
+  }, [user?.uid]);
 
   const onSearch = async (e) => {
     e.preventDefault();
@@ -632,7 +613,7 @@ function MessagesTab({ user, onOpenThread, onStartConversation }) {
       email: otherUser.email,
       displayName: otherUser.displayName,
     });
-    refresh();
+    // No manual refresh — subscribeToConversations will pick up the new doc.
   };
 
   return (

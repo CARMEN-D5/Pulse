@@ -29,6 +29,7 @@ import {
   deleteDoc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
   where,
   orderBy,
@@ -264,3 +265,65 @@ export async function getCommentCount(postId) {
 
 // Re-export collectionGroup so a future "all comments by me" view can use it.
 export { collectionGroup };
+
+// ---------------------------------------------------------------------------
+// Real-time subscriptions
+// ---------------------------------------------------------------------------
+//
+// Each helper returns an unsubscribe function — call it in your useEffect
+// cleanup. New posts, likes and comments will then flow into the UI without
+// the user having to refresh.
+
+/** Live feed of the most-recent N posts. */
+export function subscribeToFeed(callback, { pageSize = 30 } = {}) {
+  const q = query(postsCol(), orderBy("createdAt", "desc"), limit(pageSize));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const out = [];
+      snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
+      callback(out);
+    },
+    (err) => {
+      // eslint-disable-next-line no-console
+      console.debug("[Pulse] subscribeToFeed error", err?.code, err?.message);
+    }
+  );
+}
+
+/**
+ * Live like summary for a post — `{ count, likedByMe }`.
+ * `uid` may be null/undefined for signed-out users (likedByMe will be false).
+ */
+export function subscribeToLikes(postId, uid, callback) {
+  return onSnapshot(
+    likesCol(postId),
+    (snap) => {
+      callback({
+        count: snap.size,
+        likedByMe: uid ? snap.docs.some((d) => d.id === uid) : false,
+      });
+    },
+    (err) => {
+      // eslint-disable-next-line no-console
+      console.debug("[Pulse] subscribeToLikes error", err?.code, err?.message);
+    }
+  );
+}
+
+/** Live comments list for a post, oldest first. */
+export function subscribeToComments(postId, callback) {
+  const q = query(commentsCol(postId), orderBy("createdAt", "asc"));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const out = [];
+      snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
+      callback(out);
+    },
+    (err) => {
+      // eslint-disable-next-line no-console
+      console.debug("[Pulse] subscribeToComments error", err?.code, err?.message);
+    }
+  );
+}
