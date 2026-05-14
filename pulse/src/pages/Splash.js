@@ -1,52 +1,96 @@
 import React from "react";
 import "./auth.css";
 
-/**
- * Splash / Welcome page.
- *
- * Maps to the "Start -> Splash Page -> Already a member?" branch of the
- * user flow chart. Offers Login (yes) or Sign Up (no -> sign up).
- */
 function Splash({ onLogin, onSignUp }) {
   return (
-    <div className="auth-shell">
-      <div className="auth-card">
-        <div className="pulse-brand">
-          <div className="pulse-logo">
-            <span className="pulse-logo-dot" aria-hidden="true" />
-            Pulse
+    <div className="welcome-shell">
+      <header className="welcome-header">
+        <div className="welcome-brand">
+          <span className="material-symbols-outlined welcome-brand-icon">spa</span>
+          <span className="welcome-brand-name">Pulse</span>
+        </div>
+      </header>
+
+      <main className="welcome-main">
+        {/* Hero visual */}
+        <div className="welcome-hero-wrap">
+          <div className="welcome-hero-glow" />
+          <div className="welcome-hero-card">
+            <span className="material-symbols-outlined welcome-hero-icon">
+              self_improvement
+            </span>
+            <div className="welcome-hero-sub-icons">
+              <span className="material-symbols-outlined">favorite</span>
+              <span className="material-symbols-outlined">psychology</span>
+              <span className="material-symbols-outlined">groups</span>
+              <span className="material-symbols-outlined">work</span>
+            </div>
           </div>
-          <p className="pulse-tagline">Balance every beat of your life.</p>
+          {/* Floating reflection card */}
+          <div className="welcome-reflect-card">
+            <div className="welcome-reflect-header">
+              <span className="material-symbols-outlined">lightbulb</span>
+              <span className="welcome-reflect-label">Reflection</span>
+            </div>
+            <p className="welcome-reflect-text">
+              What part of your life needs the most care today?
+            </p>
+          </div>
         </div>
 
-        <div className="splash-hero">
-          <h1 className="splash-title">Welcome to Pulse</h1>
-          <p className="splash-sub">
-            Track your spirituality, finance, health, productivity and
-            relationships — one gentle check-in at a time.
+        {/* Content */}
+        <div className="welcome-content">
+          <h1 className="welcome-title">
+            Find Your Perfect{" "}
+            <span className="welcome-title-accent">Balance</span>
+          </h1>
+          <p className="welcome-subtitle">
+            Discover a more intentional way to live across all domains of your
+            life: Health, Mind, Spirit, Social, and Work.
           </p>
         </div>
 
-        <div className="splash-actions">
+        {/* Actions */}
+        <div className="welcome-actions">
+          <button type="button" className="welcome-cta" onClick={onSignUp}>
+            <div className="welcome-cta-shine" />
+            <span className="welcome-cta-inner">
+              Start My Journey
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </span>
+          </button>
           <button
             type="button"
-            className="btn btn-primary"
+            className="welcome-login-link"
             onClick={onLogin}
           >
-            I'm already a member — Log in
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onSignUp}
-          >
-            Create an account
+            I already have an account
           </button>
         </div>
+      </main>
 
-        <p className="auth-footer">
-          By continuing, you agree to Pulse's Terms &amp; Privacy Policy.
-        </p>
+      {/* Domain indicators (desktop only) */}
+      <div className="welcome-domains">
+        <div className="welcome-domain-item">
+          <span className="material-symbols-outlined">favorite</span>
+          <span className="welcome-domain-label">Health</span>
+        </div>
+        <div className="welcome-domain-item">
+          <span className="material-symbols-outlined">psychology</span>
+          <span className="welcome-domain-label">Mind</span>
+        </div>
+        <div className="welcome-domain-item">
+          <span className="material-symbols-outlined">self_improvement</span>
+          <span className="welcome-domain-label">Spirit</span>
+        </div>
+        <div className="welcome-domain-item">
+          <span className="material-symbols-outlined">groups</span>
+          <span className="welcome-domain-label">Social</span>
+        </div>
+        <div className="welcome-domain-item">
+          <span className="material-symbols-outlined">work</span>
+          <span className="welcome-domain-label">Work</span>
+        </div>
       </div>
     </div>
   );
