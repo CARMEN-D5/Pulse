@@ -1,7 +1,5 @@
 /**
- * DailyMissions.js
- * ─────────────────────────────────────────────────────────────────────────────
- * Displays today's 3 daily missions with a checklist UI.
+  * Displays today's 3 daily missions with a checklist UI.
  * Renders a "History" button that opens MissionHistory.
  *
  * Props:

@@ -1,6 +1,4 @@
 /**
- * missionEngine.js
- * ─────────────────────────────────────────────────────────────────────────────
  * Pure logic for selecting daily missions + Firestore read/write helpers.
  * No React here — import this from both DailyMissions and MissionHistory.
  *

@@ -1,6 +1,4 @@
 /**
- * MissionHistory.js
- * ─────────────────────────────────────────────────────────────────────────────
  * Full-screen history view with three tabs:
  *
  *   Tab 1 – This Week      : daily breakdown for the current ISO week

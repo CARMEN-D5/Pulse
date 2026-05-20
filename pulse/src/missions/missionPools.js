@@ -1,6 +1,4 @@
 /**
- * missionPools.js
- * ─────────────────────────────────────────────────────────────────────────────
  * Central repository of all daily mission text pools, keyed by domain.
  * Edit this file to add, remove, or update missions without touching any logic.
  *
