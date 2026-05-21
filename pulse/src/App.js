@@ -10,6 +10,7 @@ import EntryQuiz from "./pages/EntryQuiz";
 import SpiritualityPage from "./pages/SpiritualityPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
 import HealthPage from "./pages/HealthPage";
+import PhysicalActivity from "./pages/PhysicalActivity";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
 import {
@@ -28,7 +29,7 @@ import { saveOnboardingBaseline } from "./firestore/scoring";
 const DOMAIN_PAGE_MAP = {
   spirituality:  SpiritualityPage,
   relationships: RelationshipsPage,
-  health:        HealthPage,
+  health:        PhysicalActivity,
 };
 
 /**
