@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { DOMAINS, DOMAIN_KEYS } from '../scoring/scoringEngine';
 import { computeCurrentScores } from '../firestore/scoring';
+import DailyMissions from './DailyMissions';
 import './auth.css';
 
 /* ── Domain visual config ──────────────────────────────────── */
@@ -316,6 +317,12 @@ function Home({
               </div>
             </section>
 
+            {/* ── Daily Missions ─────────────────────── */}
+            <DailyMissions
+              user={user}
+              domainScores={scores.domainScores}
+            />
+
             {/* ── Focus Banner ───────────────────────── */}
             <section className="dash-focus" onClick={() => openDomain(focusDomainKey)}>
               <div className="dash-focus-accent" style={{ background: focusMeta.gradient }} />
@@ -340,5 +347,6 @@ function Home({
     </div>
   );
 }
+
 
 export default Home;
