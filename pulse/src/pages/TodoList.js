@@ -11,6 +11,7 @@ import {
     orderBy,
     serverTimestamp
 } from 'firebase/firestore';
+import { logAction } from '../firestore/scoring';
 import "./TodoList.css";
 
 /**
@@ -92,7 +93,7 @@ function formatDueDate(dateStr) {
  * Actions include adding new missions, toggling completion status
  * and removing tasks from the user's active view.
  */
-function TodoList({ user, onBack }) {
+function TodoList({ user, onBack, onActivityLogged }) {
     const [todos, setTodos] = useState([]);
     const [input, setInput] = useState('');
     const [descInput, setDescInput] = useState('');
@@ -233,6 +234,10 @@ function TodoList({ user, onBack }) {
             await updateDoc(todoRef, {
                 completed: !todo.completed
             });
+            if (!todo.completed) {
+                logAction(user.uid, 'productivity', 'task');
+                onActivityLogged?.();
+            }
         }catch(err){
             console.error("Toggle error:", err);
             setError("Failed to update status.");

@@ -13,6 +13,7 @@ import HealthPage from "./pages/HealthPage";
 import PhysicalActivity from "./pages/PhysicalActivity";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
+import ProgressAnalytics from "./pages/ProgressAnalytics";
 import Social from "./pages/Social";
 import {
   signUp,
@@ -79,7 +80,7 @@ function App() {
         //   1. Brand-new sign-up → entry quiz
         //   2. Existing user without a saved baseline → entry quiz
         //   3. Otherwise preserve any current authed view, default to home
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "social"];
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "progress", "social"];
         setView((current) => {
           if (isNewSignUp.current) return "entryQuiz";
           if (!data?.onboardingCompletedAt) return "entryQuiz";
@@ -87,7 +88,7 @@ function App() {
         });
       } else {
         setUserDoc(null);
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "social", "entryQuiz"];
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "progress", "social", "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
     });
@@ -239,10 +240,13 @@ function App() {
     }
 
     case "finance":
-      return <Finance user={user} onBack={() => setView("home")} />;
+      return <Finance user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
 
     case "todo":
-      return <TodoList user={user} onBack={() => setView("home")} />;
+      return <TodoList user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
+
+    case "progress":
+      return <ProgressAnalytics user={user} onBack={() => setView("home")} />;
 
     case "social":
       return <Social user={user} onBack={() => setView("home")} />;
@@ -258,6 +262,7 @@ function App() {
           onNevigate={handleDomainSelect}
           onOpenSocial={() => setView("social")}
           onLogout={handleLogout}
+          onOpenProgress={() => setView("progress")}
         />
       );
 
