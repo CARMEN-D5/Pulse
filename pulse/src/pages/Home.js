@@ -3,6 +3,7 @@ import { DOMAINS, DOMAIN_KEYS } from '../scoring/scoringEngine';
 import { computeCurrentScores } from '../firestore/scoring';
 import DailyMissions from './DailyMissions';
 import './auth.css';
+import './social.css';
 
 function ScoreRing({ score }) {
   const r = 54;
@@ -58,6 +59,7 @@ function Home({
   onDomainSelect,
   onOpenDomain,
   onNevigate,        // legacy callback name from to-do-list / entry-quiz branches
+  onOpenSocial,
   onLogout,
 }) {
   const [scores, setScores] = useState(null);
@@ -99,14 +101,25 @@ function Home({
             <h1>Hi, {displayName} 👋</h1>
             <p>Here's your balance across the 5 domains of life.</p>
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ width: 'auto' }}
-            onClick={onLogout}
-          >
-            Log out
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {onOpenSocial && (
+              <button
+                type="button"
+                className="home-social-btn"
+                onClick={onOpenSocial}
+              >
+                💬 Social
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ width: 'auto' }}
+              onClick={onLogout}
+            >
+              Log out
+            </button>
+          </div>
         </div>
 
         {/* Balanced Life Score */}

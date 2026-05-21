@@ -9,10 +9,15 @@
 // should land in its own sprint.
 
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
+  query,
+  where,
+  limit,
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -73,6 +78,32 @@ export async function updateUserDoc(uid, patch) {
       updatedAt: serverTimestamp(),
     });
     return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+}
+
+/**
+ * Find a user by their exact email address.
+ *
+ * Used by the social-media "start a new conversation" search box. Returns
+ * the first matching user doc or null. Email is the natural search key
+ * because each Auth user has a unique email (Firebase Auth enforces this).
+ */
+export async function searchUserByEmail(email) {
+  if (!email) return { ok: false, error: "Enter an email" };
+  const cleaned = email.trim().toLowerCase();
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, "users"),
+        where("email", "==", cleaned),
+        limit(1)
+      )
+    );
+    if (snap.empty) return { ok: true, data: null };
+    const d = snap.docs[0];
+    return { ok: true, data: { uid: d.id, ...d.data() } };
   } catch (err) {
     return { ok: false, error: err?.message };
   }
