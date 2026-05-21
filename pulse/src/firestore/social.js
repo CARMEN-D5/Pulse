@@ -1,9 +1,10 @@
 // src/firestore/social.js
 //
 // Firestore helpers for the social-media feature: daily posts, likes,
-// and comments.
+// and comments. All real-time via onSnapshot subscriptions.
 //
-// Data model (top-level collections so everyone can read them):
+// Data model (top-level collections; visibility is enforced by rules
+// based on the friendships collection):
 //
 //   posts/{postId}
 //     authorUid, authorName, imageUrl, imagePath?, reflection,
@@ -15,14 +16,12 @@
 //   posts/{postId}/comments/{commentId}
 //     authorUid, authorName, text, createdAt
 //
-// Like/comment counts are computed on read from the sub-collection size
-// rather than denormalized onto the post. That keeps the security rules
-// simple (the post doc is only writable by its author) at the cost of an
-// extra read per post. Fine for a uni-project scale of traffic.
+// Like/comment counts are derived from the subcollection size in the
+// live snapshot, so they update without a refresh and without an extra
+// read on each render.
 
 import {
   collection,
-  collectionGroup,
   doc,
   addDoc,
   setDoc,
@@ -108,44 +107,11 @@ export async function createPost({
   }
 }
 
-/** Update the reflection or image on an existing post. */
-export async function updatePost(postId, patch) {
-  try {
-    const ref = doc(db, "posts", postId);
-    await setDoc(ref, { ...patch, updatedAt: serverTimestamp() }, { merge: true });
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err?.message };
-  }
-}
-
 /** Delete a post. The caller should clean up the Storage image first. */
 export async function deletePost(postId) {
   try {
     await deleteDoc(doc(db, "posts", postId));
     return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err?.message };
-  }
-}
-
-/**
- * Most-recent N posts from a specific set of authors (yourself + friends).
- *
- * Posts are friends-only at the rule level, so the query MUST filter by
- * authorUid — an unfiltered query gets rejected with permission-denied
- * because some matching docs are unreadable. The caller passes in the
- * list of uids to include (typically [self, ...friendUids]).
- */
-export async function listFeed(authorUids, { pageSize = 30 } = {}) {
-  if (!Array.isArray(authorUids) || authorUids.length === 0) {
-    return { ok: true, data: [] };
-  }
-  try {
-    const snap = await getDocs(buildFeedQuery(authorUids, pageSize));
-    const out = [];
-    snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
-    return { ok: true, data: out };
   } catch (err) {
     return { ok: false, error: err?.message };
   }
@@ -195,25 +161,6 @@ export async function toggleLike(postId, uid) {
   }
 }
 
-/** Returns `{ count, likedByMe }` in a single round trip. */
-export async function getLikeSummary(postId, uid) {
-  try {
-    const [allSnap, mineSnap] = await Promise.all([
-      getDocs(likesCol(postId)),
-      uid ? getDoc(doc(db, "posts", postId, "likes", uid)) : Promise.resolve(null),
-    ]);
-    return {
-      ok: true,
-      data: {
-        count: allSnap.size,
-        likedByMe: !!mineSnap?.exists?.(),
-      },
-    };
-  } catch (err) {
-    return { ok: false, error: err?.message };
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------
@@ -237,20 +184,6 @@ export async function addComment(postId, { authorUid, authorName, text }) {
   }
 }
 
-/** List comments on a post, oldest first (so the conversation reads naturally). */
-export async function listComments(postId) {
-  try {
-    const snap = await getDocs(
-      query(commentsCol(postId), orderBy("createdAt", "asc"))
-    );
-    const out = [];
-    snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
-    return { ok: true, data: out };
-  } catch (err) {
-    return { ok: false, error: err?.message };
-  }
-}
-
 /** Delete a comment. Rules enforce that only the comment author can do this. */
 export async function deleteComment(postId, commentId) {
   try {
@@ -260,19 +193,6 @@ export async function deleteComment(postId, commentId) {
     return { ok: false, error: err?.message };
   }
 }
-
-/** Count comments on a post (cheap if traffic is small). */
-export async function getCommentCount(postId) {
-  try {
-    const snap = await getDocs(commentsCol(postId));
-    return { ok: true, data: snap.size };
-  } catch (err) {
-    return { ok: false, error: err?.message };
-  }
-}
-
-// Re-export collectionGroup so a future "all comments by me" view can use it.
-export { collectionGroup };
 
 // ---------------------------------------------------------------------------
 // Real-time subscriptions
@@ -316,7 +236,7 @@ function buildFeedQuery(authorUids, pageSize) {
 export function subscribeToFeed(authorUids, callback, { pageSize = 30 } = {}) {
   if (!Array.isArray(authorUids) || authorUids.length === 0) {
     // No authors to read from — return [] and a no-op cleanup.
-    callback([]);
+    callback({ posts: [], error: null });
     return () => {};
   }
   return onSnapshot(
@@ -324,11 +244,20 @@ export function subscribeToFeed(authorUids, callback, { pageSize = 30 } = {}) {
     (snap) => {
       const out = [];
       snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
-      callback(out);
+      callback({ posts: out, error: null });
     },
     (err) => {
+      // Surface the error to the UI so the user can see why the feed is
+      // empty. Common cases:
+      //   permission-denied      → Firestore rules blocked the read
+      //   failed-precondition    → missing composite index (the message
+      //                            includes a URL to auto-create it)
       // eslint-disable-next-line no-console
-      console.debug("[Pulse] subscribeToFeed error", err?.code, err?.message);
+      console.error("[Pulse] subscribeToFeed error", err?.code, err?.message);
+      callback({
+        posts: [],
+        error: { code: err?.code, message: err?.message },
+      });
     }
   );
 }

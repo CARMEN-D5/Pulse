@@ -125,42 +125,6 @@ export async function getOrCreateConversation(me, otherUser) {
   }
 }
 
-/** All conversations involving `uid`, newest activity first. */
-export async function listConversations(uid) {
-  if (!uid) return { ok: false, error: "Not signed in" };
-  try {
-    const snap = await getDocs(
-      query(
-        convsCol(),
-        where("participants", "array-contains", uid),
-        orderBy("lastMessageAt", "desc")
-      )
-    );
-    const out = [];
-    snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
-    return { ok: true, data: out };
-  } catch (err) {
-    // The above query needs an index on (participants, lastMessageAt).
-    // Firestore returns a friendly URL to create it on first failure;
-    // fall back to an in-memory sort so dev still works without it.
-    try {
-      const snap = await getDocs(
-        query(convsCol(), where("participants", "array-contains", uid))
-      );
-      const out = [];
-      snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
-      out.sort((a, b) => {
-        const ta = a.lastMessageAt?.toMillis?.() || 0;
-        const tb = b.lastMessageAt?.toMillis?.() || 0;
-        return tb - ta;
-      });
-      return { ok: true, data: out };
-    } catch (err2) {
-      return { ok: false, error: err2?.message };
-    }
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Messages
 // ---------------------------------------------------------------------------

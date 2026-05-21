@@ -238,6 +238,7 @@ function timeAgo(ts) {
 
 function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
   const [posts, setPosts] = useState([]);
+  const [feedError, setFeedError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Live feed subscription, scoped to [self, ...friends]. Re-subscribes
@@ -247,14 +248,42 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
   const authorsKey = visibleAuthorUids.join("|");
   useEffect(() => {
     setLoading(true);
-    const unsub = subscribeToFeed(visibleAuthorUids, (incoming) => {
+    const unsub = subscribeToFeed(visibleAuthorUids, ({ posts: incoming, error }) => {
       setPosts(incoming);
+      setFeedError(error);
       setLoading(false);
     });
     return unsub;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorsKey]);
 
+  if (feedError) {
+    // Most common cases at this point:
+    //   "failed-precondition" → composite index missing. Firestore puts
+    //   a clickable URL in the message that auto-creates the index.
+    //   "permission-denied"   → Firestore rule blocked the query.
+    const isIndex = feedError.code === "failed-precondition";
+    const isPerms = feedError.code === "permission-denied";
+    const urlMatch = feedError.message?.match(/https?:\/\/\S+/);
+    return (
+      <div className="social-card alert alert-error" role="alert" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+        <div><strong>Couldn't load the feed.</strong></div>
+        <div style={{ fontSize: 13 }}>
+          <code>{feedError.code || "unknown"}</code>
+          {isIndex && " — Firestore needs a composite index on the posts collection. Click the link below to auto-create it (takes ~60 seconds)."}
+          {isPerms && " — Firestore rules are blocking the read. Re-publish the rules in the Firebase Console."}
+        </div>
+        {urlMatch && (
+          <a href={urlMatch[0]} target="_blank" rel="noreferrer" style={{ color: "var(--pulse-primary-dark)", wordBreak: "break-all", fontSize: 12 }}>
+            {urlMatch[0]}
+          </a>
+        )}
+        <div style={{ fontSize: 12, color: "var(--pulse-text-muted)" }}>
+          Full message: {feedError.message}
+        </div>
+      </div>
+    );
+  }
   if (loading) {
     return <div className="social-card social-empty">Loading feed…</div>;
   }

@@ -137,17 +137,6 @@ export async function unfriend(myUid, otherUid) {
   }
 }
 
-/** Cheap existence check; returns true if `me` and `other` are friends. */
-export async function isFriend(myUid, otherUid) {
-  if (!myUid || !otherUid || myUid === otherUid) return false;
-  try {
-    const snap = await getDoc(doc(db, "friendships", pairId(myUid, otherUid)));
-    return snap.exists();
-  } catch (err) {
-    return false;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Subscriptions
 // ---------------------------------------------------------------------------
