@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { MoodCheckInOverlay, JournalPromptOverlay, MoodDashboard } from "./MoodTracker";
 import { todayKey, loadMoodData, saveMoodData } from "../data/spirituality";
+import { logReflection, logAction } from "../firestore/scoring";
 
 /**
  * Phase machine:
@@ -8,7 +9,7 @@ import { todayKey, loadMoodData, saveMoodData } from "../data/spirituality";
  *   "journal"   — journal prompt overlay (after mood selected)
  *   "dashboard" — main mood tracker view
  */
-function SpiritualityPage({ user, onBack }) {
+function SpiritualityPage({ user, onBack, onActivityLogged }) {
     const uid = user?.uid;
 
     const [moodData, setMoodData] = useState(() => loadMoodData(uid));
@@ -28,8 +29,18 @@ function SpiritualityPage({ user, onBack }) {
             };
             setMoodData(next);
             saveMoodData(uid, next);
+
+            // Score: mood rating (1-5) counts as a reflection for spirituality
+            if (uid) {
+                logReflection(uid, 'spirituality', moodId);
+                // Journal entry counts as a mindfulness action
+                if (journalText && journalText.trim()) {
+                    logAction(uid, 'spirituality', 'journal');
+                }
+                if (onActivityLogged) onActivityLogged();
+            }
         },
-        [moodData, uid]
+        [moodData, uid, onActivityLogged]
     );
 
     if (phase === "checkin") {

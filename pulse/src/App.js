@@ -249,7 +249,7 @@ function App() {
       return <ProgressAnalytics user={user} onBack={() => setView("home")} />;
 
     case "social":
-      return <Social user={user} onBack={() => setView("home")} />;
+      return <Social user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
 
     case "home":
       return (

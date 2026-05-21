@@ -9,6 +9,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { DOMAIN_META } from '../missions/missionPools';
+import { logAction } from '../firestore/scoring';
 import {
     getDayKey,
     getWeekKey,
@@ -94,12 +95,27 @@ export default function DailyMissions({ user, domainScores }) {
     // ── Toggle completion ─────────────────────────────────────────────────────
 
     const toggleComplete = async (idx) => {
+        const mission = missions[idx];
+        const wasCompleted = mission.completed;
         const updated = missions.map((m, i) =>
             i === idx ? { ...m, completed: !m.completed } : m
         );
         setMissions(updated);
         const stored = await loadDailyDoc(uid);
         await saveDailyDoc(uid, { ...stored, missions: updated });
+
+        // Score: log action when mission is newly completed (not un-completed)
+        if (!wasCompleted && mission.domain) {
+            const domainActions = {
+                spirituality: 'mindfulness',
+                relationships: 'connection',
+                productivity: 'task',
+                health: 'exercise',
+                finance: 'budget',
+            };
+            const actionType = domainActions[mission.domain];
+            if (actionType) logAction(uid, mission.domain, actionType);
+        }
     };
 
     // ── History overlay ───────────────────────────────────────────────────────

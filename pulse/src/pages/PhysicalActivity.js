@@ -12,6 +12,7 @@ import {
     orderBy,
     serverTimestamp
 } from 'firebase/firestore';
+import { logAction } from '../firestore/scoring';
 
 
 
@@ -40,7 +41,7 @@ function formatDueDate(dateStr) {
 
 
 
-function PhysicalActivity({ user, onBack}){
+function PhysicalActivity({ user, onBack, onActivityLogged}){
 //     State
     const [activities, setActivities] = useState([]);
     const [input, setInput] = useState('');
@@ -186,6 +187,10 @@ function PhysicalActivity({ user, onBack}){
                     sets: [{ weight: '', reps: '' }]
                 }
             ]);
+
+            // Score: log exercise action for the health domain
+            logAction(user.uid, 'health', 'exercise');
+            if (onActivityLogged) onActivityLogged();
         }catch(err){
             console.error("Add error", error);
             setError("Failed to add task. Please try again.");

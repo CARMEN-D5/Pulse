@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./auth.css";
 import "./social.css";
+import { logAction } from "../firestore/scoring";
 
 import {
   createPost,
@@ -42,7 +43,7 @@ import {
  *   - Messages : list of conversations + ability to start a new one,
  *                opens a thread overlay
  */
-function Social({ user, onBack }) {
+function Social({ user, onBack, onActivityLogged }) {
   const [tab, setTab] = useState("feed");
 
   // The open conversation (id + other-user metadata). Null = no overlay.
@@ -204,7 +205,7 @@ function Social({ user, onBack }) {
             onStartConversation={startConversation}
           />
         )}
-        {tab === "today" && <TodayTab user={user} />}
+        {tab === "today" && <TodayTab user={user} onActivityLogged={onActivityLogged} />}
         {tab === "messages" && (
           <MessagesTab
             user={user}
@@ -573,7 +574,7 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
 // Today tab — compose or view your own post for today
 // ============================================================================
 
-function TodayTab({ user }) {
+function TodayTab({ user, onActivityLogged }) {
   const [myPost, setMyPost] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -636,6 +637,10 @@ function TodayTab({ user }) {
       setError(res.error || "Couldn't save your post.");
       return;
     }
+
+    // Score: posting counts as a meaningful connection for relationships
+    logAction(user.uid, 'relationships', 'connection');
+    if (onActivityLogged) onActivityLogged();
 
     setImageFile(null);
     setImagePreview(null);
