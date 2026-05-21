@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     MOODS,
     JOURNAL_PROMPTS,
+    MOOD_EMOTIONS,
     todayKey,
     getTimeOfDay,
     buildWeekData,
@@ -182,23 +183,31 @@ export function MoodCheckInOverlay({ onSelect, onSkip }) {
 }
 
 // ---------------------------------------------------------------------------
-// JournalPromptOverlay — step 2: write a journal entry
+// JournalPromptOverlay.  write a journal entry
 // ---------------------------------------------------------------------------
 
 export function JournalPromptOverlay({ moodId, onSave, onSkip }) {
     const [text, setText] = useState("");
+    const [emotions, setEmotions] = useState([]);
     const [leaving, setLeaving] = useState(false);
     const textareaRef = useRef(null);
     const m = MOODS.find((x) => x.id === moodId);
     const prompt = JOURNAL_PROMPTS[new Date().getDay() % JOURNAL_PROMPTS.length];
+    const emotionOptions = MOOD_EMOTIONS[moodId] || [];
 
     useEffect(() => {
         setTimeout(() => textareaRef.current?.focus(), 100);
     }, []);
 
+    const toggleEmotion = (tag) => {
+        setEmotions((prev) =>
+            prev.includes(tag) ? prev.filter((e) => e !== tag) : [...prev, tag]
+        );
+    };
+
     const save = () => {
         setLeaving(true);
-        setTimeout(() => onSave(text.trim()), 320);
+        setTimeout(() => onSave(text.trim(), emotions), 320);
     };
 
     const skip = () => {
@@ -226,6 +235,7 @@ export function JournalPromptOverlay({ moodId, onSave, onSkip }) {
                 </div>
 
                 <div className="mood-card">
+                    {/* Mood badge */}
                     <div style={{
                         display: "flex", alignItems: "center", gap: 10, marginBottom: 16,
                         padding: "10px 14px", background: m.bg, borderRadius: 12,
@@ -237,40 +247,77 @@ export function JournalPromptOverlay({ moodId, onSave, onSkip }) {
             </span>
                     </div>
 
-                    <div style={{ borderLeft: `3px solid ${m.color}`, paddingLeft: 12, marginBottom: 16 }}>
+                    {/* Prompt */}
+                    <div style={{ borderLeft: `3px solid ${m.color}`, paddingLeft: 12, marginBottom: 16, borderRadius: 0 }}>
                         <p style={{ margin: 0, fontSize: 15, fontStyle: "italic", color: "var(--pulse-text)", lineHeight: 1.5 }}>
                             "{prompt}"
                         </p>
                     </div>
 
+                    {/* Text area */}
                     <textarea
                         ref={textareaRef}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         placeholder="Write freely — this is just for you…"
-                        rows={6}
+                        rows={5}
                         style={{
                             width: "100%", boxSizing: "border-box", resize: "none",
-                            border: "1px solid var(--pulse-border)", borderRadius: 10,
+                            border: `1px solid var(--pulse-border)`, borderRadius: 10,
                             padding: "12px 14px", fontSize: 14, lineHeight: 1.6,
                             fontFamily: "inherit", color: "var(--pulse-text)",
                             background: "var(--pulse-input-bg, var(--pulse-bg))", outline: "none",
+                            marginBottom: 12,
                         }}
                         onFocus={(e) => (e.target.style.borderColor = m.color)}
                         onBlur={(e) => (e.target.style.borderColor = "var(--pulse-border)")}
                     />
 
-                    <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {/* Emotion tags */}
+                    <div>
+                        <p style={{ margin: "0 0 8px", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--pulse-text-muted)", fontWeight: 600 }}>
+                            What are you feeling?
+                        </p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                            {emotionOptions.map((tag) => {
+                                const active = emotions.includes(tag);
+                                return (
+                                    <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => toggleEmotion(tag)}
+                                        style={{
+                                            padding: "5px 13px",
+                                            borderRadius: 999,
+                                            border: `1.5px solid ${active ? m.color : "var(--pulse-border)"}`,
+                                            background: active ? m.bg : "transparent",
+                                            color: active ? m.textColor : "var(--pulse-text-muted)",
+                                            fontSize: 13,
+                                            fontWeight: active ? 600 : 400,
+                                            cursor: "pointer",
+                                            transition: "all 0.15s ease",
+                                            fontFamily: "inherit",
+                                        }}
+                                    >
+                                        {tag}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
                         <button
                             type="button"
                             className="btn btn-primary"
                             onClick={save}
                             style={{
-                                background: text.trim() ? m.color : undefined,
-                                borderColor: text.trim() ? m.color : undefined,
+                                background: (text.trim() || emotions.length > 0) ? m.color : undefined,
+                                borderColor: (text.trim() || emotions.length > 0) ? m.color : undefined,
                             }}
                         >
-                            {text.trim() ? "Save & continue →" : "Continue without writing →"}
+                            {(text.trim() || emotions.length > 0) ? "Save & continue →" : "Continue without writing →"}
                         </button>
                         <button type="button" className="btn btn-ghost" onClick={skip}>
                             Skip
@@ -406,6 +453,7 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
                     dateLabel: d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }),
                     moodId: v.moodId,
                     text: v.journalText,
+                    emotions: v.emotions || [],
                 };
             });
     }, [moodData]);
@@ -430,37 +478,43 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
                     style={{
                         background: todayMood ? todayMood.bg : undefined,
                         border: todayMood ? `1px solid ${todayMood.color}33` : undefined,
+                        position: "relative",
                     }}
                 >
+                    {todayMood && (
+                        <button
+                            type="button"
+                            onClick={onLogNewMood}
+                            style={{
+                                position: "absolute", top: 14, right: 14,
+                                fontSize: 12, padding: "4px 11px", borderRadius: 20,
+                                border: `1.5px solid ${todayMood.color}66`,
+                                background: "transparent", color: todayMood.textColor,
+                                fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+                            }}
+                        >
+                            Update
+                        </button>
+                    )}
                     <div className="section-title" style={{ color: todayMood ? todayMood.textColor : undefined }}>
                         Today's mood
                     </div>
                     {todayMood ? (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                <MoodFace moodId={todayData.moodId} size={52} selected />
-                                <div>
-                                    <div style={{ fontWeight: 600, fontSize: 18, color: todayMood.textColor }}>
-                                        {todayMood.label}
-                                    </div>
-                                    {todayData.journalText && (
-                                        <div style={{
-                                            fontSize: 13, color: todayMood.textColor, opacity: 0.8,
-                                            maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                                        }}>
-                                            {todayData.journalText}
-                                        </div>
-                                    )}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <MoodFace moodId={todayData.moodId} size={52} selected />
+                            <div>
+                                <div style={{ fontWeight: 600, fontSize: 18, color: todayMood.textColor }}>
+                                    {todayMood.label}
                                 </div>
+                                {todayData.journalText && (
+                                    <div style={{
+                                        fontSize: 13, color: todayMood.textColor, opacity: 0.8,
+                                        maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                    }}>
+                                        {todayData.journalText}
+                                    </div>
+                                )}
                             </div>
-                            <button
-                                type="button"
-                                className="btn btn-ghost"
-                                style={{ fontSize: 12, padding: "6px 12px", borderColor: todayMood.color + "55", color: todayMood.textColor }}
-                                onClick={onLogNewMood}
-                            >
-                                Update
-                            </button>
                         </div>
                     ) : (
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -510,7 +564,7 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
                                             {m ? <MoodFace moodId={m.id} size={28} selected /> : "📓"}
                                         </div>
                                         <div className="tx-main">
-                                            <div className="tx-cat" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <div className="tx-cat" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                                 {m && (
                                                     <span style={{
                                                         fontSize: 11, fontWeight: 500, color: m.textColor,
@@ -524,6 +578,20 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
                           {entry.dateLabel}
                         </span>
                                             </div>
+                                            {entry.emotions?.length > 0 && (
+                                                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                                                    {entry.emotions.map((tag) => (
+                                                        <span key={tag} style={{
+                                                            fontSize: 11, padding: "2px 9px", borderRadius: 999,
+                                                            background: m ? m.bg : "var(--pulse-border)",
+                                                            color: m ? m.textColor : "var(--pulse-text-muted)",
+                                                            border: `1px solid ${m ? m.color + "44" : "var(--pulse-border)"}`,
+                                                        }}>
+                              {tag}
+                            </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <div className="tx-meta" style={{ marginTop: 4, fontSize: 13, lineHeight: 1.45, whiteSpace: "normal" }}>
                                                 {entry.text}
                                             </div>

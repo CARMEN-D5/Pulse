@@ -21,10 +21,10 @@ function SpiritualityPage({ user, onBack }) {
     const [pendingMoodId, setPendingMoodId] = useState(null);
 
     const persistMood = useCallback(
-        (moodId, journalText) => {
+        (moodId, journalText, emotions = []) => {
             const next = {
                 ...moodData,
-                [todayKey()]: { moodId, journalText: journalText || "" },
+                [todayKey()]: { moodId, journalText: journalText || "", emotions },
             };
             setMoodData(next);
             saveMoodData(uid, next);
@@ -45,8 +45,8 @@ function SpiritualityPage({ user, onBack }) {
         return (
             <JournalPromptOverlay
                 moodId={pendingMoodId}
-                onSave={(text) => { persistMood(pendingMoodId, text); setPhase("dashboard"); }}
-                onSkip={() => { if (pendingMoodId) persistMood(pendingMoodId, ""); setPhase("dashboard"); }}
+                onSave={(text, emotions) => { persistMood(pendingMoodId, text, emotions); setPhase("dashboard"); }}
+                onSkip={() => { if (pendingMoodId) persistMood(pendingMoodId, "", []); setPhase("dashboard"); }}
             />
         );
     }

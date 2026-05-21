@@ -22,12 +22,13 @@ export const JOURNAL_PROMPTS = [
 
 export const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export const FACE_EXPRESSIONS = {
-    1: { browL: "M14,15 Q18,11 22,15", browR: "M26,15 Q30,11 34,15", mouth: "M16,26 Q24,21 32,26" },
-    2: { browL: "M14,15 Q18,12 22,15", browR: "M26,15 Q30,12 34,15", mouth: "M16,25 Q24,22 32,25" },
-    3: { browL: "M14,16 Q18,14 22,16", browR: "M26,16 Q30,14 34,16", mouth: "M16,25 L32,25" },
-    4: { browL: "M14,16 Q18,18 22,15", browR: "M26,15 Q30,18 34,16", mouth: "M15,24 Q24,30 33,24" },
-    5: { browL: "M13,16 Q18,20 22,14", browR: "M26,14 Q30,20 35,16", mouth: "M13,23 Q24,32 35,23" },
+// Emotion tags shown in the journal step, grouped by mood id.
+export const MOOD_EMOTIONS = {
+    1: ["depressed", "angry", "hopeless", "scared", "lonely", "down", "frustrated", "exhausted"],
+    2: ["sad", "anxious", "disappointed", "restless", "worried", "tired", "stressed", "bored"],
+    3: ["okay", "mellow", "calm", "balanced", "distracted", "uncertain", "neutral", "sleepy"],
+    4: ["good", "relaxed", "proud", "optimistic", "thoughtful", "motivated", "cozy", "grateful"],
+    5: ["happy", "excited", "joyful", "inspired", "loving", "energised", "confident", "peaceful"],
 };
 
 // ---------------------------------------------------------------------------
