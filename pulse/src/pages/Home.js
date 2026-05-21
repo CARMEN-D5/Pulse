@@ -3,6 +3,7 @@ import { DOMAINS, DOMAIN_KEYS } from '../scoring/scoringEngine';
 import { computeCurrentScores } from '../firestore/scoring';
 import DailyMissions from './DailyMissions';
 import './auth.css';
+import './social.css';
 
 /* ── Domain visual config ──────────────────────────────────── */
 const DOMAIN_META = {
@@ -151,7 +152,7 @@ function MiniBar({ value, color }) {
 function Home({
   user, userDoc, scoreVersion,
   onDomainSelect, onOpenDomain, onNevigate,
-  onLogout, onOpenProgress,
+  onOpenSocial, onLogout, onOpenProgress,
 }) {
   const [scores, setScores] = useState(null);
   const [scoresLoading, setScoresLoading] = useState(true);

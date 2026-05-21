@@ -1,0 +1,706 @@
+/* ==========================================================================
+   Pulse — Social media (Feed / Today / Messages)
+   ========================================================================== */
+
+.social-shell {
+  min-height: 100vh;
+  background: var(--pulse-bg-gradient);
+  padding: 24px 16px 80px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--pulse-text);
+}
+
+.social-container {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.social-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.social-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.social-back {
+  background: transparent;
+  border: none;
+  color: var(--pulse-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.social-back:hover { color: var(--pulse-text); }
+
+/* ---------- Tabs ---------- */
+.social-tabs {
+  display: flex;
+  background: #f6e9ee;
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+}
+.social-tabs .tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pulse-text-muted);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.social-tabs .tab.active {
+  background: #fff;
+  color: var(--pulse-primary-dark);
+  box-shadow: 0 2px 6px rgba(201, 24, 74, 0.08);
+}
+
+/* ---------- Generic card ---------- */
+.social-card {
+  background: var(--pulse-card);
+  border: 1px solid var(--pulse-border);
+  border-radius: 16px;
+  box-shadow: var(--pulse-shadow);
+  padding: 18px;
+}
+
+.social-empty {
+  text-align: center;
+  color: var(--pulse-text-muted);
+  padding: 28px 12px;
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   Post composer (Today tab)
+   ========================================================================== */
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.composer h3 { margin: 0; font-size: 18px; }
+.composer-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulse-text-muted);
+}
+
+.image-picker {
+  border: 2px dashed var(--pulse-border);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.image-picker:hover {
+  border-color: var(--pulse-primary);
+  background: #fff7f9;
+}
+.image-picker input[type="file"] { display: none; }
+.image-picker-preview img {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 10px;
+  display: block;
+  margin: 0 auto;
+}
+.image-picker-meta {
+  font-size: 12px;
+  color: var(--pulse-text-muted);
+  margin-top: 8px;
+}
+
+.reflection-input {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid var(--pulse-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  resize: vertical;
+}
+.reflection-input:focus {
+  outline: none;
+  border-color: var(--pulse-primary);
+  box-shadow: 0 0 0 3px rgba(255, 77, 109, 0.15);
+}
+
+/* ==========================================================================
+   Two-slide post view
+   ========================================================================== */
+
+.post-card {
+  background: var(--pulse-card);
+  border: 1px solid var(--pulse-border);
+  border-radius: 16px;
+  box-shadow: var(--pulse-shadow);
+  overflow: hidden;
+}
+
+.post-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+.post-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--pulse-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.post-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.post-when {
+  font-size: 12px;
+  color: var(--pulse-text-muted);
+  margin-top: 1px;
+}
+.post-author .post-msg-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--pulse-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--pulse-text-muted);
+}
+.post-author .post-msg-btn:hover {
+  border-color: var(--pulse-primary);
+  color: var(--pulse-primary-dark);
+}
+
+.post-slides {
+  position: relative;
+}
+
+.post-slide-image {
+  width: 100%;
+  display: block;
+  background: #f5e6eb;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.post-slide-reflection {
+  padding: 16px;
+  font-size: 15px;
+  line-height: 1.45;
+  background: linear-gradient(160deg, #fff5f7 0%, #fde9ef 100%);
+  min-height: 120px;
+}
+
+.post-slide-reflection-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pulse-primary-dark);
+  margin-bottom: 6px;
+}
+
+.post-slide-nav {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  padding: 8px 0 12px;
+}
+.post-slide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e7d4da;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 120ms ease, transform 120ms ease;
+}
+.post-slide-dot.active {
+  background: var(--pulse-primary);
+  transform: scale(1.2);
+}
+
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--pulse-border);
+}
+.post-action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--pulse-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 120ms ease, color 120ms ease;
+}
+.post-action-btn:hover { background: #fff0f3; color: var(--pulse-text); }
+.post-action-btn.liked { color: var(--pulse-primary-dark); }
+.post-action-btn.danger { color: var(--pulse-text-muted); margin-left: auto; }
+.post-action-btn.danger:hover { color: var(--pulse-error); }
+
+/* ==========================================================================
+   Comments
+   ========================================================================== */
+
+.comments {
+  border-top: 1px solid var(--pulse-border);
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comment {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+}
+.comment-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f4ecef;
+  color: var(--pulse-primary-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.comment-body { flex: 1; }
+.comment-meta {
+  font-size: 11px;
+  color: var(--pulse-text-muted);
+  margin-top: 2px;
+}
+.comment-text {
+  background: #f8eef1;
+  padding: 6px 10px;
+  border-radius: 12px;
+  display: inline-block;
+  line-height: 1.35;
+}
+
+.comment-form {
+  display: flex;
+  gap: 8px;
+}
+.comment-form input {
+  flex: 1;
+  border: 1px solid var(--pulse-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.comment-form input:focus {
+  outline: none;
+  border-color: var(--pulse-primary);
+  box-shadow: 0 0 0 3px rgba(255, 77, 109, 0.15);
+}
+.comment-form button {
+  background: var(--pulse-primary);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.comment-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ==========================================================================
+   Messages — conversation list
+   ========================================================================== */
+
+.search-row {
+  display: flex;
+  gap: 8px;
+}
+.search-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--pulse-border);
+  border-radius: 10px;
+  font-size: 14px;
+}
+.search-row input:focus {
+  outline: none;
+  border-color: var(--pulse-primary);
+  box-shadow: 0 0 0 3px rgba(255, 77, 109, 0.15);
+}
+
+.conv-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.conv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--pulse-border);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease;
+}
+.conv-row:last-child { border-bottom: none; }
+.conv-row:hover { background: #fff7f9; }
+
+.conv-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--pulse-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.conv-body {
+  flex: 1;
+  min-width: 0;
+}
+.conv-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.conv-last {
+  font-size: 12px;
+  color: var(--pulse-text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.conv-when {
+  font-size: 11px;
+  color: var(--pulse-text-muted);
+  align-self: flex-start;
+}
+
+/* ==========================================================================
+   Messages — thread overlay
+   ========================================================================== */
+
+.thread-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 10, 16, 0.4);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 12px;
+  z-index: 200;
+}
+
+.thread-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--pulse-card);
+  border-radius: 16px;
+  box-shadow: var(--pulse-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.thread-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--pulse-border);
+}
+.thread-header .thread-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--pulse-text-muted);
+  padding: 0 6px;
+}
+.thread-title { font-weight: 700; font-size: 15px; flex: 1; }
+
+.thread-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fdf7f9;
+}
+
+.msg-bubble {
+  max-width: 75%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.35;
+  word-wrap: break-word;
+}
+.msg-bubble.mine {
+  align-self: flex-end;
+  background: var(--pulse-primary);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-bubble.theirs {
+  align-self: flex-start;
+  background: #fff;
+  color: var(--pulse-text);
+  border: 1px solid var(--pulse-border);
+  border-bottom-left-radius: 4px;
+}
+
+.msg-time {
+  font-size: 10px;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.thread-compose {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--pulse-border);
+  background: var(--pulse-card);
+}
+.thread-compose input {
+  flex: 1;
+  border: 1px solid var(--pulse-border);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+.thread-compose input:focus {
+  outline: none;
+  border-color: var(--pulse-primary);
+  box-shadow: 0 0 0 3px rgba(255, 77, 109, 0.15);
+}
+.thread-compose button {
+  background: var(--pulse-primary);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.thread-compose button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ==========================================================================
+   Home page — small Social link in header
+   ========================================================================== */
+
+.home-social-btn {
+  background: var(--pulse-primary);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+.home-social-btn:hover { background: var(--pulse-primary-dark); }
+
+/* ==========================================================================
+   Friend requests (Messages tab)
+   ========================================================================== */
+
+/* A conv-row used purely as a static container (not a button). */
+.conv-row.request-row,
+.conv-row.search-result {
+  cursor: default;
+  background: transparent;
+}
+
+/* Action buttons aligned to the right of a row. */
+.request-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Small button variants for inline row actions. */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--pulse-text-muted);
+  border-color: var(--pulse-border);
+}
+.btn-ghost:hover {
+  background: #f6e9ee;
+  color: var(--pulse-text);
+}
+
+/* "Request sent" pill. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pill-pending {
+  background: #fff4d6;
+  color: #8a5d00;
+}
+
+/* Friend row — main button + small × on the right. */
+.conv-row.friend-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+}
+.friend-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background 120ms ease;
+}
+.friend-main:hover { background: #fbeef2; }
+
+.unfriend-btn {
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--pulse-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.unfriend-btn:hover {
+  background: #fde2e7;
+  color: #c9184a;
+}
+
+/* ==========================================================================
+   Unread message indicator (Messages tab)
+   ========================================================================== */
+
+/* Position the avatar so the dot can sit on top-right of it. */
+.friend-row .conv-avatar {
+  position: relative;
+}
+
+/* The dot itself — small pink circle anchored to the avatar's top-right. */
+.unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--pulse-primary);
+  border: 2px solid var(--pulse-card);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Bold the last-message preview when there's something unread, so the
+   user can scan the inbox at a glance. */
+.conv-last.unread {
+  color: var(--pulse-text);
+  font-weight: 600;
+}
+
+/* Subtle background tint on the entire row when unread — same idea as
+   iMessage / WhatsApp inbox highlighting. */
+.conv-row.friend-row.has-unread {
+  background: #fff5f7;
+}
+.conv-row.friend-row.has-unread .friend-main:hover {
+  background: #fbe5eb;
+}
+
+/* Top-level error banner gets a tiny dismiss × at the right. */
+.alert {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.alert-dismiss {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  padding: 0 4px;
+  opacity: 0.7;
+}
+.alert-dismiss:hover { opacity: 1; }
+

@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// ============================================================================
+// Pulse Firebase Storage security rules
+// ----------------------------------------------------------------------------
+// Paste the contents of this file into Firebase Console →
+//   Storage → Rules → Publish.
+//
+// Covers the social-media branch's daily-post image uploads.
+// ============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ------------------------------------------------------------------------
+    // /posts/{uid}/{filename}
+    // Daily-post images. Each user uploads into their own folder so a
+    // simple uid-equality check is enough.
+    //
+    // Reads are public-to-signed-in so the feed can render everyone's
+    // images; writes are owner-only.
+    //
+    // The size check matches what the client enforces (5 MB max) so a
+    // tampered client can't upload anything huge.
+    // ------------------------------------------------------------------------
+    match /posts/{uid}/{filename} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ------------------------------------------------------------------------
+    // Default deny — anything not explicitly matched above is blocked.
+    // ------------------------------------------------------------------------
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -10,9 +10,11 @@ import EntryQuiz from "./pages/EntryQuiz";
 import SpiritualityPage from "./pages/SpiritualityPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
 import HealthPage from "./pages/HealthPage";
+import PhysicalActivity from "./pages/PhysicalActivity";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
+import Social from "./pages/Social";
 import {
   signUp,
   logIn,
@@ -29,7 +31,7 @@ import { saveOnboardingBaseline } from "./firestore/scoring";
 const DOMAIN_PAGE_MAP = {
   spirituality:  SpiritualityPage,
   relationships: RelationshipsPage,
-  health:        HealthPage,
+  health:        PhysicalActivity,
 };
 
 /**
@@ -78,7 +80,7 @@ function App() {
         //   1. Brand-new sign-up → entry quiz
         //   2. Existing user without a saved baseline → entry quiz
         //   3. Otherwise preserve any current authed view, default to home
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "progress"];
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "progress", "social"];
         setView((current) => {
           if (isNewSignUp.current) return "entryQuiz";
           if (!data?.onboardingCompletedAt) return "entryQuiz";
@@ -86,7 +88,7 @@ function App() {
         });
       } else {
         setUserDoc(null);
-        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "progress", "entryQuiz"];
+        const AUTHED_VIEWS = ["home", "finance", "domain", "todo", "progress", "social", "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
     });
@@ -246,6 +248,9 @@ function App() {
     case "progress":
       return <ProgressAnalytics user={user} onBack={() => setView("home")} />;
 
+    case "social":
+      return <Social user={user} onBack={() => setView("home")} />;
+
     case "home":
       return (
         <Home
@@ -255,6 +260,7 @@ function App() {
           onDomainSelect={handleDomainSelect}
           onOpenDomain={handleDomainSelect}
           onNevigate={handleDomainSelect}
+          onOpenSocial={() => setView("social")}
           onLogout={handleLogout}
           onOpenProgress={() => setView("progress")}
         />
