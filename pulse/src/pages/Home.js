@@ -282,6 +282,18 @@ function Home({
               </button>
             )}
 
+            {/* ── Social Link ────────────────────────── */}
+            {onOpenSocial && (
+              <button type="button" className="dash-progress-btn" onClick={onOpenSocial}>
+                <span className="material-symbols-outlined dash-progress-icon">forum</span>
+                <div className="dash-progress-text">
+                  <span className="dash-progress-label">Social</span>
+                  <span className="dash-progress-sub">Connect with your community</span>
+                </div>
+                <span className="material-symbols-outlined dash-progress-arrow">chevron_right</span>
+              </button>
+            )}
+
             {/* ── Domain Cards ───────────────────────── */}
             <section className="dash-card">
               <div className="dash-card-header">
