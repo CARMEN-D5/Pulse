@@ -133,8 +133,9 @@ const messagesCol = (convId) =>
   collection(db, "conversations", convId, "messages");
 
 /**
- * Send a message inside a conversation. Also bumps lastMessage/lastMessageAt
- * on the parent conversation doc so the inbox list can show a preview.
+ * Send a message inside a conversation. Also bumps lastMessage,
+ * lastMessageAt, and lastMessageSender on the parent conversation doc so
+ * the inbox can show a preview and decide whether to render an unread dot.
  */
 export async function sendMessage(convId, { senderUid, text }) {
   if (!senderUid) return { ok: false, error: "Not signed in" };
@@ -152,7 +153,29 @@ export async function sendMessage(convId, { senderUid, text }) {
       {
         lastMessage: trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed,
         lastMessageAt: serverTimestamp(),
+        lastMessageSender: senderUid,
       },
+      { merge: true }
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+}
+
+/**
+ * Mark a conversation as read by `uid`. Writes
+ * `lastReadAt.{uid} = serverTimestamp()` so the inbox can compare it to
+ * `lastMessageAt` and decide whether to show an unread dot.
+ *
+ * Safe to call repeatedly — `setDoc` with merge is idempotent.
+ */
+export async function markConversationRead(convId, uid) {
+  if (!convId || !uid) return { ok: false, error: "Missing convId/uid" };
+  try {
+    await setDoc(
+      doc(db, "conversations", convId),
+      { lastReadAt: { [uid]: serverTimestamp() } },
       { merge: true }
     );
     return { ok: true };

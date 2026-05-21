@@ -647,6 +647,44 @@
   color: #c9184a;
 }
 
+/* ==========================================================================
+   Unread message indicator (Messages tab)
+   ========================================================================== */
+
+/* Position the avatar so the dot can sit on top-right of it. */
+.friend-row .conv-avatar {
+  position: relative;
+}
+
+/* The dot itself — small pink circle anchored to the avatar's top-right. */
+.unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--pulse-primary);
+  border: 2px solid var(--pulse-card);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Bold the last-message preview when there's something unread, so the
+   user can scan the inbox at a glance. */
+.conv-last.unread {
+  color: var(--pulse-text);
+  font-weight: 600;
+}
+
+/* Subtle background tint on the entire row when unread — same idea as
+   iMessage / WhatsApp inbox highlighting. */
+.conv-row.friend-row.has-unread {
+  background: #fff5f7;
+}
+.conv-row.friend-row.has-unread .friend-main:hover {
+  background: #fbe5eb;
+}
+
 /* Top-level error banner gets a tiny dismiss × at the right. */
 .alert {
   display: flex;

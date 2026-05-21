@@ -20,6 +20,7 @@ import {
   sendMessage,
   subscribeToMessages,
   subscribeToConversations,
+  markConversationRead,
 } from "../firestore/messaging";
 import {
   sendFriendRequest,
@@ -51,25 +52,47 @@ function Social({ user, onBack }) {
   const [socialError, setSocialError] = useState("");
 
   // -----------------------------------------------------------------------
-  // Friendship layer — shared by FeedTab (post visibility filter) and
-  // MessagesTab (friends list + request inbox). Subscribing once here keeps
-  // the two tabs in lock-step and avoids duplicate listeners.
+  // Friendship + conversations layer — shared by FeedTab (post visibility
+  // filter), MessagesTab (friends list + request inbox), and the tab
+  // badges. Subscribing once here keeps everything in lock-step and avoids
+  // duplicate listeners.
   // -----------------------------------------------------------------------
   const [friendships, setFriendships] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
+  const [conversations, setConversations] = useState([]);
 
   useEffect(() => {
     if (!user?.uid) return;
     const unsubF = subscribeToFriendships(user.uid, setFriendships);
     const unsubIn = subscribeToIncomingRequests(user.uid, setIncomingRequests);
     const unsubOut = subscribeToOutgoingRequests(user.uid, setOutgoingRequests);
+    const unsubConv = subscribeToConversations(user.uid, setConversations);
     return () => {
       unsubF();
       unsubIn();
       unsubOut();
+      unsubConv();
     };
   }, [user?.uid]);
+
+  // A conversation is "unread" for me if the last message landed AFTER my
+  // last read marker AND I'm not the one who sent it. The check is purely
+  // derived state from the live conversations subscription.
+  const isUnread = (conv) => {
+    if (!conv || !user?.uid) return false;
+    if (conv.lastMessageSender === user.uid) return false;
+    if (!conv.lastMessageAt) return false;
+    const lastReadMs = conv.lastReadAt?.[user.uid]?.toMillis?.() ?? 0;
+    const lastMsgMs = conv.lastMessageAt?.toMillis?.() ?? 0;
+    return lastMsgMs > lastReadMs;
+  };
+
+  const unreadConvCount = useMemo(
+    () => conversations.filter(isUnread).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [conversations, user?.uid]
+  );
 
   // Fast-lookup set of friend uids — derived from the friendships list.
   const friendUids = useMemo(() => {
@@ -91,6 +114,14 @@ function Social({ user, onBack }) {
     return [user.uid, ...Array.from(friendUids)];
   }, [user?.uid, friendUids]);
 
+  const openThreadAndMarkRead = (thread) => {
+    setOpenThread(thread);
+    // Best-effort — failure shouldn't block opening the thread.
+    if (thread?.convId && user?.uid) {
+      markConversationRead(thread.convId, user.uid);
+    }
+  };
+
   const startConversation = async (otherUser) => {
     setSocialError("");
     // Mirror the Firestore rule client-side so the error is friendly —
@@ -104,7 +135,7 @@ function Social({ user, onBack }) {
       otherUser
     );
     if (res.ok) {
-      setOpenThread({
+      openThreadAndMarkRead({
         convId: res.data.id,
         otherUid: otherUser.uid,
         otherName: otherUser.displayName || otherUser.name || otherUser.email,
@@ -114,8 +145,9 @@ function Social({ user, onBack }) {
     }
   };
 
-  // Badge on the Messages tab for unread incoming friend requests.
-  const requestBadge = incomingRequests.length;
+  // Tab badge combines pending friend requests + unread DMs so users see
+  // a single number for "stuff to look at".
+  const messagesBadge = incomingRequests.length + unreadConvCount;
 
   return (
     <div className="social-shell">
@@ -148,7 +180,7 @@ function Social({ user, onBack }) {
             { id: "today", label: "Today" },
             {
               id: "messages",
-              label: requestBadge > 0 ? `Messages (${requestBadge})` : "Messages",
+              label: messagesBadge > 0 ? `Messages (${messagesBadge})` : "Messages",
             },
           ].map((t) => (
             <button
@@ -180,7 +212,9 @@ function Social({ user, onBack }) {
             friendUids={friendUids}
             incomingRequests={incomingRequests}
             outgoingRequests={outgoingRequests}
-            onOpenThread={(t) => setOpenThread(t)}
+            conversations={conversations}
+            isUnread={isUnread}
+            onOpenThread={openThreadAndMarkRead}
             onStartConversation={startConversation}
             onError={setSocialError}
           />
@@ -696,21 +730,14 @@ function MessagesTab({
   friendUids,
   incomingRequests,
   outgoingRequests,
+  conversations,
+  isUnread,
   onOpenThread,
   onStartConversation,
   onError,
 }) {
   const [searchEmail, setSearchEmail] = useState("");
   const [searchState, setSearchState] = useState({ status: "idle" });
-
-  // Last-message previews come from the conversations collection. We
-  // subscribe so the friends list shows the latest message inline.
-  const [conversations, setConversations] = useState([]);
-  useEffect(() => {
-    if (!user?.uid) return;
-    const unsub = subscribeToConversations(user.uid, setConversations);
-    return unsub;
-  }, [user?.uid]);
 
   // Index conversations by the other participant's uid so each friend
   // row can look up its own preview in O(1).
@@ -722,6 +749,18 @@ function MessagesTab({
     }
     return out;
   }, [conversations, user?.uid]);
+
+  // Sort the friends list so friends with the most recent activity show
+  // up at the top. Friends with no conversation yet sink to the bottom
+  // (their `lastMessageAt` is 0). Within the no-activity group, order is
+  // stable (whatever order the friendships subscription returned).
+  const sortedFriendships = useMemo(() => {
+    const lastMs = (f) => {
+      const otherUid = (f.participants || []).find((p) => p !== user?.uid);
+      return convByOther[otherUid]?.lastMessageAt?.toMillis?.() ?? 0;
+    };
+    return [...friendships].sort((a, b) => lastMs(b) - lastMs(a));
+  }, [friendships, convByOther, user?.uid]);
 
   // ---------------------------------------------------------------------
   // Relationship resolver — turns another user's uid into one of:
@@ -941,21 +980,25 @@ function MessagesTab({
       {/* ------------------------------------------------------------ */}
       <div className="social-card">
         <SectionLabel>Friends</SectionLabel>
-        {friendships.length === 0 ? (
+        {sortedFriendships.length === 0 ? (
           <div className="social-empty">
             No friends yet. Use the search above to send your first request.
           </div>
         ) : (
           <div className="conv-list">
-            {friendships.map((f) => {
+            {sortedFriendships.map((f) => {
               const otherUid = (f.participants || []).find(
                 (p) => p !== user.uid
               );
               const info = f.participantInfo?.[otherUid] || {};
               const name = info.name || info.email || "Someone";
               const conv = convByOther[otherUid];
+              const unread = conv ? isUnread(conv) : false;
               return (
-                <div key={f.id} className="conv-row friend-row">
+                <div
+                  key={f.id}
+                  className={`conv-row friend-row ${unread ? "has-unread" : ""}`}
+                >
                   <button
                     type="button"
                     className="friend-main"
@@ -972,10 +1015,13 @@ function MessagesTab({
                       }
                     }}
                   >
-                    <div className="conv-avatar">{initialsFor(name)}</div>
+                    <div className="conv-avatar">
+                      {initialsFor(name)}
+                      {unread && <span className="unread-dot" aria-hidden />}
+                    </div>
                     <div className="conv-body">
                       <div className="conv-name">{name}</div>
-                      <div className="conv-last">
+                      <div className={`conv-last ${unread ? "unread" : ""}`}>
                         {conv?.lastMessage || "Say hi 👋"}
                       </div>
                     </div>
@@ -1121,12 +1167,17 @@ function ThreadOverlay({ user, thread, onClose }) {
     return unsub;
   }, [thread?.convId]);
 
-  // Auto-scroll to bottom when new messages arrive.
+  // Auto-scroll to bottom when new messages arrive, and mark the
+  // conversation as read so the unread dot in the inbox stays cleared
+  // even as the friend keeps typing.
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+    if (thread?.convId && user?.uid && messages.length > 0) {
+      markConversationRead(thread.convId, user.uid);
+    }
+  }, [messages.length, thread?.convId, user?.uid]);
 
   const onSend = async (e) => {
     e.preventDefault();
