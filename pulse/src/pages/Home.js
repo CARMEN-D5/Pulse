@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { DOMAINS, DOMAIN_KEYS } from '../scoring/scoringEngine';
 import { computeCurrentScores } from '../firestore/scoring';
+import DailyMissions from './DailyMissions';
 import './auth.css';
 
 function ScoreRing({ score }) {
@@ -168,9 +169,18 @@ function Home({
           </button>
         </div>
 
+        {/* ── Daily Missions (shown once scores are ready) ── */}
+        {!scoresLoading && scores && (
+            <DailyMissions
+                user={user}
+                domainScores={scores.domainScores}
+            />
+        )}
+
       </div>
     </div>
   );
 }
+
 
 export default Home;
