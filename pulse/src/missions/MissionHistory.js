@@ -12,7 +12,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { DOMAIN_META, ALL_DOMAINS } from './missionPools';
-import { loadHistory, getDayKey, getWeekKey } from './missionEngine';
+import {loadHistory, getDayKey, getWeekKey, loadDailyDoc} from './missionEngine';
 import './MissionHistory.css';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -117,6 +117,7 @@ function TabThisWeek({ history }) {
     const total      = weekRecs.reduce((s, r) => s + (r.missions?.length ?? 0), 0);
     const completed  = weekRecs.reduce((s, r) => s + (r.missions?.filter(m => m.completed).length ?? 0), 0);
     const pct        = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const color = pct >= 70 ? '#2f9e7a' : '#c9184a';
 
     if (weekRecs.length === 0) {
         return (
@@ -133,11 +134,11 @@ function TabThisWeek({ history }) {
             <div className="mh-week-summary">
                 <div className="mh-summary-row">
                     <span className="mh-summary-label">This week's completion</span>
-                    <span className="mh-summary-pct" style={{ color: pct >= 70 ? '#2f9e7a' : '#c9184a' }}>
+                    <span className="mh-summary-pct" style={{color}}>
             {pct}%
           </span>
                 </div>
-                <PctBar pct={pct} color={pct >= 70 ? '#2f9e7a' : '#c9184a'} />
+                <PctBar pct={pct} color={color} />
                 <p className="mh-summary-sub">{completed} of {total} missions completed</p>
             </div>
 
@@ -199,6 +200,7 @@ function TabAllTime({ history }) {
     const total     = history.reduce((s, r) => s + (r.missions?.length ?? 0), 0);
     const completed = history.reduce((s, r) => s + (r.missions?.filter(m => m.completed).length ?? 0), 0);
     const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const color = pct >= 70 ? '#2f9e7a' : '#c9184a';
 
     // Domain share of total missions (pie-like breakdown)
     const domainStats = aggregateDomains(history);
@@ -218,11 +220,11 @@ function TabAllTime({ history }) {
             <div className="mh-week-summary">
                 <div className="mh-summary-row">
                     <span className="mh-summary-label">Overall completion</span>
-                    <span className="mh-summary-pct" style={{ color: pct >= 70 ? '#2f9e7a' : '#c9184a' }}>
+                    <span className="mh-summary-pct" style={{ color }}>
             {pct}%
           </span>
                 </div>
-                <PctBar pct={pct} color={pct >= 70 ? '#2f9e7a' : '#c9184a'} />
+                <PctBar pct={pct} color={color} />
                 <p className="mh-summary-sub">
                     {completed} of {total} missions · {history.length} days tracked
                 </p>
@@ -281,9 +283,16 @@ export default function MissionHistory({ user, onBack }) {
     useEffect(() => {
         if (!user?.uid) return;
         setLoading(true);
-        loadHistory(user.uid)
-            .then(setHistory)
-            .finally(() => setLoading(false));
+        Promise.all([
+            loadHistory(user.uid),
+            loadDailyDoc(user.uid),
+        ]).then(([hist, todayDoc]) => {
+            if (todayDoc?.missions?.length > 0) {
+                setHistory([todayDoc, ...hist]);
+            } else {
+                setHistory(hist);
+            }
+        }).finally(() => setLoading(false));
     }, [user?.uid]);
 
     return (
