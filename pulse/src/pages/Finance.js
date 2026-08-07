@@ -4,6 +4,7 @@ import "./auth.css";
 import { logAction } from "../firestore/scoring";
 import DonutChart from "./DonutChart";
 import SpendingCalendar from "./SpendingCalendar";
+import SavingView from "./SavingView";
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_ACCOUNTS,
@@ -45,6 +46,7 @@ function Finance({ user, onBack, onActivityLogged }) {
   const [error, setError] = useState("");
 
   const [showSettings, setShowSettings] = useState(false);
+  const [financeTab, setFinanceTab] = useState("spending");
 
   const { monthStart, monthEnd } = useMemo(() => monthBounds(), []);
   const monthName = useMemo(() => monthLabel(), []);
@@ -189,15 +191,17 @@ function Finance({ user, onBack, onActivityLogged }) {
             <h1>Budget</h1>
             <div className="month-label">{monthName}</div>
           </div>
-          <button
-            type="button"
-            className="cog-btn"
-            onClick={() => setShowSettings(true)}
-            aria-label="Settings"
-            title="Settings"
-          >
-            ⚙️
-          </button>
+          {financeTab === "spending" && (
+            <button
+              type="button"
+              className="cog-btn"
+              onClick={() => setShowSettings(true)}
+              aria-label="Settings"
+              title="Settings"
+            >
+              ⚙️
+            </button>
+          )}
         </div>
 
         {error && (
@@ -205,6 +209,13 @@ function Finance({ user, onBack, onActivityLogged }) {
             {error}
           </div>
         )}
+
+        <div className="finance-view-tabs" role="tablist" aria-label="Finance view">
+          <button type="button" role="tab" aria-selected={financeTab === "spending"} className={financeTab === "spending" ? "active" : ""} onClick={() => setFinanceTab("spending")}>Spending</button>
+          <button type="button" role="tab" aria-selected={financeTab === "saving"} className={financeTab === "saving" ? "active" : ""} onClick={() => setFinanceTab("saving")}>Saving</button>
+        </div>
+
+        {financeTab === "spending" ? <>
 
         {/* ---------- Chart + legend ---------- */}
         <div className="finance-card">
@@ -355,6 +366,10 @@ function Finance({ user, onBack, onActivityLogged }) {
               })}
             </div>
           )}
+        </div>
+        </> : null}
+        <div className="saving-view-stack" hidden={financeTab !== "saving"}>
+          <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
         </div>
       </div>
 
