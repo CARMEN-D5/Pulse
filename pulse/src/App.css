@@ -1,5 +1,0 @@
-/* App-level styling. Page-specific styles live in src/pages/auth.css
-   and are imported by each page component. */
-.App {
-  text-align: center;
-}

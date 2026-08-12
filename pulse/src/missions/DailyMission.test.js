@@ -36,15 +36,16 @@ jest.mock('./missionEngine', () => {
 });
 
 // ─── Mock MissionHistory (child component) ────────────────────────────────────
-jest.mock('./MissionHistory', () => () => (
-    <div data-testid="mission-history-screen">Mission History</div>
-));
+jest.mock('./MissionHistory', () => {
+    const { Text } = require('react-native');
+    return () => <Text testID="mission-history-screen">Mission History</Text>;
+});
 
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+
 import DailyMissions from '../pages/DailyMissions';
-import { loadDailyDoc, saveDailyDoc, archiveDay } from './missionEngine';
+import { archiveDay, loadDailyDoc, saveDailyDoc } from './missionEngine';
 
 // ─── Shared fixtures ──────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ describe('loading state', () => {
 
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
-        expect(screen.getByText(/loading your daily missions/i)).toBeInTheDocument();
+        expect(screen.getByText(/loading your daily missions/i)).toBeOnTheScreen();
     });
 });
 
@@ -110,9 +111,9 @@ describe("rendering today's missions", () => {
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
         await waitFor(() => {
-            expect(screen.getByText('Avoid unnecessary spending today')).toBeInTheDocument();
-            expect(screen.getByText('Drink more water today')).toBeInTheDocument();
-            expect(screen.getByText('Sit in silence for 5 minutes')).toBeInTheDocument();
+            expect(screen.getByText('Avoid unnecessary spending today')).toBeOnTheScreen();
+            expect(screen.getByText('Drink more water today')).toBeOnTheScreen();
+            expect(screen.getByText('Sit in silence for 5 minutes')).toBeOnTheScreen();
         });
     });
 
@@ -122,7 +123,7 @@ describe("rendering today's missions", () => {
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
         await waitFor(() => {
-            expect(screen.getByText(/0\/3 done/i)).toBeInTheDocument();
+            expect(screen.getByText(/0\/3 done/i)).toBeOnTheScreen();
         });
     });
 
@@ -132,9 +133,9 @@ describe("rendering today's missions", () => {
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
         await waitFor(() => {
-            expect(screen.getByText(/Financial Wellbeing/i)).toBeInTheDocument();
-            expect(screen.getByText(/Health/i)).toBeInTheDocument();
-            expect(screen.getByText(/Spirituality/i)).toBeInTheDocument();
+            expect(screen.getByText(/Financial Wellbeing/i)).toBeOnTheScreen();
+            expect(screen.getByText(/💪 Health/i)).toBeOnTheScreen();
+            expect(screen.getByText(/Spirituality/i)).toBeOnTheScreen();
         });
     });
 
@@ -145,7 +146,7 @@ describe("rendering today's missions", () => {
 
         await waitFor(() => screen.getByText('Drink more water today'));
 
-        expect(screen.queryByText(/all missions complete/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/all missions complete/i)).not.toBeOnTheScreen();
     });
 });
 
@@ -176,7 +177,7 @@ describe("restoring stored missions", () => {
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
         await waitFor(() => {
-            expect(screen.getByText(/1\/3 done/i)).toBeInTheDocument();
+            expect(screen.getByText(/1\/3 done/i)).toBeOnTheScreen();
         });
     });
 });
@@ -249,7 +250,7 @@ describe('first time user', () => {
 
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
-        await waitFor(() => saveDailyDoc.mock.calls.length > 0);
+        await waitFor(() => expect(saveDailyDoc).toHaveBeenCalled());
 
         expect(archiveDay).not.toHaveBeenCalled();
     });
@@ -258,7 +259,7 @@ describe('first time user', () => {
 // ─── Completing missions ──────────────────────────────────────────────────────
 
 describe('completing missions', () => {
-    test('clicking a checkbox updates progress from 0/3 to 1/3', async () => {
+    test('pressing a checkbox updates progress from 0/3 to 1/3', async () => {
         loadDailyDoc
             .mockResolvedValueOnce(storedTodayDoc)  // initial load
             .mockResolvedValueOnce(storedTodayDoc); // inside toggleComplete
@@ -267,11 +268,11 @@ describe('completing missions', () => {
 
         await waitFor(() => screen.getByText('Drink more water today'));
 
-        const checkboxes = screen.getAllByRole('button', { name: /mark complete/i });
-        fireEvent.click(checkboxes[0]);
+        const checkboxes = screen.getAllByLabelText(/mark complete/i);
+        fireEvent.press(checkboxes[0]);
 
         await waitFor(() => {
-            expect(screen.getByText(/1\/3 done/i)).toBeInTheDocument();
+            expect(screen.getByText(/1\/3 done/i)).toBeOnTheScreen();
         });
     });
 
@@ -285,11 +286,11 @@ describe('completing missions', () => {
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
         await waitFor(() => {
-            expect(screen.getByText(/all missions complete/i)).toBeInTheDocument();
+            expect(screen.getByText(/all missions complete/i)).toBeOnTheScreen();
         });
     });
 
-    test('clicking a completed checkbox unchecks it (toggles back)', async () => {
+    test('pressing a completed checkbox unchecks it (toggles back)', async () => {
         const oneComplete = {
             ...storedTodayDoc,
             missions: [
@@ -306,11 +307,11 @@ describe('completing missions', () => {
 
         await waitFor(() => screen.getByText(/1\/3 done/i));
 
-        const doneCheckbox = screen.getByRole('button', { name: /mark incomplete/i });
-        fireEvent.click(doneCheckbox);
+        const doneCheckbox = screen.getByLabelText(/mark incomplete/i);
+        fireEvent.press(doneCheckbox);
 
         await waitFor(() => {
-            expect(screen.getByText(/0\/3 done/i)).toBeInTheDocument();
+            expect(screen.getByText(/0\/3 done/i)).toBeOnTheScreen();
         });
     });
 
@@ -323,8 +324,8 @@ describe('completing missions', () => {
 
         await waitFor(() => screen.getByText('Drink more water today'));
 
-        const checkboxes = screen.getAllByRole('button', { name: /mark complete/i });
-        fireEvent.click(checkboxes[0]);
+        const checkboxes = screen.getAllByLabelText(/mark complete/i);
+        fireEvent.press(checkboxes[0]);
 
         await waitFor(() => {
             expect(saveDailyDoc).toHaveBeenCalled();
@@ -344,19 +345,19 @@ describe('history navigation', () => {
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /history/i })).toBeInTheDocument();
+            expect(screen.getByText(/history/i)).toBeOnTheScreen();
         });
     });
 
-    test('clicking History shows the MissionHistory screen', async () => {
+    test('pressing History shows the MissionHistory screen', async () => {
         loadDailyDoc.mockResolvedValue(storedTodayDoc);
 
         render(<DailyMissions user={mockUser} domainScores={mockDomainScores} />);
 
-        await waitFor(() => screen.getByRole('button', { name: /history/i }));
+        await waitFor(() => screen.getByText(/history/i));
 
-        fireEvent.click(screen.getByRole('button', { name: /history/i }));
+        fireEvent.press(screen.getByText(/history/i));
 
-        expect(screen.getByTestId('mission-history-screen')).toBeInTheDocument();
+        expect(screen.getByTestId('mission-history-screen')).toBeOnTheScreen();
     });
 });

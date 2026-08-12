@@ -1,20 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import './Physical.css';
 import {
-    collection,
     addDoc,
-    query,
-    onSnapshot,
-    updateDoc,
+    collection,
     deleteDoc,
     doc,
+    onSnapshot,
     orderBy,
-    serverTimestamp
+    query,
+    serverTimestamp,
+    updateDoc,
 } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import DateField from '../components/DateField';
+import SegmentedField from '../components/SegmentedField';
+import { Alert, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
+import { db } from '../firebase';
 import { logAction } from '../firestore/scoring';
-
-
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { confirm } from '../utils/dialogs';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -38,21 +42,23 @@ function formatDueDate(dateStr) {
     return `${dateStr} (${day})`;
 }
 
+const TYPE_OPTIONS = [
+    { value: 'cardio', label: 'Cardio' },
+    { value: 'strength', label: 'Strength' },
+];
 
+const EMPTY_EXERCISES = [{ name: '', sets: [{ weight: '', reps: '' }] }];
 
-
-function PhysicalActivity({ user, onBack, onActivityLogged}){
+function PhysicalActivity({ user, onBack, onActivityLogged }) {
 //     State
     const [activities, setActivities] = useState([]);
     const [input, setInput] = useState('');
     const [descInput, setDescInput] = useState('');
     const [activityDate, setActivityDate] = useState('');
-    const [priority, setPriority] = useState('Medium');
-    const [tab, setTab] = useState('pending');
+    const [tab, setTab] = useState('cardio');
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [editDesc, setEditDesc] = useState('');
-    const [menuPos, setMenuPos] = useState(null);
     const [error, setError] = useState(null);
 
     const [distance, setDistance] = useState('');
@@ -60,53 +66,44 @@ function PhysicalActivity({ user, onBack, onActivityLogged}){
     const [time, setTime] = useState('');
     const [editTime, setEditTime] = useState('');
 
+    const [exercises, setExercises] = useState(EMPTY_EXERCISES);
+    const [editExercises, setEditExercises] = useState(EMPTY_EXERCISES);
 
     // Load Activities from firebase
     useEffect(() => {
         if (!user) return;
 
-        const activityRef = collection(db, 'users', user.uid, 'physicalActivities')
+        const activityRef = collection(db, 'users', user.uid, 'physicalActivities');
         const q = query(activityRef, orderBy('createdAt', 'asc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            setActivities(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setActivities(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
         });
 
         return () => unsubscribe();
     }, [user]);
 
-    useEffect(() => {
-        const handleGlobalClick = () => {
-            setMenuPos(null)
-        };
-        window.addEventListener('click', handleGlobalClick);
-
-        return () => {
-            window.removeEventListener('click', handleGlobalClick);
-        };
-    }, []);
-
     const startEdit = (activity) => {
-        setMenuPos(null);
         setEditingId(activity.id);
-        setEditText(activity.text)
-        setEditDesc(activity.description||'');
-        setEditDistance(activity.distance)
-        setEditTime(activity.duration)
-        setEditExercises(activity.exercises)
-    }
+        setEditText(activity.text);
+        setEditDesc(activity.description || '');
+        setEditDistance(String(activity.distance ?? ''));
+        setEditTime(String(activity.duration ?? ''));
+        setEditExercises(activity.exercises?.length ? activity.exercises : EMPTY_EXERCISES);
+    };
 
     const saveEdit = async (id, updateFields = {}) => {
-        const activity = activities.find(activity => activity.id === id);
+        const activity = activities.find(a => a.id === id);
+        if (!activity) return;
 
         let finalFields = {
-            text:editText,
-            description:editDesc,
-            distance:editDistance,
-            duration:editTime,
+            text: editText,
+            description: editDesc,
+            distance: editDistance,
+            duration: editTime,
             exercises: editExercises,
             ...updateFields
-        }
+        };
         if (activity.type === "cardio") {
             finalFields.exercises = [];
         } else {
@@ -118,118 +115,78 @@ function PhysicalActivity({ user, onBack, onActivityLogged}){
             setEditingId(null);
             return;
         }
-        try{
+        try {
             setError(null);
             const activityRef = doc(db, 'users', user.uid, 'physicalActivities', id);
             await updateDoc(activityRef, finalFields);
-            if(Object.keys(updateFields).length === 0){
+            if (Object.keys(updateFields).length === 0) {
                 setEditingId(null);
             }
-        }catch (err){
+        } catch (err) {
             console.error("Save error", err);
             setError("Could not update Activity. Please try again");
         }
     };
 
-    const handleKeyDown = (e, id) => {
-        if (e.key === 'Enter') {
-            saveEdit(id)
-        } else if (e.key === 'Escape') {
-            setEditingId(null);
-        }
-    };
-
-    const handleContextMenu = (e, id) => {
-        e.preventDefault();
-        setMenuPos({ x: e.pageX, y: e.pageY, id: id });
-    };
-
     // Create Activity
-    const addActivity = async (e) => {
-        e.preventDefault();
+    const addActivity = async () => {
         if (!input.trim()) return;
 
-        try{
+        try {
             setError(null);
-            if (tab === 'cardio') {
-                await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
-                    text: input,
-                    description: descInput,
-                    type: tab,
-                    distance: distance,
-                    duration: time,
-                    exercises: [],
-                    activityDate: activityDate,
-                    createdAt: serverTimestamp(),
-                });
-            }
-            else {
-                await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
-                    text: input,
-                    description: descInput,
-                    type: tab,
-                    distance: 0,
-                    duration: 0,
-                    exercises: exercises,
-                    activityDate: activityDate,
-                    createdAt: serverTimestamp(),
-                });
-            }
+            const isCardio = tab === 'cardio';
+            await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
+                text: input,
+                description: descInput,
+                type: tab,
+                distance: isCardio ? distance : 0,
+                duration: isCardio ? time : 0,
+                exercises: isCardio ? [] : exercises,
+                activityDate: activityDate,
+                createdAt: serverTimestamp(),
+            });
+
             setInput('');
             setDescInput('');
             setActivityDate('');
-            setTab('')
-            setDistance('')
-            setTime('')
-            setExercises([
-                {
-                    name: '',
-                    sets: [{ weight: '', reps: '' }]
-                }
-            ]);
+            setTab('cardio');
+            setDistance('');
+            setTime('');
+            setExercises(EMPTY_EXERCISES);
 
             // Score: log exercise action for the health domain
             logAction(user.uid, 'health', 'exercise');
             if (onActivityLogged) onActivityLogged();
-        }catch(err){
-            console.error("Add error", error);
+        } catch (err) {
+            console.error("Add error", err);
             setError("Failed to add task. Please try again.");
         }
     };
 
 //    delete
-    const deleteActivity = async (id) => {
-        try{
+//
+//    The web build hung this off a right-click context menu. Touch devices have
+//    no right-click, so a long press on the row opens the same destructive
+//    action as a confirmation dialog.
+    const deleteActivity = async (activity) => {
+        const ok = await confirm(`"${activity.text}" will be removed permanently.`, {
+            title: 'Delete activity?',
+            confirmLabel: 'Delete',
+            destructive: true,
+        });
+        if (!ok) return;
+
+        try {
             setError(null);
-            await deleteDoc(doc(db, 'users', user.uid, 'physicalActivities', id));
-        } catch (err){
-            console.error("Delete error:", err)
-            setError("Could not delete task.")
+            await deleteDoc(doc(db, 'users', user.uid, 'physicalActivities', activity.id));
+        } catch (err) {
+            console.error("Delete error:", err);
+            setError("Could not delete task.");
         }
     };
 
-    const [exercises, setExercises] = useState([
-        {
-            name: '',
-            sets: [{ weight: '', reps: '' }]
-        }
-    ]);
-
-    const [editExercises, setEditExercises] = useState([
-            {
-                name: '',
-                sets: [{ weight: '', reps: '' }]
-            }
-        ]);
-
     const addExercise = () => {
-        setExercises([
-            ...exercises,
-            {
-                name: '',
-                sets: [{weight: '', reps: ''}]
-            }
-        ]);
+        setExercises([...exercises, { name: '', sets: [{ weight: '', reps: '' }] }]);
     };
 
     const addSet = (exerciseIndex) => {
@@ -237,15 +194,15 @@ function PhysicalActivity({ user, onBack, onActivityLogged}){
 
         if (!updated[exerciseIndex]) return;
 
-        updated[exerciseIndex].sets.push({
-            weight: '',
-            reps: ''
-        });
+        updated[exerciseIndex] = {
+            ...updated[exerciseIndex],
+            sets: [...updated[exerciseIndex].sets, { weight: '', reps: '' }],
+        };
 
         setExercises(updated);
     };
 
-    const removeSet = (exerciseIndex) =>{
+    const removeSet = (exerciseIndex) => {
         const updated = [...exercises];
         const sets = updated[exerciseIndex].sets;
 
@@ -256,356 +213,383 @@ function PhysicalActivity({ user, onBack, onActivityLogged}){
             sets: sets.slice(0, -1)
         };
 
-        setExercises(updated)
-    }
+        setExercises(updated);
+    };
 
     return (
-        <div className="activity-shell">
-            {error && (
-                <div className="error-banner" onClick={() => setError(null)}>
-                    ⚠️ {error} <span className="close-error">×</span>
-                </div>
-            )}
-            <div className="activity-container">
-                <div className="activity-header">
-                    <button onClick={onBack} className="btn-back" type='back'>
-                        Back
-                    </button>
-                    <h2 className="activity-title">My Physical Activities</h2>
-                </div>
+        <Screen contentContainerStyle={styles.screen}>
+            <ScreenHeader title="My Physical Activities" onBack={onBack} />
 
-                <div className="activity-form-card">
-                    <form onSubmit={addActivity} className="activity-input-group">
-                        <input
-                            className="input-field-styled"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="New Activity..."
-                            style={{ flex: 1, padding: '8px'}}
+            {error ? (
+                <Pressable onPress={() => setError(null)} accessibilityRole="button">
+                    <Alert message={`⚠️ ${error}`} />
+                </Pressable>
+            ) : null}
+
+            {/* Add-activity form */}
+            <View style={[styles.card, shadow('sm')]}>
+                <TextInput
+                    style={styles.input}
+                    value={input}
+                    onChangeText={setInput}
+                    placeholder="New Activity..."
+                    placeholderTextColor={colors.textMuted}
+                />
+                <TextInput
+                    style={[styles.input, styles.textarea]}
+                    value={descInput}
+                    onChangeText={setDescInput}
+                    placeholder="Add a description (optional)..."
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    textAlignVertical="top"
+                />
+
+                <DateField
+                    value={activityDate}
+                    onChange={setActivityDate}
+                    placeholder="Activity date"
+                />
+
+                <SegmentedField options={TYPE_OPTIONS} value={tab} onChange={setTab} />
+
+                {tab === 'cardio' ? (
+                    <View style={styles.row}>
+                        <TextInput
+                            style={[styles.input, styles.flex]}
+                            value={distance}
+                            onChangeText={setDistance}
+                            placeholder="Distance (km)"
+                            placeholderTextColor={colors.textMuted}
+                            keyboardType="decimal-pad"
                         />
-                        <textarea
-                            className="input-field-styled"
-                            value={descInput}
-                            onChange={(e) => setDescInput(e.target.value)}
-                            placeholder="Add a description(optional)..."
+                        <TextInput
+                            style={[styles.input, styles.flex]}
+                            value={time}
+                            onChangeText={setTime}
+                            placeholder="Duration (HH:MM)"
+                            placeholderTextColor={colors.textMuted}
                         />
+                    </View>
+                ) : null}
 
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                type="date"
-                                className="input-field-styled"
-                                style={{ flex: 1 }}
-                                value={activityDate}
-                                onChange={(e) => setActivityDate(e.target.value)}
-                            />
-                        </div>
+                {tab === 'strength' ? (
+                    <View style={styles.exerciseList}>
+                        {exercises.map((exercise, index) => (
+                            <View key={index} style={styles.exerciseCard}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Exercise"
+                                    placeholderTextColor={colors.textMuted}
+                                    value={exercise.name}
+                                    onChangeText={(v) => {
+                                        const updated = [...exercises];
+                                        updated[index] = { ...updated[index], name: v };
+                                        setExercises(updated);
+                                    }}
+                                />
 
-                        <div className='activity-tabs-card'>
-                            {['cardio', 'strength'].map(t => (
-                                <button
-                                    key={t}
-                                    className={`tab-btn ${tab === t ? 'active' : ''}`}
-                                    onClick={() => setTab(t)}
-                                    type="button"
-                                >
-                                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                                </button>
-                            ))}
-                        </div>
+                                {exercise.sets.map((set, index2) => (
+                                    <View key={index2} style={styles.setRow}>
+                                        <TextInput
+                                            style={[styles.input, styles.flex]}
+                                            placeholder="weight"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="decimal-pad"
+                                            value={set.weight}
+                                            onChangeText={(v) => {
+                                                const updated = [...exercises];
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    sets: updated[index].sets.map((s, i) =>
+                                                        i === index2 ? { ...s, weight: v } : s
+                                                    ),
+                                                };
+                                                setExercises(updated);
+                                            }}
+                                        />
+                                        <Text style={styles.unit}>kg</Text>
 
+                                        <TextInput
+                                            style={[styles.input, styles.flex]}
+                                            placeholder="reps"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="number-pad"
+                                            value={set.reps}
+                                            onChangeText={(v) => {
+                                                const updated = [...exercises];
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    sets: updated[index].sets.map((s, i) =>
+                                                        i === index2 ? { ...s, reps: v } : s
+                                                    ),
+                                                };
+                                                setExercises(updated);
+                                            }}
+                                        />
+                                        <Text style={styles.unit}>reps</Text>
+                                    </View>
+                                ))}
 
-                        <div className="activity-form">
-                            {tab === 'cardio' && (
-                                <div>
-                                    <input
-                                        className="input-field-styled"
-                                        value={distance}
-                                        onChange={(e) => setDistance(e.target.value)}
-                                        placeholder="Distance (km)"
-                                        style={{ flex: 1, padding: '8px'}}
+                                <View style={styles.row}>
+                                    <SmallButton label="+ Add Set" onPress={() => addSet(index)} />
+                                    <SmallButton label="- Remove Set" onPress={() => removeSet(index)} />
+                                </View>
+                            </View>
+                        ))}
+
+                        <SmallButton label="+ Add Exercise" onPress={addExercise} />
+                    </View>
+                ) : null}
+
+                <PrimaryButton label="Add" onPress={addActivity} disabled={!input.trim()} />
+            </View>
+
+            {/* Activity list */}
+            <View style={styles.list}>
+                {activities.map(activity => {
+                    const editing = editingId === activity.id;
+
+                    return (
+                        <View key={activity.id} style={[styles.item, shadow('sm')]}>
+                            {editing ? (
+                                <View style={styles.editBox}>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={editText}
+                                        onChangeText={setEditText}
+                                        autoFocus
                                     />
-                                    <input
-                                        className="input-field-styled"
-                                        value={time}
-                                        onChange={(e) => setTime(e.target.value)}
-                                        placeholder="Duration (HH:MM)"
-                                        style={{ flex: 1, padding: '8px'}}
+                                    <TextInput
+                                        style={[styles.input, styles.textarea]}
+                                        placeholder="Add a description..."
+                                        placeholderTextColor={colors.textMuted}
+                                        value={editDesc}
+                                        onChangeText={setEditDesc}
+                                        multiline
+                                        textAlignVertical="top"
                                     />
-                                </div>
-                            )}
 
-                            {tab === 'strength' && (
-                                <div>
-                                    {exercises.map((exercise, index) => (
-                                        <div key={index} className="exercise-card">
+                                    <DateField
+                                        value={activity.activityDate === '9999-12-31' ? '' : activity.activityDate}
+                                        onChange={(v) => saveEdit(activity.id, { activityDate: v || '9999-12-31' })}
+                                        placeholder="Activity date"
+                                    />
 
-                                            <input
-                                                className="input-field-styled"
-                                                placeholder="Exercise"
-                                                style={{ flex: 1, padding: '8px'}}
-                                                value={exercise.name}
-                                                onChange={(e) => {
-                                                    const updated = [...exercises];
-                                                    updated[index].name = e.target.value;
-                                                    setExercises(updated);
-                                                }}
+                                    {activity.type === 'cardio' ? (
+                                        <View style={styles.editSection}>
+                                            <Text style={styles.metaLabel}>Type: Cardio</Text>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editDistance}
+                                                onChangeText={setEditDistance}
+                                                placeholder="Distance (km)"
+                                                placeholderTextColor={colors.textMuted}
+                                                keyboardType="decimal-pad"
                                             />
-
-                                            {exercise.sets.map((set, index2) => (
-                                                <div key={index2} className="set-card">
-                                                    <input
-                                                        className="input-field-styled"
-                                                        placeholder="weight"
-                                                        style={{ flex: 1, padding: '8px'}}
-                                                        value={set.weight}
-                                                        onChange={(e) => {
-                                                            const updated = [...exercises];
-                                                            updated[index].sets[index2].weight = e.target.value;
-                                                            setExercises(updated);
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editTime}
+                                                onChangeText={setEditTime}
+                                                placeholder="Duration (HH:MM)"
+                                                placeholderTextColor={colors.textMuted}
+                                            />
+                                        </View>
+                                    ) : (
+                                        <View style={styles.editSection}>
+                                            <Text style={styles.metaLabel}>Type: Gym</Text>
+                                            {editExercises.map((exercise, index) => (
+                                                <View key={index} style={styles.exerciseCard}>
+                                                    <TextInput
+                                                        style={styles.input}
+                                                        value={exercise.name}
+                                                        placeholder="Exercise"
+                                                        placeholderTextColor={colors.textMuted}
+                                                        onChangeText={(v) => {
+                                                            const updated = [...editExercises];
+                                                            updated[index] = { ...updated[index], name: v };
+                                                            setEditExercises(updated);
                                                         }}
-                                                    /> kg
-                                                    <input
-                                                        className="input-field-styled"
-                                                        placeholder="reps"
-                                                        style={{ flex: 1, padding: '8px'}}
-                                                        value={set.reps}
-                                                        onChange={(e) => {
-                                                            const updated = [...exercises];
-                                                            updated[index].sets[index2].reps = e.target.value;
-                                                            setExercises(updated);
-                                                        }}
-
-                                                    /> reps
-                                                </div>
+                                                    />
+                                                    {exercise.sets.map((set, index2) => (
+                                                        <View key={index2} style={styles.setRow}>
+                                                            <TextInput
+                                                                style={[styles.input, styles.flex]}
+                                                                value={set.weight}
+                                                                placeholder="weight"
+                                                                placeholderTextColor={colors.textMuted}
+                                                                keyboardType="decimal-pad"
+                                                                onChangeText={(v) => {
+                                                                    const updated = [...editExercises];
+                                                                    updated[index] = {
+                                                                        ...updated[index],
+                                                                        sets: updated[index].sets.map((s, i) =>
+                                                                            i === index2 ? { ...s, weight: v } : s
+                                                                        )
+                                                                    };
+                                                                    setEditExercises(updated);
+                                                                }}
+                                                            />
+                                                            <TextInput
+                                                                style={[styles.input, styles.flex]}
+                                                                value={set.reps}
+                                                                placeholder="reps"
+                                                                placeholderTextColor={colors.textMuted}
+                                                                keyboardType="number-pad"
+                                                                onChangeText={(v) => {
+                                                                    const updated = [...editExercises];
+                                                                    updated[index] = {
+                                                                        ...updated[index],
+                                                                        sets: updated[index].sets.map((s, i) =>
+                                                                            i === index2 ? { ...s, reps: v } : s
+                                                                        )
+                                                                    };
+                                                                    setEditExercises(updated);
+                                                                }}
+                                                            />
+                                                        </View>
+                                                    ))}
+                                                </View>
                                             ))}
+                                        </View>
+                                    )}
 
-                                            <button type="button" className="btn-back" onClick={() => addSet(index)}>
-                                                + Add Set
-                                            </button>
+                                    <PrimaryButton label="Done" onPress={() => saveEdit(activity.id)} />
+                                </View>
+                            ) : (
+                                // Tap to edit, long-press to delete — the touch
+                                // equivalents of double-click and right-click.
+                                <Pressable
+                                    onPress={() => startEdit(activity)}
+                                    onLongPress={() => deleteActivity(activity)}
+                                    accessibilityRole="button"
+                                    accessibilityHint="Tap to edit, long press to delete"
+                                >
+                                    <Text style={styles.itemText}>{activity.text}</Text>
 
-                                            <button type="button" className="btn-back" onClick={() => removeSet(index)}>
-                                                - Remove Set
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {activity.description ? (
+                                        <Text style={styles.itemDescription}>{activity.description}</Text>
+                                    ) : null}
 
-                                    <button type="button" className="btn-back" onClick={addExercise}>
-                                        + Add Exercise
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        <button type="submit" className="btn-teal">Add</button>
-                    </form>
-                </div>
+                                    {activity.activityDate && activity.activityDate !== '9999-12-31' ? (
+                                        <Text style={styles.metaText}>
+                                            📅 Date: {formatDueDate(activity.activityDate)}
+                                        </Text>
+                                    ) : null}
 
-                <ul className="activity-list-styled">
-                    {activities.map(activity => {
-                        return(
-                            <li key={activity.id}
-                                className="activity-item-card"
-                                onContextMenu={(e) => {
-                                    e.stopPropagation();
-                                    handleContextMenu(e,activity.id);
-                                }}
-                            >
-                                <div className="item-content">
-                                    {editingId === activity.id ? (
-                                        <div className="edit-mode-container">
-                                            <input
-                                                className="edit-input-styled"
-                                                value={editText}
-                                                autoFocus
-                                                onChange={(e) => setEditText(e.target.value)}
-                                                onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                />
-                                            <textarea
-                                                className="edit-desc-textarea"
-                                                placeholder="Add a description..."
-                                                value={editDesc}
-                                                onChange={(e) => setEditDesc(e.target.value)}
-                                                />
-
-                                            <div className="item-meta-edit">
-                                                <input
-                                                    type = "date"
-                                                    className="edit-date-mini"
-                                                    defaultValue={activity.activityDate === "9999-12-31" ? "" : activity.activityDate}
-                                                    onChange={(e) => saveEdit(activity.id, {dueDate: e.target.value || "9999-12-31"})}
-                                                />
-                                            </div>
-                                            <div className="activity-data">
-                                                {activity.type === "cardio" ? (
-                                                    <div>
-                                                        <span>Type: Cardio</span>
-                                                        <input
-                                                            className="input-field-styled"
-                                                            value={editDistance}
-                                                            autoFocus
-                                                            onChange={(e) => setEditDistance(e.target.value)}
-                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                            />
-                                                        <input
-                                                            className="input-field-styled"
-                                                            value={editTime}
-                                                            autoFocus
-                                                            onChange={(e) => setEditTime(e.target.value)}
-                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                            />
-                                                    </div>
-                                                ) : (
-                                                     <div>
-                                                         <span>Type: Gym </span>
-                                                         {editExercises.map((exercise, index) => (
-                                                             <div key={index}>
-                                                                 <input
-                                                                     className="input-field-styled"
-                                                                     value={exercise.name}
-                                                                     autoFocus
-                                                                     onChange={(e) =>{
-                                                                        const updated = [...editExercises];
-                                                                        updated[index] = {
-                                                                            ...updated[index],
-                                                                            name: e.target.value
-                                                                        };
-                                                                        setEditExercises(updated);
-                                                                     }}
-                                                                     onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                     />
-                                                                 {exercise.sets.map((set, index2) =>
-                                                                    <div key={index2}>
-                                                                        <input
-                                                                            className="input-field-styled"
-                                                                            value={set.weight}
-                                                                            autoFocus
-                                                                            onChange={(e) => {
-                                                                                const updated = [...editExercises];
-                                                                                updated[index] = {
-                                                                                    ...updated[index],
-                                                                                    sets: updated[index].sets.map((s, i) =>
-                                                                                        i === index2
-                                                                                        ? {...s, weight: e.target.value }
-                                                                                        : s
-                                                                                    )
-                                                                                };
-                                                                                setEditExercises(updated);
-                                                                            }}
-                                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                            />
-                                                                        <input
-                                                                            className="input-field-styled"
-                                                                            value={set.reps}
-                                                                            autoFocus
-                                                                            onChange={(e) => {
-                                                                                const updated = [...editExercises];
-                                                                                updated[index] = {
-                                                                                    ...updated[index],
-                                                                                    sets: updated[index].sets.map((s, i) =>
-                                                                                        i === index2
-                                                                                        ? {...s, reps: e.target.value }
-                                                                                        : s
-                                                                                    )
-                                                                                };
-                                                                                setEditExercises(updated);
-                                                                            }}
-                                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                            />
-                                                                    </div>
-                                                                 )}
-                                                             </div>
-                                                         ))}
-                                                     </div>
-                                                )}
-
-                                                <span className="done-text" onClick={() => saveEdit(activity.id)}>
-                                                     Done
-                                                </span>
-                                            </div>
-
-                                        </div>
-                                    ):(
-                                        <div onDoubleClick={() => startEdit(activity)} title="Double click to edit">
-                                            <div className="item-title-row">
-                                                <span
-                                                    className="item-text"
-                                                >
-                                                    {activity.text}
-                                                </span>
-                                            </div>
-                                            {activity.description && (
-                                                <span className="item-description"
-                                                   style={{
-                                                       fontSize:'0.85rem',
-                                                       color:'#666',
-                                                       margin:'4px 0',
-                                                       lineHeight: '1.4'
-                                                   }}>
-                                                    {activity.description}
-                                                </span>
-                                            )}
-                                            <div className="item-meta">
-                                                {activity.activityDate !== '9999-12-31' && (
-                                                    <span>
-                                                        📅 Date: {formatDueDate(activity.activityDate)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="activity-data">
-                                                {activity.type === 'cardio' ? (
-                                                    <div>
-                                                        <div><span>Type: Cardio</span></div>
-                                                        <div><span>Distance: {activity.distance}km</span></div>
-                                                        <div><span>Time: {activity.duration}</span></div>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <div><span>Type: GYM </span></div>
-                                                        {activity.exercises.map((exercise, index) => (
-                                                            <div key={index}>
-                                                                <div><span>Exercise: {exercise.name}</span></div>
-                                                                {exercise.sets.map((set, index2) =>
-                                                                    <div><span>{set.weight} x{set.reps}</span></div>
-
-                                                                )}
-                                                            </div>
+                                    <View style={styles.activityData}>
+                                        {activity.type === 'cardio' ? (
+                                            <>
+                                                <Text style={styles.metaLabel}>Type: Cardio</Text>
+                                                <Text style={styles.metaText}>Distance: {activity.distance}km</Text>
+                                                <Text style={styles.metaText}>Time: {activity.duration}</Text>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Text style={styles.metaLabel}>Type: GYM</Text>
+                                                {(activity.exercises ?? []).map((exercise, index) => (
+                                                    <View key={index} style={styles.exerciseSummary}>
+                                                        <Text style={styles.metaText}>
+                                                            Exercise: {exercise.name}
+                                                        </Text>
+                                                        {(exercise.sets ?? []).map((set, index2) => (
+                                                            <Text key={index2} style={styles.setText}>
+                                                                {set.weight} x{set.reps}
+                                                            </Text>
                                                         ))}
-                                                    </div>
-
-                                                )}
-                                            </div>
-
-
-                                        </div>
-                                    )
-                                }
-                                </div>
-                            </li>
-                        )
-                    })}
-
-                </ul>
-            </div>
-
-            {menuPos && (
-                <div
-                    className="custom-context-menu"
-                    style={{ top: menuPos.y, left: menuPos.x}}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div
-                        className="menu-item delete"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            deleteActivity(menuPos.id)
-                            setMenuPos(null);
-                        }}
-                    >
-                        🗑️ Delete Task
-                    </div>
-                </div>
-            )}
-        </div>
+                                                    </View>
+                                                ))}
+                                            </>
+                                        )}
+                                    </View>
+                                </Pressable>
+                            )}
+                        </View>
+                    );
+                })}
+            </View>
+        </Screen>
     );
 }
+
+function SmallButton({ label, onPress }) {
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.smallBtn, pressed && styles.pressed]}
+        >
+            <Text style={styles.smallBtnText}>{label}</Text>
+        </Pressable>
+    );
+}
+
+const styles = StyleSheet.create({
+    screen: { gap: spacing.md, paddingBottom: 40 },
+    flex: { flex: 1 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    pressed: { opacity: 0.7 },
+
+    card: {
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        gap: spacing.md,
+    },
+
+    input: {
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        ...type.body,
+        color: colors.text,
+        backgroundColor: 'rgba(255,255,255,0.7)',
+    },
+    textarea: { minHeight: 72 },
+    unit: { ...type.small, color: colors.textMuted },
+
+    exerciseList: { gap: spacing.md },
+    exerciseCard: {
+        gap: spacing.sm,
+        padding: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.pulseBg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    setRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+    smallBtn: {
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.blPrimary,
+    },
+    smallBtnText: { ...type.small, color: colors.blPrimary },
+
+    list: { gap: spacing.sm },
+    item: {
+        padding: spacing.lg,
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    editBox: { gap: spacing.sm },
+    editSection: { gap: spacing.sm },
+
+    itemText: { ...type.title, fontFamily: fonts.semibold, color: colors.text },
+    itemDescription: { ...type.small, color: '#666', marginVertical: 4 },
+    metaText: { ...type.small, color: colors.textMuted },
+    metaLabel: { ...type.label, fontSize: 12, color: colors.text, marginTop: 4 },
+    activityData: { marginTop: spacing.sm, gap: 2 },
+    exerciseSummary: { marginTop: 4, gap: 2 },
+    setText: { ...type.caption, fontSize: 12, color: colors.textMuted, paddingLeft: spacing.md },
+});
 
 export default PhysicalActivity;

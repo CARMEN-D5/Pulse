@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import "./auth.css";
+import { Text, View } from "react-native";
+
+import Icon from "../components/Icon";
+import { Alert, Card, LinkButton, PrimaryButton, Screen, TextField } from "../components/ui";
+import { colors } from "../theme";
+import styles from "./authStyles";
 
 function ResetPassword({ onSubmit, onBackToLogin }) {
   const [email, setEmail] = useState("");
@@ -7,8 +12,7 @@ function ResetPassword({ onSubmit, onBackToLogin }) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError("");
     if (!email.trim()) {
       setError("Please enter the email on your account.");
@@ -21,15 +25,11 @@ function ResetPassword({ onSubmit, onBackToLogin }) {
 
     setSubmitting(true);
     try {
-      const result = onSubmit
-        ? await onSubmit({ email: email.trim() })
-        : { ok: true };
+      const result = onSubmit ? await onSubmit({ email: email.trim() }) : { ok: true };
       if (result?.ok) {
         setSent(true);
       } else {
-        setError(
-          result?.error || "We couldn't send a reset link. Please try again."
-        );
+        setError(result?.error || "We couldn't send a reset link. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -37,101 +37,71 @@ function ResetPassword({ onSubmit, onBackToLogin }) {
   };
 
   return (
-    <div className="auth-redesign auth-redesign--signin">
-      <div className="auth-redesign-decor auth-redesign-decor--1" />
-      <div className="auth-redesign-decor auth-redesign-decor--2" />
-
-      <main className="auth-redesign-main">
+    <Screen center>
+      <View style={styles.main}>
         {/* Header */}
-        <header className="auth-redesign-header">
-          <div className="auth-redesign-icon-box">
-            <span className="material-symbols-outlined">lock_reset</span>
-          </div>
-          <h1 className="auth-redesign-title">Reset Password</h1>
-          <p className="auth-redesign-sub">
+        <View style={styles.header}>
+          <View style={styles.iconBox}>
+            <Icon name="lock_reset" size={40} color={colors.blPrimary} />
+          </View>
+          <Text style={styles.title}>Reset Password</Text>
+          <Text style={styles.subtitle}>
             Enter your email and we'll send you a reset link
-          </p>
-        </header>
+          </Text>
+        </View>
 
         {/* Card */}
-        <section className="auth-glass-card">
+        <Card>
           {sent ? (
-            <div className="auth-glass-form">
-              <div className="auth-glass-success" role="status">
-                <span className="material-symbols-outlined auth-glass-success-icon">
-                  check_circle
-                </span>
-                <p className="auth-glass-success-text">
-                  If an account exists for <strong>{email}</strong>, a password
-                  reset link has been sent.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="auth-glass-cta auth-glass-cta--rounded"
-                onClick={onBackToLogin}
-              >
-                <span>Back to Sign In</span>
-                <span className="material-symbols-outlined">arrow_forward</span>
-              </button>
-            </div>
+            <View style={styles.form}>
+              <View style={styles.successBlock} accessibilityRole="summary">
+                <Icon name="check_circle" size={48} color={colors.blPrimary} />
+                <Text style={styles.successText}>
+                  If an account exists for <Text style={styles.successEmail}>{email}</Text>, a
+                  password reset link has been sent.
+                </Text>
+              </View>
+              <PrimaryButton
+                label="Back to Sign In"
+                icon="arrow_forward"
+                onPress={onBackToLogin}
+              />
+            </View>
           ) : (
-            <form className="auth-glass-form" onSubmit={handleSubmit} noValidate>
-              {error && (
-                <div className="auth-glass-alert" role="alert">
-                  {error}
-                </div>
-              )}
+            <View style={styles.form}>
+              <Alert message={error} />
 
-              <div className="auth-glass-field">
-                <label className="auth-glass-label" htmlFor="reset-email">
-                  Email Address
-                </label>
-                <div className="auth-glass-input-wrap">
-                  <span className="material-symbols-outlined auth-glass-input-icon">
-                    email
-                  </span>
-                  <input
-                    id="reset-email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`auth-glass-input auth-glass-input--rounded${error ? " invalid" : ""}`}
-                    placeholder="yourname@email.com"
-                  />
-                </div>
-              </div>
+              <TextField
+                label="Email Address"
+                icon="email"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="yourname@email.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
+              />
 
-              <button
-                type="submit"
-                className="auth-glass-cta auth-glass-cta--rounded"
-                disabled={submitting}
-              >
-                <span>{submitting ? "Sending…" : "Send Reset Link"}</span>
-                {!submitting && (
-                  <span className="material-symbols-outlined">arrow_forward</span>
-                )}
-              </button>
-            </form>
+              <PrimaryButton
+                label={submitting ? "Sending…" : "Send Reset Link"}
+                icon="arrow_forward"
+                onPress={handleSubmit}
+                loading={submitting}
+              />
+            </View>
           )}
-        </section>
+        </Card>
 
         {/* Footer */}
-        <footer className="auth-redesign-footer">
-          <button
-            type="button"
-            className="auth-redesign-footer-link"
-            onClick={onBackToLogin}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: "middle", marginRight: 4 }}>
-              arrow_back
-            </span>
-            Back to Sign In
-          </button>
-        </footer>
-      </main>
-    </div>
+        <View style={styles.footer}>
+          <Icon name="arrow_back" size={16} color={colors.blPrimary} />
+          <LinkButton label="Back to Sign In" onPress={onBackToLogin} />
+        </View>
+      </View>
+    </Screen>
   );
 }
 

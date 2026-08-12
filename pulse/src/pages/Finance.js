@@ -1,27 +1,39 @@
 import React, { useEffect, useMemo, useState } from "react";
-import "./auth.css";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { logAction } from "../firestore/scoring";
-import DonutChart from "./DonutChart";
-import SpendingCalendar from "./SpendingCalendar";
+import DateField from "../components/DateField";
+import Icon from "../components/Icon";
+import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
 import {
-  DEFAULT_CATEGORIES,
-  DEFAULT_ACCOUNTS,
-  categoryById,
   accountById,
   addExpense,
-  listExpenses,
-  deleteExpense,
-  getBudgets,
-  setBudget,
-  getAccounts,
-  saveAccount,
+  categoryById,
+  daysInMonth,
+  DEFAULT_ACCOUNTS,
+  DEFAULT_CATEGORIES,
   deleteAccount,
+  deleteExpense,
   ensureDefaultAccounts,
+  getAccounts,
+  getBudgets,
+  listExpenses,
   monthBounds,
   monthLabel,
-  daysInMonth,
+  saveAccount,
+  setBudget,
 } from "../firestore/finance";
+import { logAction } from "../firestore/scoring";
+import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import DonutChart from "./DonutChart";
+import SpendingCalendar from "./SpendingCalendar";
+
+// Preset palette standing in for the web build's <input type="color">.
+// React Native has no native colour picker, and a swatch grid is faster to use
+// on a phone than a hue wheel anyway.
+const ACCOUNT_COLORS = [
+  "#4d96ff", "#2f9e7a", "#c9184a", "#f57c00",
+  "#983f72", "#086a69", "#5a6550", "#4e607f",
+];
 
 /**
  * Finance / budget tracker page.
@@ -92,11 +104,7 @@ function Finance({ user, onBack, onActivityLogged }) {
   );
 
   const totalBudget = useMemo(
-    () =>
-      DEFAULT_CATEGORIES.reduce(
-        (acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0),
-        0
-      ),
+    () => DEFAULT_CATEGORIES.reduce((acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0), 0),
     [budgets]
   );
 
@@ -143,7 +151,7 @@ function Finance({ user, onBack, onActivityLogged }) {
       setError(res.error || "Couldn't save the expense.");
       return false;
     }
-    logAction(uid, 'finance', 'expense');
+    logAction(uid, "finance", "expense");
     onActivityLogged?.();
     await refresh();
     return true;
@@ -156,9 +164,7 @@ function Finance({ user, onBack, onActivityLogged }) {
   };
 
   const handleSaveBudgets = async (next) => {
-    const writes = Object.entries(next).map(([cat, lim]) =>
-      setBudget(uid, cat, lim)
-    );
+    const writes = Object.entries(next).map(([cat, lim]) => setBudget(uid, cat, lim));
     const results = await Promise.all(writes);
     const fail = results.find((r) => !r.ok);
     if (fail) setError(fail.error || "Couldn't save budgets.");
@@ -179,195 +185,163 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   // ---- render ------------------------------------------------------------
   return (
-    <div className="finance-shell">
-      <div className="finance-container">
-        <div className="finance-header">
-          <button type="button" className="finance-back" onClick={onBack}>
-            ← Home
-          </button>
-          <div className="finance-title-block" style={{ flex: 1 }}>
-            <h1>Budget</h1>
-            <div className="month-label">{monthName}</div>
-          </div>
-          <button
-            type="button"
-            className="cog-btn"
-            onClick={() => setShowSettings(true)}
-            aria-label="Settings"
-            title="Settings"
+    <Screen contentContainerStyle={styles.screen}>
+      <ScreenHeader
+        title="Budget"
+        subtitle={monthName}
+        onBack={onBack}
+        right={
+          <Pressable
+            onPress={() => setShowSettings(true)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            style={({ pressed }) => [styles.cogBtn, pressed && styles.pressed]}
           >
-            ⚙️
-          </button>
-        </div>
+            <Icon name="settings" size={20} color={colors.text} />
+          </Pressable>
+        }
+      />
 
-        {error && (
-          <div className="alert alert-error" role="alert">
-            {error}
-          </div>
-        )}
+      <Alert message={error} />
 
-        {/* ---------- Chart + legend ---------- */}
-        <div className="finance-card">
-          <div className="finance-summary">
-            <DonutChart
-              data={donutData}
-              size={220}
-              thickness={28}
-              centerLabel={`$${totalSpent.toFixed(0)}`}
-              centerSub={
-                totalBudget > 0
-                  ? `of $${totalBudget.toFixed(0)}`
-                  : "spent this month"
-              }
-            />
-            <div className="donut-legend">
-              {rankedCategories.map((c) => (
-                <div className="legend-row" key={c.id}>
-                  <span
-                    className="legend-swatch"
-                    style={{ background: c.color }}
-                  />
-                  <span>
-                    {c.icon} {c.label}
-                  </span>
-                  <span className="legend-amount">
-                    ${spentByCategory[c.id].toFixed(0)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ---------- Daily P&L calendar ---------- */}
-        <div className="finance-card">
-          <SpendingCalendar
-            expenses={expenses}
-            monthStart={monthStart}
-            dailyAllowance={dailyAllowance}
+      {/* ---------- Chart + legend ---------- */}
+      <View style={[styles.card, shadow("sm")]}>
+        <View style={styles.summary}>
+          <DonutChart
+            data={donutData}
+            size={220}
+            thickness={28}
+            centerLabel={`$${totalSpent.toFixed(0)}`}
+            centerSub={totalBudget > 0 ? `of $${totalBudget.toFixed(0)}` : "spent this month"}
           />
-        </div>
 
-        {/* ---------- Per-category bars ---------- */}
-        <div className="finance-card">
-          <div className="section-title">Category limits</div>
-          <div className="budget-rows">
-            {DEFAULT_CATEGORIES.map((c) => {
-              const cap = budgets[c.id]?.monthlyLimit || 0;
-              const spent = spentByCategory[c.id];
-              const ratio = cap > 0 ? spent / cap : 0;
-              const pct = Math.min(ratio, 1) * 100;
-              const cls = ratio >= 1 ? "over" : ratio >= 0.8 ? "warn" : "";
+          <View style={styles.legend}>
+            {rankedCategories.map((c) => (
+              <View style={styles.legendRow} key={c.id}>
+                <View style={[styles.legendSwatch, { backgroundColor: c.color }]} />
+                <Text style={styles.legendLabel} numberOfLines={1}>
+                  {c.icon} {c.label}
+                </Text>
+                <Text style={styles.legendAmount}>${spentByCategory[c.id].toFixed(0)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* ---------- Daily P&L calendar ---------- */}
+      <View style={[styles.card, shadow("sm")]}>
+        <SpendingCalendar
+          expenses={expenses}
+          monthStart={monthStart}
+          dailyAllowance={dailyAllowance}
+        />
+      </View>
+
+      {/* ---------- Per-category bars ---------- */}
+      <View style={[styles.card, shadow("sm")]}>
+        <Text style={styles.sectionTitle}>Category limits</Text>
+
+        <View style={styles.budgetRows}>
+          {DEFAULT_CATEGORIES.map((c) => {
+            const cap = budgets[c.id]?.monthlyLimit || 0;
+            const spent = spentByCategory[c.id];
+            const ratio = cap > 0 ? spent / cap : 0;
+            const pct = Math.min(ratio, 1) * 100;
+            return (
+              <View key={c.id} style={styles.budgetRow}>
+                <View style={styles.budgetRowHead}>
+                  <Text style={styles.budgetRowName}>
+                    {c.icon} {c.label}
+                  </Text>
+                  <Text style={styles.budgetRowAmount}>
+                    ${spent.toFixed(0)}
+                    {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
+                  </Text>
+                </View>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[styles.barFill, { width: `${pct}%`, backgroundColor: c.color }]}
+                  />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* ---------- Add expense ---------- */}
+      <View style={[styles.card, shadow("sm")]}>
+        <Text style={styles.sectionTitle}>Add an expense</Text>
+        <AddExpenseForm
+          accounts={accounts}
+          defaultAccount={lastUsedAccount}
+          onSubmit={handleAddExpense}
+        />
+      </View>
+
+      {/* ---------- Recent transactions ---------- */}
+      <View style={[styles.card, shadow("sm")]}>
+        <Text style={styles.sectionTitle}>Recent transactions</Text>
+
+        {loading ? (
+          <Text style={styles.emptyState}>Loading…</Text>
+        ) : expenses.length === 0 ? (
+          <Text style={styles.emptyState}>No expenses yet — add one above to get started.</Text>
+        ) : (
+          <View style={styles.txList}>
+            {expenses.slice(0, 12).map((e) => {
+              const cat = categoryById(e.category);
+              const acc = accountById(accounts, e.account);
+              const date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
               return (
-                <div key={c.id} className="budget-row">
-                  <div className="budget-row-head">
-                    <span className="budget-row-name">
-                      <span aria-hidden="true">{c.icon}</span>
-                      {c.label}
-                    </span>
-                    <span className="budget-row-amount">
-                      ${spent.toFixed(0)}
-                      {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
-                    </span>
-                  </div>
-                  <div className="bar-track">
-                    <div
-                      className={`bar-fill ${cls}`}
-                      style={{
-                        width: `${pct}%`,
-                        background: c.color,
-                      }}
-                    />
-                  </div>
-                </div>
+                <View key={e.id} style={styles.txRow}>
+                  <View style={[styles.txIcon, { backgroundColor: `${cat.color}22` }]}>
+                    <Text style={styles.txIconText}>{cat.icon}</Text>
+                  </View>
+
+                  <View style={styles.flex}>
+                    <View style={styles.txCatRow}>
+                      <View style={[styles.txAccountIcon, { backgroundColor: `${acc.color}22` }]}>
+                        <Text style={styles.txAccountIconText}>{acc.icon}</Text>
+                      </View>
+                      <Text style={styles.txCat}>{cat.label}</Text>
+                    </View>
+                    <Text style={styles.txMeta} numberOfLines={1}>
+                      {acc.name} ·{" "}
+                      {date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                      {e.note ? ` · ${e.note}` : ""}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.txAmount}>${e.amount.toFixed(2)}</Text>
+
+                  <Pressable
+                    onPress={() => handleDelete(e.id)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete expense"
+                    style={({ pressed }) => [pressed && styles.pressed]}
+                  >
+                    <Icon name="close" size={18} color={colors.textMuted} />
+                  </Pressable>
+                </View>
               );
             })}
-          </div>
-        </div>
+          </View>
+        )}
+      </View>
 
-        {/* ---------- Add expense ---------- */}
-        <div className="finance-card">
-          <div className="section-title">Add an expense</div>
-          <AddExpenseForm
-            accounts={accounts}
-            defaultAccount={lastUsedAccount}
-            onSubmit={handleAddExpense}
-          />
-        </div>
-
-        {/* ---------- Recent transactions ---------- */}
-        <div className="finance-card">
-          <div className="section-title">Recent transactions</div>
-          {loading ? (
-            <div className="empty-state">Loading…</div>
-          ) : expenses.length === 0 ? (
-            <div className="empty-state">
-              No expenses yet — add one above to get started.
-            </div>
-          ) : (
-            <div className="tx-list">
-              {expenses.slice(0, 12).map((e) => {
-                const cat = categoryById(e.category);
-                const acc = accountById(accounts, e.account);
-                const date = e.date?.toDate
-                  ? e.date.toDate()
-                  : new Date(e.date);
-                return (
-                  <div key={e.id} className="tx-row">
-                    <div
-                      className="tx-icon"
-                      style={{ background: cat.color + "22" }}
-                    >
-                      {cat.icon}
-                    </div>
-                    <div className="tx-main">
-                      <div className="tx-cat">
-                        <span
-                          className="tx-account-icon"
-                          title={acc.name}
-                          style={{ background: acc.color + "22" }}
-                        >
-                          {acc.icon}
-                        </span>
-                        {cat.label}
-                      </div>
-                      <div className="tx-meta">
-                        {acc.name} ·{" "}
-                        {date.toLocaleDateString("en-AU", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                        {e.note ? ` · ${e.note}` : ""}
-                      </div>
-                    </div>
-                    <div className="tx-amount">${e.amount.toFixed(2)}</div>
-                    <button
-                      type="button"
-                      className="tx-delete"
-                      onClick={() => handleDelete(e.id)}
-                      aria-label="Delete expense"
-                      title="Delete"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {showSettings && (
-        <SettingsModal
-          budgets={budgets}
-          accounts={accounts}
-          onSaveBudgets={handleSaveBudgets}
-          onSaveAccounts={handleSaveAccounts}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-    </div>
+      <SettingsModal
+        visible={showSettings}
+        budgets={budgets}
+        accounts={accounts}
+        onSaveBudgets={handleSaveBudgets}
+        onSaveAccounts={handleSaveAccounts}
+        onClose={() => setShowSettings(false)}
+      />
+    </Screen>
   );
 }
 
@@ -394,10 +368,9 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
     if (defaultAccount && !account) setAccount(defaultAccount);
   }, [defaultAccount, account]);
 
-  const canSubmit = Number(amount) > 0 && !!account && !submitting;
+  const canSubmit = Number(amount) > 0 && Boolean(account) && !submitting;
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const submit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     const ok = await onSubmit({
@@ -419,85 +392,81 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
   };
 
   return (
-    <form className="add-expense" onSubmit={submit}>
-      <input
-        className="amount-input"
-        type="number"
-        inputMode="decimal"
-        min="0"
-        step="0.01"
+    <View style={styles.form}>
+      <TextInput
+        style={styles.amountInput}
+        keyboardType="decimal-pad"
         placeholder="$0.00"
+        placeholderTextColor={colors.textMuted}
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChangeText={setAmount}
+        accessibilityLabel="Amount"
       />
 
-      <div className="category-chips" role="radiogroup" aria-label="Category">
-        {DEFAULT_CATEGORIES.map((c) => (
-          <button
-            type="button"
-            key={c.id}
-            className={`chip ${category === c.id ? "selected" : ""}`}
-            onClick={() => setCategory(c.id)}
-            role="radio"
-            aria-checked={category === c.id}
-          >
-            <span aria-hidden="true">{c.icon}</span>
-            {c.label}
-          </button>
-        ))}
-      </div>
+      <View style={styles.chipWrap} accessibilityRole="radiogroup" accessibilityLabel="Category">
+        {DEFAULT_CATEGORIES.map((c) => {
+          const selected = category === c.id;
+          return (
+            <Pressable
+              key={c.id}
+              onPress={() => setCategory(c.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              style={({ pressed }) => [
+                styles.chip,
+                selected && { backgroundColor: `${c.color}22`, borderColor: c.color },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.chipText, selected && { color: c.color, fontFamily: fonts.semibold }]}>
+                {c.icon} {c.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-      <div className="account-chips" role="radiogroup" aria-label="Account">
-        {accounts.map((a) => (
-          <button
-            type="button"
-            key={a.id}
-            className={`account-chip ${account === a.id ? "selected" : ""}`}
-            onClick={() => setAccount(a.id)}
-            role="radio"
-            aria-checked={account === a.id}
-          >
-            <span className="account-swatch" style={{ background: a.color }} />
-            <span aria-hidden="true">{a.icon}</span>
-            {a.name}
-          </button>
-        ))}
-      </div>
+      <View style={styles.chipWrap} accessibilityRole="radiogroup" accessibilityLabel="Account">
+        {accounts.map((a) => {
+          const selected = account === a.id;
+          return (
+            <Pressable
+              key={a.id}
+              onPress={() => setAccount(a.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              style={({ pressed }) => [
+                styles.chip,
+                selected && { backgroundColor: `${a.color}22`, borderColor: a.color },
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={[styles.accountSwatch, { backgroundColor: a.color }]} />
+              <Text style={[styles.chipText, selected && { fontFamily: fonts.semibold }]}>
+                {a.icon} {a.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-      <div className="field-row">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{
-            padding: "10px 12px",
-            border: "1px solid var(--pulse-border)",
-            borderRadius: 10,
-            fontSize: 14,
-          }}
-        />
-        <input
-          type="text"
-          placeholder="Note (optional)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          style={{
-            padding: "10px 12px",
-            border: "1px solid var(--pulse-border)",
-            borderRadius: 10,
-            fontSize: 14,
-          }}
-        />
-      </div>
+      <DateField value={date} onChange={setDate} clearable={false} />
 
-      <button
-        type="submit"
-        className="btn btn-primary"
+      <TextInput
+        style={styles.input}
+        placeholder="Note (optional)"
+        placeholderTextColor={colors.textMuted}
+        value={note}
+        onChangeText={setNote}
+      />
+
+      <PrimaryButton
+        label={submitting ? "Adding…" : "Add expense"}
+        onPress={submit}
         disabled={!canSubmit}
-      >
-        {submitting ? "Adding…" : "Add expense"}
-      </button>
-    </form>
+        loading={submitting}
+      />
+    </View>
   );
 }
 
@@ -505,32 +474,33 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
 // Settings modal: Budgets tab + Accounts tab
 // ============================================================================
 
-function SettingsModal({
-  budgets,
-  accounts,
-  onSaveBudgets,
-  onSaveAccounts,
-  onClose,
-}) {
+function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccounts, onClose }) {
   const [tab, setTab] = useState("budgets");
 
   // ----- Budgets tab state -----
-  const [budgetDraft, setBudgetDraft] = useState(() => {
+  const [budgetDraft, setBudgetDraft] = useState({});
+
+  // ----- Accounts tab state -----
+  // Working copy of accounts so edits don't hit Firestore until "Save".
+  const [acctDraft, setAcctDraft] = useState([]);
+  const [deletedIds, setDeletedIds] = useState([]);
+
+  const [saving, setSaving] = useState(false);
+
+  // The web version seeded these in useState initialisers, which only run on
+  // first mount. A <Modal> stays mounted between opens, so the drafts are
+  // reseeded each time it becomes visible instead — otherwise reopening
+  // settings would show stale values from the last edit.
+  useEffect(() => {
+    if (!visible) return;
     const out = {};
     for (const c of DEFAULT_CATEGORIES) {
       out[c.id] = String(budgets?.[c.id]?.monthlyLimit || "");
     }
-    return out;
-  });
-
-  // ----- Accounts tab state -----
-  // Working copy of accounts so edits don't hit Firestore until "Save".
-  const [acctDraft, setAcctDraft] = useState(
-    () => accounts.map((a) => ({ ...a })) || []
-  );
-  const [deletedIds, setDeletedIds] = useState([]);
-
-  const [saving, setSaving] = useState(false);
+    setBudgetDraft(out);
+    setAcctDraft(accounts.map((a) => ({ ...a })));
+    setDeletedIds([]);
+  }, [visible, budgets, accounts]);
 
   // ---- handlers ----
   const saveBudgets = async () => {
@@ -552,9 +522,7 @@ function SettingsModal({
   };
 
   const updateAcct = (idx, patch) => {
-    setAcctDraft((prev) =>
-      prev.map((a, i) => (i === idx ? { ...a, ...patch } : a))
-    );
+    setAcctDraft((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
   };
 
   const deleteAcct = (idx) => {
@@ -572,175 +540,335 @@ function SettingsModal({
   };
 
   return (
-    <div
-      className="modal-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="modal-card"
-        role="dialog"
-        aria-label="Settings"
-        style={{ maxWidth: 460 }}
-      >
-        <h3>Settings</h3>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close settings" />
 
-        <div className="tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "budgets"}
-            className={`tab ${tab === "budgets" ? "active" : ""}`}
-            onClick={() => setTab("budgets")}
+      <View style={styles.modalCard} accessibilityViewIsModal accessibilityLabel="Settings">
+        <Text style={styles.modalTitle}>Settings</Text>
+
+        <View style={styles.tabs} accessibilityRole="tablist">
+          <ModalTab label="Budgets" active={tab === "budgets"} onPress={() => setTab("budgets")} />
+          <ModalTab
+            label="Accounts"
+            active={tab === "accounts"}
+            onPress={() => setTab("accounts")}
+          />
+        </View>
+
+        <ScrollView
+          style={styles.modalBody}
+          contentContainerStyle={styles.modalBodyContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {tab === "budgets" ? (
+            <>
+              <Text style={styles.modalHint}>
+                Set the most you want to spend in each category each month.
+              </Text>
+
+              {DEFAULT_CATEGORIES.map((c) => (
+                <View key={c.id} style={styles.budgetEditRow}>
+                  <Text style={styles.budgetEditLabel} numberOfLines={1}>
+                    {c.icon} {c.label}
+                  </Text>
+                  <Text style={styles.currency}>$</Text>
+                  <TextInput
+                    style={styles.budgetEditInput}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor={colors.textMuted}
+                    value={budgetDraft[c.id] ?? ""}
+                    onChangeText={(v) => setBudgetDraft((d) => ({ ...d, [c.id]: v }))}
+                    accessibilityLabel={`${c.label} monthly limit`}
+                  />
+                </View>
+              ))}
+            </>
+          ) : (
+            <>
+              <Text style={styles.modalHint}>
+                Manage the bank accounts and payment methods you spend from.
+              </Text>
+
+              {acctDraft.map((a, i) => (
+                <View key={a.id} style={styles.accountEditRow}>
+                  <View style={styles.accountEditTop}>
+                    <TextInput
+                      style={styles.accIcon}
+                      value={a.icon}
+                      onChangeText={(v) => updateAcct(i, { icon: v.slice(0, 2) })}
+                      accessibilityLabel="Icon"
+                    />
+                    <TextInput
+                      style={[styles.input, styles.flex]}
+                      value={a.name}
+                      onChangeText={(v) => updateAcct(i, { name: v })}
+                      accessibilityLabel="Account name"
+                    />
+                    <Pressable
+                      onPress={() => deleteAcct(i)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Delete account"
+                      style={({ pressed }) => [pressed && styles.pressed]}
+                    >
+                      <Icon name="close" size={20} color={colors.textMuted} />
+                    </Pressable>
+                  </View>
+
+                  {/* Colour picker: preset swatches instead of a hue wheel. */}
+                  <View style={styles.swatchRow}>
+                    {ACCOUNT_COLORS.map((color) => (
+                      <Pressable
+                        key={color}
+                        onPress={() => updateAcct(i, { color })}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: a.color === color }}
+                        accessibilityLabel={`Colour ${color}`}
+                        style={[
+                          styles.swatch,
+                          { backgroundColor: color },
+                          a.color === color && styles.swatchSelected,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))}
+
+              <Pressable
+                onPress={addAcct}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.addAccountBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.addAccountText}>+ Add account</Text>
+              </Pressable>
+            </>
+          )}
+        </ScrollView>
+
+        <View style={styles.modalActions}>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.ghostBtn, pressed && styles.pressed]}
           >
-            Budgets
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "accounts"}
-            className={`tab ${tab === "accounts" ? "active" : ""}`}
-            onClick={() => setTab("accounts")}
-          >
-            Accounts
-          </button>
-        </div>
-
-        {tab === "budgets" ? (
-          <>
-            <p
-              style={{
-                margin: 0,
-                color: "var(--pulse-text-muted)",
-                fontSize: 13,
-              }}
-            >
-              Set the most you want to spend in each category each month.
-            </p>
-            {DEFAULT_CATEGORIES.map((c) => (
-              <div key={c.id} className="budget-edit-row">
-                <label htmlFor={`bud-${c.id}`}>
-                  <span aria-hidden="true">{c.icon}</span>
-                  {c.label}
-                </label>
-                <span style={{ color: "var(--pulse-text-muted)" }}>$</span>
-                <input
-                  id={`bud-${c.id}`}
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputMode="decimal"
-                  placeholder="0"
-                  value={budgetDraft[c.id]}
-                  onChange={(e) =>
-                    setBudgetDraft((d) => ({ ...d, [c.id]: e.target.value }))
-                  }
-                />
-              </div>
-            ))}
-
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={onClose}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={saveBudgets}
-                disabled={saving}
-                style={{ flex: 1 }}
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p
-              style={{
-                margin: 0,
-                color: "var(--pulse-text-muted)",
-                fontSize: 13,
-              }}
-            >
-              Manage the bank accounts and payment methods you spend from.
-            </p>
-
-            {acctDraft.map((a, i) => (
-              <div key={a.id} className="account-edit-row">
-                <input
-                  className="acc-icon"
-                  type="text"
-                  value={a.icon}
-                  onChange={(e) =>
-                    updateAcct(i, { icon: e.target.value.slice(0, 2) })
-                  }
-                  aria-label="Icon"
-                />
-                <input
-                  className="acc-name"
-                  type="text"
-                  value={a.name}
-                  onChange={(e) => updateAcct(i, { name: e.target.value })}
-                  aria-label="Account name"
-                />
-                <input
-                  className="acc-color"
-                  type="color"
-                  value={a.color}
-                  onChange={(e) => updateAcct(i, { color: e.target.value })}
-                  aria-label="Color"
-                />
-                <button
-                  type="button"
-                  className="delete-acc"
-                  onClick={() => deleteAcct(i)}
-                  aria-label="Delete account"
-                  title="Delete"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              className="add-account-btn"
-              onClick={addAcct}
-            >
-              + Add account
-            </button>
-
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={onClose}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={saveAccounts}
-                disabled={saving}
-                style={{ flex: 1 }}
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+            <Text style={styles.ghostBtnText}>Cancel</Text>
+          </Pressable>
+          <PrimaryButton
+            label={saving ? "Saving…" : "Save"}
+            onPress={tab === "budgets" ? saveBudgets : saveAccounts}
+            loading={saving}
+            style={styles.flex}
+          />
+        </View>
+      </View>
+    </Modal>
   );
 }
+
+function ModalTab({ label, active, onPress }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}
+    >
+      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { gap: spacing.md, paddingBottom: 40 },
+  flex: { flex: 1 },
+  pressed: { opacity: 0.7 },
+
+  cogBtn: { padding: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.glass },
+
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  sectionTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 15, color: colors.text },
+  emptyState: { ...type.small, color: colors.textMuted, paddingVertical: spacing.md },
+
+  summary: { alignItems: "center", gap: spacing.lg },
+  legend: { width: "100%", gap: 6 },
+  legendRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  legendSwatch: { width: 10, height: 10, borderRadius: radius.pill },
+  legendLabel: { ...type.small, flex: 1, color: colors.text },
+  legendAmount: { ...type.label, fontSize: 13, color: colors.text },
+
+  budgetRows: { gap: spacing.md },
+  budgetRow: { gap: 6 },
+  budgetRowHead: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },
+  budgetRowName: { ...type.small, flex: 1, color: colors.text },
+  budgetRowAmount: { ...type.caption, fontSize: 12, color: colors.textMuted },
+  barTrack: {
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.pulseBgTintAlt,
+    overflow: "hidden",
+  },
+  barFill: { height: "100%", borderRadius: radius.pill },
+
+  form: { gap: spacing.md },
+  amountInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    fontFamily: fonts.bold,
+    fontSize: 24,
+    textAlign: "center",
+    color: colors.text,
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    ...type.body,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+
+  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.pulseBg,
+  },
+  chipText: { ...type.small, fontSize: 13, color: colors.text },
+  accountSwatch: { width: 8, height: 8, borderRadius: radius.pill },
+
+  txList: { gap: spacing.sm },
+  txRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  txIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  txIconText: { fontSize: 16 },
+  txCatRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  txAccountIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  txAccountIconText: { fontSize: 10 },
+  txCat: { ...type.label, fontSize: 13, color: colors.text },
+  txMeta: { ...type.caption, fontSize: 11, color: colors.textMuted },
+  txAmount: { ...type.label, fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+
+  backdrop: { flex: 1, backgroundColor: colors.overlay },
+  modalCard: {
+    maxHeight: "80%",
+    backgroundColor: colors.card,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  modalTitle: { ...type.h3, color: colors.text },
+  modalBody: { flexGrow: 0 },
+  modalBodyContent: { gap: spacing.md },
+  modalHint: { ...type.small, color: colors.textMuted },
+
+  tabs: { flexDirection: "row", gap: 6 },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tabActive: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+  tabText: { ...type.small, color: colors.text },
+  tabTextActive: { color: "#fff", fontFamily: fonts.semibold },
+
+  budgetEditRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  budgetEditLabel: { ...type.small, flex: 1, color: colors.text },
+  currency: { ...type.small, color: colors.textMuted },
+  budgetEditInput: {
+    width: 90,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    ...type.body,
+    fontSize: 14,
+    textAlign: "right",
+    color: colors.text,
+  },
+
+  accountEditRow: { gap: spacing.sm },
+  accountEditTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  accIcon: {
+    width: 46,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 10,
+    fontSize: 16,
+    textAlign: "center",
+    color: colors.text,
+  },
+  swatchRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  swatch: { width: 26, height: 26, borderRadius: radius.pill, borderWidth: 2, borderColor: "transparent" },
+  swatchSelected: { borderColor: colors.text },
+
+  addAccountBtn: {
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.blPrimary,
+  },
+  addAccountText: { ...type.label, color: colors.blPrimary },
+
+  modalActions: { flexDirection: "row", gap: 10, marginTop: 6 },
+  ghostBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.lg,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  ghostBtnText: { ...type.title, fontSize: 16, color: colors.textMuted },
+});
 
 export default Finance;

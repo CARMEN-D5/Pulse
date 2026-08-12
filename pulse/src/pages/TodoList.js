@@ -1,18 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
 import {
-    collection,
     addDoc,
-    query,
-    onSnapshot,
-    updateDoc,
+    collection,
     deleteDoc,
     doc,
+    onSnapshot,
     orderBy,
-    serverTimestamp
+    query,
+    serverTimestamp,
+    updateDoc,
 } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import DateField from '../components/DateField';
+import Icon from '../components/Icon';
+import SegmentedField from '../components/SegmentedField';
+import { Alert, Loading, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
+import { db } from '../firebase';
 import { logAction } from '../firestore/scoring';
-import "./TodoList.css";
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { confirm } from '../utils/dialogs';
 
 /**
  * Returns true if the task is expired:
@@ -31,6 +38,18 @@ function isExpired(todo) {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };
+
+const PRIORITY_OPTIONS = [
+    { value: 'High', label: '🔴 High', color: '#c9184a' },
+    { value: 'Medium', label: '🟠 Medium', color: '#f57c00' },
+    { value: 'Low', label: '🟢 Low', color: '#2d6a4f' },
+];
+
+const PRIORITY_DISPLAY = {
+    High: ' 🔴 HIGH',
+    Medium: ' 🟠 Medium',
+    Low: ' 🟢 Low',
+};
 
 /**
  * Sort mode A — due date first:
@@ -103,11 +122,9 @@ function TodoList({ user, onBack, onActivityLogged }) {
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [editDesc, setEditDesc] = useState('');
-    const [menuPos, setMenuPos] = useState(null);
     const [error, setError] = useState(null);
     const [sortMode, setSortMode] = useState('dueDate'); // 'dueDate' | 'priority'
     const [loading, setLoading] = useState(true);
-
 
     // 1. Listen to Firestore
     // Subscribe to this user's todo collection, ordered by most recent.
@@ -119,24 +136,12 @@ function TodoList({ user, onBack, onActivityLogged }) {
         const q = query(todoRef, orderBy('dueDate', 'asc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setTodos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
             setLoading(false);
         });
 
         return () => unsubscribe();
     }, [user]);
-
-    useEffect(() => {
-        const handleGlobalClick = () => {
-            setMenuPos(null);
-        };
-
-        window.addEventListener('click', handleGlobalClick);
-
-        return () => {
-            window.removeEventListener('click', handleGlobalClick);
-        };
-    }, []);
 
     const pendingCount   = todos.filter(t => !t.completed).length;
     const completedCount = todos.filter(t => t.completed).length;
@@ -144,65 +149,49 @@ function TodoList({ user, onBack, onActivityLogged }) {
 
     const filteredTodos = sortTodos(
         todos.filter(todo => {
-        if (tab === 'pending') return todo.completed === false;
-        if (tab === 'completed') return todo.completed === true;
-        return true;
+            if (tab === 'pending') return todo.completed === false;
+            if (tab === 'completed') return todo.completed === true;
+            return true;
         }),
         sortMode
     );
 
     const startEdit = (todo) => {
-        setMenuPos(null);
         setEditingId(todo.id);
         setEditText(todo.text);
-        setEditDesc(todo.description||'');
+        setEditDesc(todo.description || '');
     };
 
     const saveEdit = async (id, updatedFields = {}) => {
         const finalFields = {
-            text:editText,
-            description:editDesc,
+            text: editText,
+            description: editDesc,
             ...updatedFields
         };
         if (finalFields.text && finalFields.text.trim() === "") {
             setEditingId(null);
             return;
         }
-        try{
+        try {
             setError(null);
             const todoRef = doc(db, 'users', user.uid, 'todos', id);
             await updateDoc(todoRef, finalFields);
-            if(Object.keys(updatedFields).length === 0){
+            if (Object.keys(updatedFields).length === 0) {
                 setEditingId(null);
             }
-        }catch (err){
-            console.err("Save error", err);
+        } catch (err) {
+            console.error("Save error", err);
             setError("Could not update task. Please try again.");
         }
-
-    };
-
-    const handleKeyDown = (e, id) => {
-        if (e.key === 'Enter') {
-            saveEdit(id);
-        } else if (e.key === 'Escape') {
-            setEditingId(null);
-        }
-    };
-
-    const handleContextMenu = (e, id) => {
-        e.preventDefault();
-        setMenuPos({ x: e.pageX, y: e.pageY, id: id });
     };
 
     // 2. create tasks
     // Add a new task to Firestore.
     // Use serverTimestamp to ensure consistent sorting across time zones.
-    const addTodo = async (e) => {
-        e.preventDefault();
+    const addTodo = async () => {
         if (!input.trim()) return;
 
-        try{
+        try {
             setError(null);
             await addDoc(collection(db, 'users', user.uid, 'todos'), {
                 text: input,
@@ -217,18 +206,17 @@ function TodoList({ user, onBack, onActivityLogged }) {
             setDescInput('');
             setDueDate('');
             setPriority('Medium');
-        }catch(err){
+        } catch (err) {
             console.error("Add error:", err);
             setError("Failed to add task. Please try again.");
         }
-
     };
 
     // 3. update
     // Update the 'completed' field.
     // This state change is reflected instantly in the UI via the onSnapshot listener.
     const toggleComplete = async (todo) => {
-        try{
+        try {
             setError(null);
             const todoRef = doc(db, 'users', user.uid, 'todos', todo.id);
             await updateDoc(todoRef, {
@@ -238,258 +226,339 @@ function TodoList({ user, onBack, onActivityLogged }) {
                 logAction(user.uid, 'productivity', 'task');
                 onActivityLogged?.();
             }
-        }catch(err){
+        } catch (err) {
             console.error("Toggle error:", err);
             setError("Failed to update status.");
         }
-
     };
 
     // 4. delete task
-    const deleteTodo = async (id) => {
-        try{
+    //
+    // The web build hung this off a right-click context menu. Touch devices
+    // have no right-click, so a long press on the row opens the same
+    // destructive action as a confirmation dialog.
+    const deleteTodo = async (todo) => {
+        const ok = await confirm(`"${todo.text}" will be removed permanently.`, {
+            title: 'Delete task?',
+            confirmLabel: 'Delete',
+            destructive: true,
+        });
+        if (!ok) return;
+
+        try {
             setError(null);
-            await deleteDoc(doc(db, 'users', user.uid, 'todos', id));
-        }catch (err){
+            await deleteDoc(doc(db, 'users', user.uid, 'todos', todo.id));
+        } catch (err) {
             console.error("Delete error:", err);
             setError("Could not delete task.");
         }
     };
 
     return (
-        <div className="todo-shell">
-            {error && (
-                <div className="error-banner" onClick={() => setError(null)}>
-                    ⚠️ {error} <span className="close-error">×</span>
-                </div>
-            )}
-            <div className="todo-container">
-                <div className="todo-header">
-                    <button onClick={onBack} className="btn-back">
-                        Back
-                    </button>
-                    <h2 className="todo-title">My to-do list</h2>
-                </div>
+        <Screen contentContainerStyle={styles.screen}>
+            <ScreenHeader title="My to-do list" onBack={onBack} />
 
-                <div className="todo-form-card">
-                    <form onSubmit={addTodo} className="todo-input-group">
-                        <input
-                            className="input-field-styled"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="New task..."
-                            style={{ flex: 1, padding: '8px' }}
-                        />
-                        <textarea
-                            className="input-field-styled"
-                            value={descInput}
-                            onChange={(e) => setDescInput(e.target.value)}
-                            placeholder="Add a description(optional)..."
-                            />
+            {error ? (
+                <Pressable onPress={() => setError(null)} accessibilityRole="button">
+                    <Alert message={`⚠️ ${error}`} />
+                </Pressable>
+            ) : null}
 
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                type="date"
-                                className="input-field-styled"
-                                style={{ flex: 1 }}
-                                value={dueDate}
-                                onChange={(e) => setDueDate(e.target.value)}
-                            />
-                            <select
-                                value={priority}
-                                className="input-field-styled"
-                                style={{ width: 'auto' }}
-                                onChange={(e) => setPriority(e.target.value)}
-                            >
-                                <option value="High">🔴 High</option>
-                                <option value="Medium">🟠 Medium</option>
-                                <option value="Low">🟢 Low</option>
-                            </select>
-                        </div>
+            {/* Add-task form */}
+            <View style={[styles.card, shadow('sm')]}>
+                <TextInput
+                    style={styles.input}
+                    value={input}
+                    onChangeText={setInput}
+                    placeholder="New task..."
+                    placeholderTextColor={colors.textMuted}
+                    returnKeyType="done"
+                    onSubmitEditing={addTodo}
+                />
+                <TextInput
+                    style={[styles.input, styles.textarea]}
+                    value={descInput}
+                    onChangeText={setDescInput}
+                    placeholder="Add a description (optional)..."
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    textAlignVertical="top"
+                />
 
-                        <button type="submit" className="btn-teal">Add</button>
-                    </form>
-                </div>
+                <DateField value={dueDate} onChange={setDueDate} placeholder="Due date (optional)" />
 
-                <div className="todo-tabs-card">
-                    <button
-                        className={`tab-btn ${tab === 'pending' ? 'active' : ''}`}
-                        onClick={() => setTab('pending')}
-                    >
-                        Pending <span className="tab-count">{pendingCount}</span>
-                    </button>
-                    <button
-                        className={`tab-btn ${tab === 'completed' ? 'active' : ''}`}
-                        onClick={() => setTab('completed')}
-                    >
-                        Completed <span className="tab-count">{completedCount}</span>
-                    </button>
-                    <button
-                        className={`tab-btn ${tab === 'all' ? 'active' : ''}`}
-                        onClick={() => setTab('all')}
-                    >
-                        All <span className="tab-count tab-count-all">{completedCount}/{totalCount}</span>
-                    </button>
-                </div>
+                <SegmentedField
+                    options={PRIORITY_OPTIONS}
+                    value={priority}
+                    onChange={setPriority}
+                />
 
-                <div className="sort-bar">
-                    <span className="sort-label">Sort by</span>
-                    <button
-                        className={`sort-btn ${sortMode === 'dueDate' ? 'active' : ''}`}
-                        onClick={() => setSortMode('dueDate')}
-                    >
-                        📅 Due date
-                    </button>
-                    <button
-                        className={`sort-btn ${sortMode === 'priority' ? 'active' : ''}`}
-                        onClick={() => setSortMode('priority')}
-                    >
-                        🔴 Priority
-                    </button>
-                </div>
+                <PrimaryButton label="Add" onPress={addTodo} disabled={!input.trim()} />
+            </View>
 
-                {loading ? (
-                    <p style={{ textAlign: 'center', color: 'var(--pulse-text-muted)' }}>Loading…</p>
-                ) : (
-                    <ul className="todo-list-styled">
-                        {filteredTodos.map(todo => {
-                            const expired = isExpired(todo);
-                            return(
-                                <li key={todo.id}
-                                    className="todo-item-card"
-                                    onContextMenu={(e) => {
-                                        e.stopPropagation();
-                                        handleContextMenu(e, todo.id);
-                                    }}
+            {/* Tabs */}
+            <View style={styles.tabs}>
+                <TabButton
+                    label="Pending"
+                    count={pendingCount}
+                    active={tab === 'pending'}
+                    onPress={() => setTab('pending')}
+                />
+                <TabButton
+                    label="Completed"
+                    count={completedCount}
+                    active={tab === 'completed'}
+                    onPress={() => setTab('completed')}
+                />
+                <TabButton
+                    label="All"
+                    count={`${completedCount}/${totalCount}`}
+                    active={tab === 'all'}
+                    onPress={() => setTab('all')}
+                />
+            </View>
+
+            {/* Sort bar */}
+            <View style={styles.sortBar}>
+                <Text style={styles.sortLabel}>Sort by</Text>
+                <SegmentedField
+                    style={styles.flex}
+                    options={[
+                        { value: 'dueDate', label: '📅 Due date' },
+                        { value: 'priority', label: '🔴 Priority' },
+                    ]}
+                    value={sortMode}
+                    onChange={setSortMode}
+                />
+            </View>
+
+            {loading ? (
+                <Loading label="Loading…" style={styles.loading} />
+            ) : (
+                <View style={styles.list}>
+                    {filteredTodos.map(todo => {
+                        const expired = isExpired(todo);
+                        const editing = editingId === todo.id;
+
+                        return (
+                            <View key={todo.id} style={[styles.item, shadow('sm')]}>
+                                <Pressable
+                                    onPress={() => toggleComplete(todo)}
+                                    hitSlop={8}
+                                    accessibilityRole="checkbox"
+                                    accessibilityState={{ checked: todo.completed }}
+                                    accessibilityLabel={todo.text}
+                                    style={[styles.checkbox, todo.completed && styles.checkboxChecked]}
                                 >
-                                    <div className="checkbox-wrapper"
-                                         onClick={() => toggleComplete(todo)}>
-                                        <div className={`custom-checkbox ${todo.completed? 'checked': ''}`}>
-                                            {todo.completed && "✓"}
-                                        </div>
-                                    </div>
+                                    {todo.completed ? <Icon name="check" size={16} color="#fff" /> : null}
+                                </Pressable>
 
-                                    <div className="item-content">
-                                        {editingId === todo.id ? (
-                                            <div className="edit-mode-container">
-                                                <input
-                                                    className="edit-input-styled"
-                                                    value={editText}
-                                                    autoFocus
-                                                    onChange={(e) => setEditText(e.target.value)}
-                                                    onKeyDown={(e) => handleKeyDown(e, todo.id)}
-                                                    />
-                                                <textarea
-                                                    className="edit-desc-textarea"
-                                                    placeholder="Add a description..."
-                                                    value={editDesc}
-                                                    onChange={(e) => setEditDesc(e.target.value)}
-                                                    />
+                                <View style={styles.flex}>
+                                    {editing ? (
+                                        <View style={styles.editBox}>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editText}
+                                                onChangeText={setEditText}
+                                                autoFocus
+                                                returnKeyType="done"
+                                                onSubmitEditing={() => saveEdit(todo.id)}
+                                            />
+                                            <TextInput
+                                                style={[styles.input, styles.textarea]}
+                                                value={editDesc}
+                                                onChangeText={setEditDesc}
+                                                placeholder="Add a description..."
+                                                placeholderTextColor={colors.textMuted}
+                                                multiline
+                                                textAlignVertical="top"
+                                            />
 
-                                                <div className="item-meta-edit">
-                                                    <select
-                                                        className="edit-select-mini"
-                                                        value={todo.priority}
-                                                        onChange={(e) => saveEdit(todo.id, {priority : e.target.value})}
-                                                        style={{
-                                                            borderLeft: `4px solid ${
-                                                                todo.priority === 'High' ? '#c9184a' :
-                                                                    todo.priority === 'Medium' ? '#f57c00' : '#2d6a4f'
-                                                            }`
-                                                        }}
-                                                    >
-                                                        <option value="High">🔴 High</option>
-                                                        <option value="Medium">🟠 Medium</option>
-                                                        <option value="Low">🟢 Low</option>
-                                                    </select>
+                                            <SegmentedField
+                                                options={PRIORITY_OPTIONS}
+                                                value={todo.priority}
+                                                onChange={(v) => saveEdit(todo.id, { priority: v })}
+                                            />
 
-                                                    <input
-                                                        type = "date"
-                                                        className="edit-date-mini"
-                                                        defaultValue={todo.dueDate === "9999-12-31" ? "" : todo.dueDate}
-                                                        onChange={(e) => saveEdit(todo.id, {dueDate: e.target.value || "9999-12-31"})}
-                                                    />
+                                            <DateField
+                                                value={todo.dueDate === '9999-12-31' ? '' : todo.dueDate}
+                                                onChange={(v) => saveEdit(todo.id, { dueDate: v || '9999-12-31' })}
+                                                placeholder="Due date (optional)"
+                                            />
 
-                                                    <span className="done-text" onClick={() => saveEdit(todo.id)}>
-                                                        Done
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ):(
-                                            <div onDoubleClick={() => startEdit(todo)} title="Double click to edit">
-                                                {/* Task title row — includes expired tag when applicable */}
-                                                <div className="item-title-row">
-                                                    <span
-                                                        className="item-text"
-                                                        style={{
-                                                            textDecoration: todo.completed ? 'line-through' : 'none',
-                                                            color: todo.completed
-                                                                ? '#aaa'
-                                                                : expired
-                                                                    ? '#c9184a'
-                                                                    : 'var(--pulse-text)',
-                                                        }}
-                                                    >
-                                                        {todo.text}
-                                                    </span>
-                                                    {expired && (
-                                                        <span className="expired-tag">Expired</span>
-                                                    )}
-                                                </div>
+                                            <PrimaryButton label="Done" onPress={() => saveEdit(todo.id)} />
+                                        </View>
+                                    ) : (
+                                        // Tap to edit, long-press to delete — the touch equivalents
+                                        // of the web build's double-click and right-click.
+                                        <Pressable
+                                            onPress={() => startEdit(todo)}
+                                            onLongPress={() => deleteTodo(todo)}
+                                            accessibilityRole="button"
+                                            accessibilityHint="Tap to edit, long press to delete"
+                                        >
+                                            <View style={styles.titleRow}>
+                                                <Text
+                                                    style={[
+                                                        styles.itemText,
+                                                        todo.completed && styles.itemTextDone,
+                                                        !todo.completed && expired && styles.itemTextExpired,
+                                                    ]}
+                                                >
+                                                    {todo.text}
+                                                </Text>
+                                                {expired ? (
+                                                    <View style={styles.expiredTag}>
+                                                        <Text style={styles.expiredTagText}>Expired</Text>
+                                                    </View>
+                                                ) : null}
+                                            </View>
 
-                                                {todo.description && (
-                                                    <p className="item-description"
-                                                       style={{
-                                                           fontSize:'0.85rem',
-                                                           color:'#666',
-                                                           margin:'4px 0',
-                                                           lineHeight: '1.4'
-                                                       }}>
-                                                        {todo.description}
-                                                    </p>
-                                                )}
-                                                <div className="item-meta">
-                                                    <span style={{
-                                                        color: todo.priority === 'High' ? '#c9184a' : '#1a827d',
-                                                        fontWeight: 'bold'}}>
-                                                        {todo.priority === 'High' ? ' 🔴 HIGH' : (todo.priority === 'Medium' ? ' 🟠 Medium' : ' 🟢 Low')}
-                                                    </span>
-                                                    {todo.dueDate !== '9999-12-31' && (
-                                                        <span style={{ color: expired ? '#c9184a' : undefined }}>
-                                                                 📅 Due: {formatDueDate(todo.dueDate)}
-                                                            </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </li>
-                             );
-                         })}
-                    </ul>
-                )}
+                                            {todo.description ? (
+                                                <Text style={styles.itemDescription}>{todo.description}</Text>
+                                            ) : null}
 
-            </div>
-            {menuPos && (
-                <div
-                    className="custom-context-menu"
-                    style={{ top: menuPos.y, left: menuPos.x}}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div
-                        className="menu-item delete"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            deleteTodo(menuPos.id);
-                            setMenuPos(null);
-                        }}
-                    >
-                        🗑️ Delete Task
-                    </div>
-                </div>
+                                            <View style={styles.itemMeta}>
+                                                <Text
+                                                    style={[
+                                                        styles.metaPriority,
+                                                        { color: todo.priority === 'High' ? '#c9184a' : '#1a827d' },
+                                                    ]}
+                                                >
+                                                    {PRIORITY_DISPLAY[todo.priority] ?? todo.priority}
+                                                </Text>
+                                                {todo.dueDate !== '9999-12-31' ? (
+                                                    <Text style={[styles.metaText, expired && styles.metaExpired]}>
+                                                        📅 Due: {formatDueDate(todo.dueDate)}
+                                                    </Text>
+                                                ) : null}
+                                            </View>
+                                        </Pressable>
+                                    )}
+                                </View>
+                            </View>
+                        );
+                    })}
+                </View>
             )}
-        </div>
+        </Screen>
     );
 }
+
+function TabButton({ label, count, active, onPress }) {
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}
+        >
+            <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+            <View style={[styles.tabCount, active && styles.tabCountActive]}>
+                <Text style={[styles.tabCountText, active && styles.tabCountTextActive]}>{count}</Text>
+            </View>
+        </Pressable>
+    );
+}
+
+const styles = StyleSheet.create({
+    screen: { gap: spacing.md, paddingBottom: 40 },
+    flex: { flex: 1 },
+    pressed: { opacity: 0.7 },
+    loading: { paddingVertical: 40 },
+
+    card: {
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        gap: spacing.md,
+    },
+
+    input: {
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        ...type.body,
+        color: colors.text,
+        backgroundColor: 'rgba(255,255,255,0.7)',
+    },
+    textarea: { minHeight: 72 },
+
+    tabs: { flexDirection: 'row', gap: 6 },
+    tab: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: spacing.md,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.card,
+    },
+    tabActive: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+    tabText: { ...type.small, color: colors.text },
+    tabTextActive: { color: '#fff', fontFamily: fonts.semibold },
+    tabCount: {
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: radius.pill,
+        backgroundColor: colors.pulseBg,
+    },
+    tabCountActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
+    tabCountText: { ...type.caption, fontSize: 10, color: colors.textMuted },
+    tabCountTextActive: { color: '#fff' },
+
+    sortBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    sortLabel: { ...type.small, color: colors.textMuted },
+
+    list: { gap: spacing.sm },
+    item: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: spacing.md,
+        padding: spacing.lg,
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: colors.blOutlineVariant,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 2,
+    },
+    checkboxChecked: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+
+    editBox: { gap: spacing.sm },
+
+    titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+    itemText: { ...type.bodyMedium, color: colors.text },
+    itemTextDone: { textDecorationLine: 'line-through', color: '#aaa' },
+    itemTextExpired: { color: '#c9184a' },
+    expiredTag: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: radius.pill,
+        backgroundColor: 'rgba(201, 24, 74, 0.1)',
+    },
+    expiredTagText: { ...type.caption, fontSize: 10, color: '#c9184a' },
+
+    itemDescription: { ...type.small, color: '#666', marginVertical: 4 },
+    itemMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: 4 },
+    metaPriority: { ...type.caption, fontFamily: fonts.bold, fontSize: 11 },
+    metaText: { ...type.caption, fontSize: 11, color: colors.textMuted },
+    metaExpired: { color: '#c9184a' },
+});
 
 export default TodoList;

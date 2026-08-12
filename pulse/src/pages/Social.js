@@ -1,37 +1,51 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import "./auth.css";
-import "./social.css";
-import { logAction } from "../firestore/scoring";
+import {
+  Image,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import Icon from "../components/Icon";
+import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
 import {
-  createPost,
-  deletePost,
-  getMyTodayPost,
-  toggleLike,
-  addComment,
-  deleteComment,
-  subscribeToFeed,
-  subscribeToLikes,
-  subscribeToComments,
-} from "../firestore/social";
-import { uploadPostImage, deletePostImage } from "../storage/uploads";
-import { searchUserByEmail } from "../firestore/users";
-import {
-  getOrCreateConversation,
-  sendMessage,
-  subscribeToMessages,
-  subscribeToConversations,
-  markConversationRead,
-} from "../firestore/messaging";
-import {
-  sendFriendRequest,
   acceptFriendRequest,
   declineFriendRequest,
-  unfriend,
+  sendFriendRequest,
   subscribeToFriendships,
   subscribeToIncomingRequests,
   subscribeToOutgoingRequests,
+  unfriend,
 } from "../firestore/friendship";
+import {
+  getOrCreateConversation,
+  markConversationRead,
+  sendMessage,
+  subscribeToConversations,
+  subscribeToMessages,
+} from "../firestore/messaging";
+import { logAction } from "../firestore/scoring";
+import {
+  addComment,
+  createPost,
+  deleteComment,
+  deletePost,
+  getMyTodayPost,
+  subscribeToComments,
+  subscribeToFeed,
+  subscribeToLikes,
+  toggleLike,
+} from "../firestore/social";
+import { searchUserByEmail } from "../firestore/users";
+import { deletePostImage, pickImage, uploadPostImage } from "../storage/uploads";
+import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { confirm } from "../utils/dialogs";
 
 /**
  * Social — feed of daily posts, your own daily post composer, and DMs.
@@ -151,85 +165,81 @@ function Social({ user, onBack, onActivityLogged }) {
   const messagesBadge = incomingRequests.length + unreadConvCount;
 
   return (
-    <div className="social-shell">
-      <div className="social-container">
-        <div className="social-header">
-          <button type="button" className="social-back" onClick={onBack}>
-            ← Home
-          </button>
-          <h1>Social</h1>
-          <div style={{ width: 60 }} />
-        </div>
+    <Screen contentContainerStyle={styles.screen} gradient={false} safeArea={false}>
+      {/* Inside the tab bar there is nowhere to go "back" to, so the mockup
+          shows a plain centred page title; the back arrow only appears when a
+          caller pushes Social as a stacked screen. */}
+      {onBack ? (
+        <ScreenHeader title="Social" onBack={onBack} />
+      ) : (
+        <Text style={styles.pageTitle} accessibilityRole="header">
+          Social
+        </Text>
+      )}
 
-        {socialError && (
-          <div className="alert alert-error" role="alert">
-            <span>{socialError}</span>
-            <button
-              type="button"
-              onClick={() => setSocialError("")}
-              className="alert-dismiss"
-              aria-label="Dismiss"
-            >
-              ×
-            </button>
-          </div>
-        )}
+      {socialError ? (
+        <Pressable onPress={() => setSocialError("")} accessibilityRole="button">
+          <Alert message={socialError} />
+        </Pressable>
+      ) : null}
 
-        <div className="social-tabs" role="tablist">
-          {[
-            { id: "feed", label: "Feed" },
-            { id: "today", label: "Today" },
-            {
-              id: "messages",
-              label: messagesBadge > 0 ? `Messages (${messagesBadge})` : "Messages",
-            },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              className={`tab ${tab === t.id ? "active" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
+      <View style={styles.tabs} accessibilityRole="tablist">
+        {[
+          { id: "feed", label: "Feed" },
+          { id: "today", label: "Today" },
+          {
+            id: "messages",
+            label: messagesBadge > 0 ? `Messages (${messagesBadge})` : "Messages",
+          },
+        ].map((t) => (
+          <Pressable
+            key={t.id}
+            onPress={() => setTab(t.id)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === t.id }}
+            style={({ pressed }) => [
+              styles.tab,
+              tab === t.id && styles.tabActive,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.tabText, tab === t.id && styles.tabTextActive]} numberOfLines={1}>
               {t.label}
-            </button>
-          ))}
-        </div>
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
-        {tab === "feed" && (
-          <FeedTab
-            user={user}
-            visibleAuthorUids={visibleAuthorUids}
-            friendUids={friendUids}
-            onStartConversation={startConversation}
-          />
-        )}
-        {tab === "today" && <TodayTab user={user} onActivityLogged={onActivityLogged} />}
-        {tab === "messages" && (
-          <MessagesTab
-            user={user}
-            friendships={friendships}
-            friendUids={friendUids}
-            incomingRequests={incomingRequests}
-            outgoingRequests={outgoingRequests}
-            conversations={conversations}
-            isUnread={isUnread}
-            onOpenThread={openThreadAndMarkRead}
-            onStartConversation={startConversation}
-            onError={setSocialError}
-          />
-        )}
-      </div>
-
-      {openThread && (
-        <ThreadOverlay
+      {tab === "feed" && (
+        <FeedTab
           user={user}
-          thread={openThread}
-          onClose={() => setOpenThread(null)}
+          visibleAuthorUids={visibleAuthorUids}
+          friendUids={friendUids}
+          onStartConversation={startConversation}
         />
       )}
-    </div>
+      {tab === "today" && <TodayTab user={user} onActivityLogged={onActivityLogged} />}
+      {tab === "messages" && (
+        <MessagesTab
+          user={user}
+          friendships={friendships}
+          friendUids={friendUids}
+          incomingRequests={incomingRequests}
+          outgoingRequests={outgoingRequests}
+          conversations={conversations}
+          isUnread={isUnread}
+          onOpenThread={openThreadAndMarkRead}
+          onStartConversation={startConversation}
+          onError={setSocialError}
+        />
+      )}
+
+      <ThreadOverlay
+        user={user}
+        thread={openThread}
+        onClose={() => setOpenThread(null)}
+      />
+    </Screen>
   );
 }
 
@@ -239,10 +249,7 @@ function Social({ user, onBack, onActivityLogged }) {
 
 function displayNameFor(u) {
   return (
-    u?.displayName ||
-    u?.name ||
-    (u?.email ? u.email.split("@")[0] : null) ||
-    "Someone"
+    u?.displayName || u?.name || (u?.email ? u.email.split("@")[0] : null) || "Someone"
   );
 }
 
@@ -265,6 +272,44 @@ function timeAgo(ts) {
   const day = Math.floor(hr / 24);
   if (day < 7) return `${day}d ago`;
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+}
+
+/** Round avatar with initials — used by posts, comments and conversations. */
+function Avatar({ name, size = 40, showDot = false }) {
+  return (
+    <View
+      style={[
+        styles.avatar,
+        { width: size, height: size, borderRadius: size / 2 },
+      ]}
+    >
+      <Text style={[styles.avatarText, { fontSize: size * 0.36 }]}>{initialsFor(name)}</Text>
+      {showDot ? <View style={styles.unreadDot} /> : null}
+    </View>
+  );
+}
+
+function SectionLabel({ children }) {
+  return <Text style={styles.sectionLabel}>{children}</Text>;
+}
+
+/** Compact pill button used throughout the messages tab. */
+function SmallButton({ label, onPress, tone = "primary" }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.smallBtn,
+        tone === "primary" ? styles.smallBtnPrimary : styles.smallBtnGhost,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={[styles.smallBtnText, tone === "primary" && styles.smallBtnTextPrimary]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
 }
 
 // ============================================================================
@@ -301,51 +346,57 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
     const isPerms = feedError.code === "permission-denied";
     const urlMatch = feedError.message?.match(/https?:\/\/\S+/);
     return (
-      <div className="social-card alert alert-error" role="alert" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-        <div><strong>Couldn't load the feed.</strong></div>
-        <div style={{ fontSize: 13 }}>
-          <code>{feedError.code || "unknown"}</code>
-          {isIndex && " — Firestore needs a composite index on the posts collection. Click the link below to auto-create it (takes ~60 seconds)."}
-          {isPerms && " — Firestore rules are blocking the read. Re-publish the rules in the Firebase Console."}
-        </div>
-        {urlMatch && (
-          <a href={urlMatch[0]} target="_blank" rel="noreferrer" style={{ color: "var(--pulse-primary-dark)", wordBreak: "break-all", fontSize: 12 }}>
-            {urlMatch[0]}
-          </a>
-        )}
-        <div style={{ fontSize: 12, color: "var(--pulse-text-muted)" }}>
-          Full message: {feedError.message}
-        </div>
-      </div>
+      <View style={[styles.card, styles.errorCard]} accessibilityRole="alert">
+        <Text style={styles.errorTitle}>Couldn't load the feed.</Text>
+        <Text style={styles.errorBody}>
+          <Text style={styles.code}>{feedError.code || "unknown"}</Text>
+          {isIndex &&
+            " — Firestore needs a composite index on the posts collection. Tap the link below to auto-create it (takes ~60 seconds)."}
+          {isPerms &&
+            " — Firestore rules are blocking the read. Re-publish the rules in the Firebase Console."}
+        </Text>
+        {urlMatch ? (
+          <Pressable
+            onPress={() => Linking.openURL(urlMatch[0])}
+            accessibilityRole="link"
+          >
+            <Text style={styles.errorLink}>{urlMatch[0]}</Text>
+          </Pressable>
+        ) : null}
+        <Text style={styles.errorMeta}>Full message: {feedError.message}</Text>
+      </View>
     );
   }
   if (loading) {
-    return <div className="social-card social-empty">Loading feed…</div>;
+    return (
+      <View style={styles.card}>
+        <Text style={styles.empty}>Loading feed…</Text>
+      </View>
+    );
   }
   if (friendUids.size === 0 && posts.length === 0) {
     return (
-      <div className="social-card social-empty">
-        Add friends from the Messages tab to start seeing posts from people
-        you know. Your own posts will show up here once you check in.
-      </div>
+      <View style={styles.card}>
+        <Text style={styles.empty}>
+          Add friends from the Messages tab to start seeing posts from people you know. Your
+          own posts will show up here once you check in.
+        </Text>
+      </View>
     );
   }
   if (posts.length === 0) {
     return (
-      <div className="social-card social-empty">
-        Nothing here yet — be the first to share a moment from your day.
-      </div>
+      <View style={styles.card}>
+        <Text style={styles.empty}>
+          Nothing here yet — be the first to share a moment from your day.
+        </Text>
+      </View>
     );
   }
   return (
     <>
       {posts.map((p) => (
-        <PostCard
-          key={p.id}
-          post={p}
-          user={user}
-          onStartConversation={onStartConversation}
-        />
+        <PostCard key={p.id} post={p} user={user} onStartConversation={onStartConversation} />
       ))}
     </>
   );
@@ -386,8 +437,7 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
     await toggleLike(post.id, user.uid);
   };
 
-  const onSubmitComment = async (e) => {
-    e.preventDefault();
+  const onSubmitComment = async () => {
     const text = commentText.trim();
     if (!text) return;
     setSubmitting(true);
@@ -409,7 +459,12 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
   };
 
   const onDeletePost = async () => {
-    if (!window.confirm("Delete this post?")) return;
+    const ok = await confirm("This post will be removed permanently.", {
+      title: "Delete this post?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     // Best-effort image cleanup, then doc. The feed subscription drops it
     // from the list automatically; the Today tab uses onDeleted to swap
     // back to the compose form.
@@ -428,145 +483,138 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
     });
   };
 
-  const hasImage = !!post.imageUrl;
+  const hasImage = Boolean(post.imageUrl);
   const slidesCount = hasImage ? 2 : 1;
 
   return (
-    <article className="post-card">
-      <div className="post-author">
-        <div className="post-avatar">{initialsFor(post.authorName)}</div>
-        <div>
-          <div className="post-name">{post.authorName}</div>
-          <div className="post-when">{timeAgo(post.createdAt)}</div>
-        </div>
-        {!isMine && (
-          <button
-            type="button"
-            className="post-msg-btn"
-            onClick={onMessageAuthor}
-            aria-label="Message author"
-          >
-            💬 Message
-          </button>
-        )}
-      </div>
+    <View style={[styles.card, shadow("sm")]}>
+      {/* Author */}
+      <View style={styles.postAuthor}>
+        <Avatar name={post.authorName} />
+        <View style={styles.flex}>
+          <Text style={styles.postName}>{post.authorName}</Text>
+          <Text style={styles.postWhen}>{timeAgo(post.createdAt)}</Text>
+        </View>
+        {!isMine ? <SmallButton label="💬 Message" onPress={onMessageAuthor} tone="ghost" /> : null}
+      </View>
 
-      <div className="post-slides">
-        {hasImage && slide === 0 && (
-          <img
-            src={post.imageUrl}
-            alt="Post"
-            className="post-slide-image"
+      {/* Slides */}
+      <View style={styles.postSlides}>
+        {hasImage && slide === 0 ? (
+          <Image
+            source={{ uri: post.imageUrl }}
+            style={styles.postImage}
+            resizeMode="cover"
+            accessibilityLabel="Post image"
           />
-        )}
-        {(slide === 1 || !hasImage) && (
-          <div className="post-slide-reflection">
-            <div className="post-slide-reflection-label">
-              What I did to improve
-            </div>
-            {post.reflection}
-          </div>
-        )}
-      </div>
+        ) : null}
+        {slide === 1 || !hasImage ? (
+          <View style={styles.reflection}>
+            <Text style={styles.reflectionLabel}>What I did to improve</Text>
+            <Text style={styles.reflectionText}>{post.reflection}</Text>
+          </View>
+        ) : null}
+      </View>
 
-      {slidesCount > 1 && (
-        <div className="post-slide-nav">
+      {slidesCount > 1 ? (
+        <View style={styles.slideNav}>
           {[0, 1].map((i) => (
-            <button
+            <Pressable
               key={i}
-              type="button"
-              className={`post-slide-dot ${slide === i ? "active" : ""}`}
-              onClick={() => setSlide(i)}
-              aria-label={`Show slide ${i + 1}`}
+              onPress={() => setSlide(i)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Show slide ${i + 1}`}
+              accessibilityState={{ selected: slide === i }}
+              style={[styles.slideDot, slide === i && styles.slideDotActive]}
             />
           ))}
-        </div>
-      )}
+        </View>
+      ) : null}
 
-      <div className="post-actions">
-        <button
-          type="button"
-          className={`post-action-btn ${likeSummary.likedByMe ? "liked" : ""}`}
-          onClick={onToggleLike}
+      {/* Actions */}
+      <View style={styles.postActions}>
+        <Pressable
+          onPress={onToggleLike}
+          accessibilityRole="button"
+          accessibilityLabel={likeSummary.likedByMe ? "Unlike" : "Like"}
+          style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
         >
-          {likeSummary.likedByMe ? "♥" : "♡"} {likeSummary.count}
-        </button>
-        <button
-          type="button"
-          className="post-action-btn"
-          onClick={() => setShowComments((s) => !s)}
+          <Text style={[styles.actionText, likeSummary.likedByMe && styles.actionTextLiked]}>
+            {likeSummary.likedByMe ? "♥" : "♡"} {likeSummary.count}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setShowComments((s) => !s)}
+          accessibilityRole="button"
+          accessibilityLabel="Show comments"
+          style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
         >
-          💬 {commentCount}
-        </button>
-        {isMine && (
-          <button
-            type="button"
-            className="post-action-btn danger"
-            onClick={onDeletePost}
-            title="Delete post"
+          <Text style={styles.actionText}>💬 {commentCount}</Text>
+        </Pressable>
+
+        {isMine ? (
+          <Pressable
+            onPress={onDeletePost}
+            accessibilityRole="button"
+            accessibilityLabel="Delete post"
+            style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
           >
-            Delete
-          </button>
-        )}
-      </div>
+            <Text style={[styles.actionText, styles.actionTextDanger]}>Delete</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
-      {showComments && (
-        <div className="comments">
+      {/* Comments */}
+      {showComments ? (
+        <View style={styles.comments}>
           {comments.length === 0 ? (
-            <div className="social-empty" style={{ padding: 8 }}>
-              No comments yet — start the conversation.
-            </div>
+            <Text style={styles.empty}>No comments yet — start the conversation.</Text>
           ) : (
             comments.map((c) => (
-              <div className="comment" key={c.id}>
-                <div className="comment-avatar">{initialsFor(c.authorName)}</div>
-                <div className="comment-body">
-                  <div>
-                    <strong style={{ fontSize: 13, marginRight: 6 }}>
-                      {c.authorName}
-                    </strong>
-                    <span className="comment-text">{c.text}</span>
-                  </div>
-                  <div className="comment-meta">
-                    {timeAgo(c.createdAt)}
-                    {c.authorUid === user.uid && (
+              <View style={styles.comment} key={c.id}>
+                <Avatar name={c.authorName} size={28} />
+                <View style={styles.flex}>
+                  <Text style={styles.commentLine}>
+                    <Text style={styles.commentAuthor}>{c.authorName} </Text>
+                    <Text style={styles.commentText}>{c.text}</Text>
+                  </Text>
+                  <View style={styles.commentMetaRow}>
+                    <Text style={styles.commentMeta}>{timeAgo(c.createdAt)}</Text>
+                    {c.authorUid === user.uid ? (
                       <>
-                        {" · "}
-                        <button
-                          type="button"
-                          onClick={() => onDeleteComment(c.id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "var(--pulse-text-muted)",
-                            cursor: "pointer",
-                            padding: 0,
-                            font: "inherit",
-                          }}
+                        <Text style={styles.commentMeta}>·</Text>
+                        <Pressable
+                          onPress={() => onDeleteComment(c.id)}
+                          hitSlop={6}
+                          accessibilityRole="button"
                         >
-                          delete
-                        </button>
+                          <Text style={styles.commentMeta}>delete</Text>
+                        </Pressable>
                       </>
-                    )}
-                  </div>
-                </div>
-              </div>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
             ))
           )}
-          <form className="comment-form" onSubmit={onSubmitComment}>
-            <input
-              type="text"
+
+          <View style={styles.commentForm}>
+            <TextInput
+              style={[styles.input, styles.flex]}
               placeholder="Add a comment…"
+              placeholderTextColor={colors.textMuted}
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChangeText={setCommentText}
+              returnKeyType="send"
+              onSubmitEditing={onSubmitComment}
             />
-            <button type="submit" disabled={!commentText.trim() || submitting}>
-              {submitting ? "…" : "Post"}
-            </button>
-          </form>
-        </div>
-      )}
-    </article>
+            <SmallButton label={submitting ? "…" : "Post"} onPress={onSubmitComment} />
+          </View>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -578,13 +626,13 @@ function TodayTab({ user, onActivityLogged }) {
   const [myPost, setMyPost] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  // On the web this held a DOM File plus an object-URL preview. In React
+  // Native the picker returns an asset whose `uri` doubles as the preview
+  // source, so one piece of state covers both.
+  const [imageAsset, setImageAsset] = useState(null);
   const [reflection, setReflection] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  const fileInputRef = useRef(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -595,17 +643,17 @@ function TodayTab({ user, onActivityLogged }) {
 
   useEffect(() => {
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.uid]);
 
-  const onPickImage = (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setImageFile(f);
-    setImagePreview(URL.createObjectURL(f));
+  const onPickImage = async () => {
+    setError("");
+    const res = await pickImage();
+    if (res.ok) setImageAsset(res.asset);
+    else if (!res.canceled && res.error) setError(res.error);
   };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async () => {
     setError("");
     if (!reflection.trim()) {
       setError("Tell us what you did to improve today.");
@@ -614,8 +662,8 @@ function TodayTab({ user, onActivityLogged }) {
 
     setSubmitting(true);
     let uploaded = null;
-    if (imageFile) {
-      const up = await uploadPostImage(user.uid, imageFile);
+    if (imageAsset) {
+      const up = await uploadPostImage(user.uid, imageAsset);
       if (!up.ok) {
         setError(up.error || "Image upload failed.");
         setSubmitting(false);
@@ -639,89 +687,84 @@ function TodayTab({ user, onActivityLogged }) {
     }
 
     // Score: posting counts as a meaningful connection for relationships
-    logAction(user.uid, 'relationships', 'connection');
+    logAction(user.uid, "relationships", "connection");
     if (onActivityLogged) onActivityLogged();
 
-    setImageFile(null);
-    setImagePreview(null);
+    setImageAsset(null);
     setReflection("");
     refresh();
   };
 
   if (loading) {
-    return <div className="social-card social-empty">Loading…</div>;
+    return (
+      <View style={styles.card}>
+        <Text style={styles.empty}>Loading…</Text>
+      </View>
+    );
   }
 
   if (myPost) {
     // Already posted today — show their post inline.
     return (
       <>
-        <div className="social-card composer">
-          <h3>You've checked in today ✨</h3>
-          <p className="composer-hint">
-            Come back tomorrow to share another moment.
-          </p>
-        </div>
+        <View style={[styles.card, shadow("sm")]}>
+          <Text style={styles.composerTitle}>You've checked in today ✨</Text>
+          <Text style={styles.composerHint}>Come back tomorrow to share another moment.</Text>
+        </View>
         <PostCard post={myPost} user={user} onDeleted={refresh} />
       </>
     );
   }
 
   return (
-    <div className="social-card composer">
-      <h3>Today's check-in</h3>
-      <p className="composer-hint">
+    <View style={[styles.card, shadow("sm")]}>
+      <Text style={styles.composerTitle}>Today's check-in</Text>
+      <Text style={styles.composerHint}>
         Share one thing you did to improve today — a photo and a short note.
-      </p>
+      </Text>
 
-      {error && (
-        <div className="alert alert-error" role="alert">
-          {error}
-        </div>
-      )}
+      <Alert message={error} />
 
-      <form onSubmit={onSubmit} className="composer">
-        <label className="image-picker">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={onPickImage}
-          />
-          {imagePreview ? (
-            <div className="image-picker-preview">
-              <img src={imagePreview} alt="Preview" />
-              <div className="image-picker-meta">
-                Tap to choose a different image
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div style={{ fontSize: 22 }}>📷</div>
-              <div style={{ fontWeight: 600, marginTop: 4 }}>
-                Add a photo (optional)
-              </div>
-              <div className="image-picker-meta">JPG / PNG, up to 5 MB</div>
-            </div>
-          )}
-        </label>
+      <Pressable
+        onPress={onPickImage}
+        accessibilityRole="button"
+        accessibilityLabel="Add a photo"
+        style={({ pressed }) => [styles.imagePicker, pressed && styles.pressed]}
+      >
+        {imageAsset ? (
+          <>
+            <Image
+              source={{ uri: imageAsset.uri }}
+              style={styles.imagePreview}
+              resizeMode="cover"
+            />
+            <Text style={styles.imagePickerMeta}>Tap to choose a different image</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.imagePickerIcon}>📷</Text>
+            <Text style={styles.imagePickerLabel}>Add a photo (optional)</Text>
+            <Text style={styles.imagePickerMeta}>JPG / PNG, up to 5 MB</Text>
+          </>
+        )}
+      </Pressable>
 
-        <textarea
-          className="reflection-input"
-          placeholder="What did you do to improve today?"
-          value={reflection}
-          onChange={(e) => setReflection(e.target.value)}
-        />
+      <TextInput
+        style={[styles.input, styles.reflectionInput]}
+        placeholder="What did you do to improve today?"
+        placeholderTextColor={colors.textMuted}
+        value={reflection}
+        onChangeText={setReflection}
+        multiline
+        textAlignVertical="top"
+      />
 
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={submitting}
-        >
-          {submitting ? "Posting…" : "Share today's check-in"}
-        </button>
-      </form>
-    </div>
+      <PrimaryButton
+        label={submitting ? "Posting…" : "Share today's check-in"}
+        onPress={onSubmit}
+        loading={submitting}
+      />
+    </View>
   );
 }
 
@@ -787,8 +830,7 @@ function MessagesTab({
   // ---------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------
-  const onSearch = async (e) => {
-    e.preventDefault();
+  const onSearch = async () => {
     if (!searchEmail.trim()) return;
     setSearchState({ status: "loading" });
     const res = await searchUserByEmail(searchEmail);
@@ -829,9 +871,12 @@ function MessagesTab({
   };
 
   const onUnfriend = async (otherUid, name) => {
-    if (!window.confirm(`Remove ${name || "this friend"} from your friends?`)) {
-      return;
-    }
+    const ok = await confirm(`Remove ${name || "this friend"} from your friends?`, {
+      title: "Remove friend?",
+      confirmLabel: "Remove",
+      destructive: true,
+    });
+    if (!ok) return;
     const res = await unfriend(user.uid, otherUid);
     if (!res.ok) onError(res.error || "Couldn't remove friend.");
   };
@@ -851,226 +896,165 @@ function MessagesTab({
       {/* ------------------------------------------------------------ */}
       {/* Find a friend                                                 */}
       {/* ------------------------------------------------------------ */}
-      <div className="social-card">
-        <div className="composer">
-          <h3 style={{ margin: 0, fontSize: 16 }}>Add a friend</h3>
-          <p className="composer-hint" style={{ marginTop: -4 }}>
-            Search for a Pulse user by email and send a friend request.
-            Once they accept, you'll see each other's posts and be able to
-            message.
-          </p>
-          <form className="search-row" onSubmit={onSearch}>
-            <input
-              type="email"
-              placeholder="friend@example.com"
-              value={searchEmail}
-              onChange={(e) => setSearchEmail(e.target.value)}
-            />
-            <button
-              type="submit"
-              className="btn btn-primary"
-              style={{ width: "auto" }}
-            >
-              Find
-            </button>
-          </form>
+      <View style={[styles.card, shadow("sm")]}>
+        <Text style={styles.composerTitle}>Add a friend</Text>
+        <Text style={styles.composerHint}>
+          Search for a Pulse user by email and send a friend request. Once they accept, you'll
+          see each other's posts and be able to message.
+        </Text>
 
-          {searchState.status === "loading" && (
-            <div className="composer-hint">Searching…</div>
-          )}
-          {searchState.status === "not_found" && (
-            <div className="composer-hint">No Pulse user with that email.</div>
-          )}
-          {searchState.status === "self" && (
-            <div className="composer-hint">That's you 🙂</div>
-          )}
-          {searchState.status === "error" && (
-            <div className="alert alert-error">{searchState.message}</div>
-          )}
-          {searchState.status === "found" && (
-            <SearchResultRow
-              other={searchState.user}
-              rel={relWith(searchState.user.uid)}
-              onAccept={onAccept}
-              onDecline={onDecline}
-              onSendRequest={() => onSendRequest(searchState.user)}
-              onOpenChat={() => {
-                onOpenFriendChat(searchState.user.uid, {
-                  name: searchState.user.displayName,
-                  email: searchState.user.email,
-                });
-                setSearchState({ status: "idle" });
-                setSearchEmail("");
-              }}
-            />
-          )}
-        </div>
-      </div>
+        <View style={styles.searchRow}>
+          <TextInput
+            style={[styles.input, styles.flex]}
+            placeholder="friend@example.com"
+            placeholderTextColor={colors.textMuted}
+            value={searchEmail}
+            onChangeText={setSearchEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="search"
+            onSubmitEditing={onSearch}
+          />
+          <SmallButton label="Find" onPress={onSearch} />
+        </View>
+
+        {searchState.status === "loading" && (
+          <Text style={styles.composerHint}>Searching…</Text>
+        )}
+        {searchState.status === "not_found" && (
+          <Text style={styles.composerHint}>No Pulse user with that email.</Text>
+        )}
+        {searchState.status === "self" && <Text style={styles.composerHint}>That's you 🙂</Text>}
+        {searchState.status === "error" && <Alert message={searchState.message} />}
+        {searchState.status === "found" && (
+          <SearchResultRow
+            other={searchState.user}
+            rel={relWith(searchState.user.uid)}
+            onAccept={onAccept}
+            onDecline={onDecline}
+            onSendRequest={() => onSendRequest(searchState.user)}
+            onOpenChat={() => {
+              onOpenFriendChat(searchState.user.uid, {
+                name: searchState.user.displayName,
+                email: searchState.user.email,
+              });
+              setSearchState({ status: "idle" });
+              setSearchEmail("");
+            }}
+          />
+        )}
+      </View>
 
       {/* ------------------------------------------------------------ */}
       {/* Incoming friend requests                                      */}
       {/* ------------------------------------------------------------ */}
       {incomingRequests.length > 0 && (
-        <div className="social-card">
+        <View style={[styles.card, shadow("sm")]}>
           <SectionLabel>Friend requests</SectionLabel>
-          <div className="conv-list">
+          <View style={styles.convList}>
             {incomingRequests.map((r) => (
-              <div key={r.id} className="conv-row request-row">
-                <div className="conv-avatar">
-                  {initialsFor(r.fromName || r.fromEmail)}
-                </div>
-                <div className="conv-body">
-                  <div className="conv-name">
-                    {r.fromName || r.fromEmail || "Someone"}
-                  </div>
-                  <div className="conv-last">{r.fromEmail}</div>
-                </div>
-                <div className="request-actions">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary"
-                    onClick={() => onAccept(r.id)}
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => onDecline(r.id)}
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
+              <View key={r.id} style={styles.convRow}>
+                <Avatar name={r.fromName || r.fromEmail} />
+                <View style={styles.flex}>
+                  <Text style={styles.convName}>{r.fromName || r.fromEmail || "Someone"}</Text>
+                  <Text style={styles.convLast} numberOfLines={1}>
+                    {r.fromEmail}
+                  </Text>
+                </View>
+                <View style={styles.requestActions}>
+                  <SmallButton label="Accept" onPress={() => onAccept(r.id)} />
+                  <SmallButton label="Decline" onPress={() => onDecline(r.id)} tone="ghost" />
+                </View>
+              </View>
             ))}
-          </div>
-        </div>
+          </View>
+        </View>
       )}
 
       {/* ------------------------------------------------------------ */}
       {/* Outgoing pending requests                                     */}
       {/* ------------------------------------------------------------ */}
       {outgoingRequests.length > 0 && (
-        <div className="social-card">
+        <View style={[styles.card, shadow("sm")]}>
           <SectionLabel>Pending</SectionLabel>
-          <div className="conv-list">
+          <View style={styles.convList}>
             {outgoingRequests.map((r) => (
-              <div key={r.id} className="conv-row request-row">
-                <div className="conv-avatar">
-                  {initialsFor(r.toName || r.toEmail)}
-                </div>
-                <div className="conv-body">
-                  <div className="conv-name">
-                    {r.toName || r.toEmail || "Someone"}
-                  </div>
-                  <div className="conv-last">Request sent ⏳</div>
-                </div>
-                <div className="request-actions">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => onDecline(r.id)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              <View key={r.id} style={styles.convRow}>
+                <Avatar name={r.toName || r.toEmail} />
+                <View style={styles.flex}>
+                  <Text style={styles.convName}>{r.toName || r.toEmail || "Someone"}</Text>
+                  <Text style={styles.convLast}>Request sent ⏳</Text>
+                </View>
+                <SmallButton label="Cancel" onPress={() => onDecline(r.id)} tone="ghost" />
+              </View>
             ))}
-          </div>
-        </div>
+          </View>
+        </View>
       )}
 
       {/* ------------------------------------------------------------ */}
       {/* Friends list — tap a friend to open or create a DM thread     */}
       {/* ------------------------------------------------------------ */}
-      <div className="social-card">
+      <View style={[styles.card, shadow("sm")]}>
         <SectionLabel>Friends</SectionLabel>
         {sortedFriendships.length === 0 ? (
-          <div className="social-empty">
+          <Text style={styles.empty}>
             No friends yet. Use the search above to send your first request.
-          </div>
+          </Text>
         ) : (
-          <div className="conv-list">
+          <View style={styles.convList}>
             {sortedFriendships.map((f) => {
-              const otherUid = (f.participants || []).find(
-                (p) => p !== user.uid
-              );
+              const otherUid = (f.participants || []).find((p) => p !== user.uid);
               const info = f.participantInfo?.[otherUid] || {};
               const name = info.name || info.email || "Someone";
               const conv = convByOther[otherUid];
               const unread = conv ? isUnread(conv) : false;
               return (
-                <div
-                  key={f.id}
-                  className={`conv-row friend-row ${unread ? "has-unread" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="friend-main"
-                    onClick={() => {
+                <View key={f.id} style={styles.convRow}>
+                  <Pressable
+                    onPress={() => {
                       const c = convByOther[otherUid];
                       if (c) {
-                        onOpenThread({
-                          convId: c.id,
-                          otherUid,
-                          otherName: name,
-                        });
+                        onOpenThread({ convId: c.id, otherUid, otherName: name });
                       } else {
                         onOpenFriendChat(otherUid, info);
                       }
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open chat with ${name}`}
+                    style={({ pressed }) => [styles.friendMain, pressed && styles.pressed]}
                   >
-                    <div className="conv-avatar">
-                      {initialsFor(name)}
-                      {unread && <span className="unread-dot" aria-hidden />}
-                    </div>
-                    <div className="conv-body">
-                      <div className="conv-name">{name}</div>
-                      <div className={`conv-last ${unread ? "unread" : ""}`}>
+                    <Avatar name={name} showDot={unread} />
+                    <View style={styles.flex}>
+                      <Text style={styles.convName}>{name}</Text>
+                      <Text
+                        style={[styles.convLast, unread && styles.convLastUnread]}
+                        numberOfLines={1}
+                      >
                         {conv?.lastMessage || "Say hi 👋"}
-                      </div>
-                    </div>
-                    <div className="conv-when">
+                      </Text>
+                    </View>
+                    <Text style={styles.convWhen}>
                       {conv?.lastMessageAt ? timeAgo(conv.lastMessageAt) : ""}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="unfriend-btn"
-                    onClick={() => onUnfriend(otherUid, name)}
-                    aria-label={`Remove ${name} from friends`}
-                    title="Remove friend"
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => onUnfriend(otherUid, name)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${name} from friends`}
+                    style={({ pressed }) => [pressed && styles.pressed]}
                   >
-                    ×
-                  </button>
-                </div>
+                    <Icon name="close" size={18} color={colors.textMuted} />
+                  </Pressable>
+                </View>
               );
             })}
-          </div>
+          </View>
         )}
-      </div>
+      </View>
     </>
-  );
-}
-
-// ============================================================================
-// Small presentational helpers used by MessagesTab
-// ============================================================================
-
-function SectionLabel({ children }) {
-  return (
-    <div
-      style={{
-        fontSize: 14,
-        fontWeight: 700,
-        letterSpacing: 0.4,
-        textTransform: "uppercase",
-        color: "var(--pulse-text-muted)",
-        marginBottom: 8,
-      }}
-    >
-      {children}
-    </div>
   );
 }
 
@@ -1082,75 +1066,43 @@ function SectionLabel({ children }) {
  *   incoming req    → "Accept" / "Decline"
  *   outgoing req    → "Request sent" pill + "Cancel"
  */
-function SearchResultRow({
-  other,
-  rel,
-  onAccept,
-  onDecline,
-  onSendRequest,
-  onOpenChat,
-}) {
+function SearchResultRow({ other, rel, onAccept, onDecline, onSendRequest, onOpenChat }) {
   const name = other.displayName || other.email?.split("@")[0] || "Someone";
   const isObj = rel && typeof rel === "object";
 
   return (
-    <div className="conv-row search-result" style={{ marginTop: 4 }}>
-      <div className="conv-avatar">{initialsFor(name)}</div>
-      <div className="conv-body">
-        <div className="conv-name">{name}</div>
-        <div className="conv-last">{other.email}</div>
-      </div>
-      <div className="request-actions">
-        {rel === "friend" && (
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            onClick={onOpenChat}
-          >
-            Message
-          </button>
-        )}
-        {rel === "none" && (
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            onClick={onSendRequest}
-          >
-            Add friend
-          </button>
-        )}
+    <View style={[styles.convRow, styles.searchResult]}>
+      <Avatar name={name} />
+      <View style={styles.flex}>
+        <Text style={styles.convName}>{name}</Text>
+        <Text style={styles.convLast} numberOfLines={1}>
+          {other.email}
+        </Text>
+      </View>
+
+      <View style={styles.requestActions}>
+        {rel === "friend" && <SmallButton label="Message" onPress={onOpenChat} />}
+        {rel === "none" && <SmallButton label="Add friend" onPress={onSendRequest} />}
         {isObj && rel.kind === "outgoing" && (
           <>
-            <span className="pill pill-pending">Request sent</span>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => onDecline(rel.request.id)}
-            >
-              Cancel
-            </button>
+            <View style={styles.pillPending}>
+              <Text style={styles.pillPendingText}>Request sent</Text>
+            </View>
+            <SmallButton label="Cancel" onPress={() => onDecline(rel.request.id)} tone="ghost" />
           </>
         )}
         {isObj && rel.kind === "incoming" && (
           <>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={() => onAccept(rel.request.id)}
-            >
-              Accept
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => onDecline(rel.request.id)}
-            >
-              Decline
-            </button>
+            <SmallButton label="Accept" onPress={() => onAccept(rel.request.id)} />
+            <SmallButton
+              label="Decline"
+              onPress={() => onDecline(rel.request.id)}
+              tone="ghost"
+            />
           </>
         )}
-      </div>
-    </div>
+      </View>
+    </View>
   );
 }
 
@@ -1163,6 +1115,7 @@ function ThreadOverlay({ user, thread, onClose }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!thread?.convId) return;
@@ -1177,15 +1130,14 @@ function ThreadOverlay({ user, thread, onClose }) {
   // even as the friend keeps typing.
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollToEnd({ animated: true });
     }
     if (thread?.convId && user?.uid && messages.length > 0) {
       markConversationRead(thread.convId, user.uid);
     }
   }, [messages.length, thread?.convId, user?.uid]);
 
-  const onSend = async (e) => {
-    e.preventDefault();
+  const onSend = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     setSending(true);
@@ -1198,57 +1150,305 @@ function ThreadOverlay({ user, thread, onClose }) {
   };
 
   return (
-    <div className="thread-overlay" onClick={(e) => {
-      if (e.target === e.currentTarget) onClose();
-    }}>
-      <div className="thread-card">
-        <div className="thread-header">
-          <button
-            type="button"
-            className="thread-close"
-            onClick={onClose}
-            aria-label="Close"
+    <Modal
+      visible={Boolean(thread)}
+      animationType="slide"
+      onRequestClose={onClose}
+      presentationStyle="pageSheet"
+    >
+      {thread ? (
+        <View style={[styles.threadCard, { paddingTop: insets.top }]}>
+          <View style={styles.threadHeader}>
+            <Pressable
+              onPress={onClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              style={({ pressed }) => [pressed && styles.pressed]}
+            >
+              <Icon name="close" size={22} color={colors.text} />
+            </Pressable>
+            <Avatar name={thread.otherName} size={32} />
+            <Text style={styles.threadTitle} numberOfLines={1}>
+              {thread.otherName}
+            </Text>
+          </View>
+
+          <ScrollView
+            ref={scrollRef}
+            style={styles.flex}
+            contentContainerStyle={styles.threadScroll}
+            keyboardShouldPersistTaps="handled"
           >
-            ×
-          </button>
-          <div className="conv-avatar">{initialsFor(thread.otherName)}</div>
-          <div className="thread-title">{thread.otherName}</div>
-        </div>
+            {messages.length === 0 ? (
+              <Text style={styles.empty}>No messages yet. Say hi 👋</Text>
+            ) : null}
 
-        <div className="thread-scroll" ref={scrollRef}>
-          {messages.length === 0 && (
-            <div className="social-empty">
-              No messages yet. Say hi 👋
-            </div>
-          )}
-          {messages.map((m) => {
-            const mine = m.senderUid === user.uid;
-            return (
-              <div
-                key={m.id}
-                className={`msg-bubble ${mine ? "mine" : "theirs"}`}
-              >
-                {m.text}
-                <div className="msg-time">{timeAgo(m.createdAt)}</div>
-              </div>
-            );
-          })}
-        </div>
+            {messages.map((m) => {
+              const mine = m.senderUid === user.uid;
+              return (
+                <View
+                  key={m.id}
+                  style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}
+                >
+                  <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{m.text}</Text>
+                  <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
+                    {timeAgo(m.createdAt)}
+                  </Text>
+                </View>
+              );
+            })}
+          </ScrollView>
 
-        <form className="thread-compose" onSubmit={onSend}>
-          <input
-            type="text"
-            placeholder="Message…"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <button type="submit" disabled={!text.trim() || sending}>
-            {sending ? "…" : "Send"}
-          </button>
-        </form>
-      </div>
-    </div>
+          <View style={[styles.threadCompose, { paddingBottom: insets.bottom + spacing.md }]}>
+            <TextInput
+              style={[styles.input, styles.flex]}
+              placeholder="Message…"
+              placeholderTextColor={colors.textMuted}
+              value={text}
+              onChangeText={setText}
+              returnKeyType="send"
+              onSubmitEditing={onSend}
+            />
+            <SmallButton label={sending ? "…" : "Send"} onPress={onSend} />
+          </View>
+        </View>
+      ) : null}
+    </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { gap: spacing.md, paddingBottom: 40 },
+  flex: { flex: 1 },
+  pressed: { opacity: 0.7 },
+
+  pageTitle: {
+    ...type.h2,
+    fontFamily: fonts.extrabold,
+    fontSize: 22,
+    color: colors.pulsePrimary,
+    textAlign: "center",
+    paddingVertical: spacing.sm,
+  },
+
+  tabs: { flexDirection: "row", gap: 6 },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  tabActive: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
+  tabText: { ...type.small, fontSize: 13, color: colors.text },
+  tabTextActive: { color: "#fff", fontFamily: fonts.semibold },
+
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  empty: { ...type.small, color: colors.textMuted, textAlign: "center", paddingVertical: spacing.sm },
+
+  errorCard: {
+    backgroundColor: "rgba(172, 52, 52, 0.06)",
+    borderColor: "rgba(172, 52, 52, 0.2)",
+    gap: spacing.sm,
+  },
+  errorTitle: { ...type.label, color: colors.blError },
+  errorBody: { ...type.small, fontSize: 13, color: colors.text },
+  code: { fontFamily: "monospace" },
+  errorLink: { ...type.caption, fontSize: 12, color: colors.pulsePrimaryDark },
+  errorMeta: { ...type.caption, fontSize: 12, color: colors.textMuted },
+
+  avatar: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.pulseBgTint,
+  },
+  avatarText: { fontFamily: fonts.bold, color: colors.pulsePrimaryDark },
+  unreadDot: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.pulsePrimary,
+    borderWidth: 2,
+    borderColor: colors.card,
+  },
+
+  postAuthor: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  postName: { ...type.label, fontSize: 14, color: colors.text },
+  postWhen: { ...type.caption, fontSize: 11, color: colors.textMuted },
+
+  postSlides: { minHeight: 120 },
+  postImage: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.pulseBg,
+  },
+  reflection: {
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.pulseBg,
+    gap: 6,
+  },
+  reflectionLabel: {
+    ...type.caption,
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+  },
+  reflectionText: { ...type.body, color: colors.text },
+
+  slideNav: { flexDirection: "row", justifyContent: "center", gap: 6 },
+  slideDot: {
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.border,
+  },
+  slideDotActive: { backgroundColor: colors.pulsePrimary },
+
+  postActions: {
+    flexDirection: "row",
+    gap: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+  },
+  actionBtn: { paddingVertical: 2 },
+  actionText: { ...type.small, color: colors.textMuted },
+  actionTextLiked: { color: colors.pulsePrimary },
+  actionTextDanger: { color: colors.error },
+
+  comments: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md },
+  comment: { flexDirection: "row", gap: spacing.sm },
+  commentLine: { ...type.small, fontSize: 13, color: colors.text },
+  commentAuthor: { fontFamily: fonts.bold },
+  commentText: { color: colors.text },
+  commentMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  commentMeta: { ...type.caption, fontSize: 11, color: colors.textMuted },
+  commentForm: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    ...type.body,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+  reflectionInput: { minHeight: 96 },
+
+  composerTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 16, color: colors.text },
+  composerHint: { ...type.small, color: colors.textMuted },
+
+  imagePicker: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    backgroundColor: colors.pulseBg,
+  },
+  imagePreview: { width: "100%", aspectRatio: 1, borderRadius: radius.md },
+  imagePickerIcon: { fontSize: 22 },
+  imagePickerLabel: { ...type.label, fontSize: 13, color: colors.text, marginTop: 4 },
+  imagePickerMeta: { ...type.caption, fontSize: 11, color: colors.textMuted, marginTop: 4 },
+
+  sectionLabel: {
+    ...type.label,
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
+
+  searchRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+
+  convList: { gap: spacing.md },
+  convRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  searchResult: { marginTop: 4 },
+  friendMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.md },
+  convName: { ...type.label, fontSize: 14, color: colors.text },
+  convLast: { ...type.caption, fontSize: 12, color: colors.textMuted },
+  convLastUnread: { fontFamily: fonts.bold, color: colors.text },
+  convWhen: { ...type.caption, fontSize: 10, color: colors.textMuted },
+  requestActions: { flexDirection: "row", alignItems: "center", gap: 6 },
+
+  smallBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  smallBtnPrimary: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
+  smallBtnGhost: { backgroundColor: "transparent", borderColor: colors.border },
+  smallBtnText: { ...type.caption, fontSize: 12, color: colors.text },
+  smallBtnTextPrimary: { color: "#fff" },
+
+  pillPending: {
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.pulseBgTintAlt,
+  },
+  pillPendingText: { ...type.caption, fontSize: 10, color: colors.pulsePrimaryDark },
+
+  threadCard: { flex: 1, backgroundColor: colors.pulseBg },
+  threadHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  threadTitle: { ...type.title, fontFamily: fonts.bold, flex: 1, color: colors.text },
+  threadScroll: { padding: spacing.lg, gap: spacing.sm },
+
+  bubble: {
+    maxWidth: "80%",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+  },
+  bubbleMine: { alignSelf: "flex-end", backgroundColor: colors.pulsePrimary },
+  bubbleTheirs: { alignSelf: "flex-start", backgroundColor: colors.card },
+  bubbleText: { ...type.body, fontSize: 14, color: colors.text },
+  bubbleTextMine: { color: "#fff" },
+  bubbleTime: { ...type.caption, fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  bubbleTimeMine: { color: "rgba(255,255,255,0.75)" },
+
+  threadCompose: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
+});
 
 export default Social;
