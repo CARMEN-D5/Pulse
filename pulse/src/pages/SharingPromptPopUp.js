@@ -56,5 +56,24 @@ progressSharePrompt window >
 " " - from first option
 
 todo
-if task is completed  
+1. automatic prompt option
+if all tasks completed for today / last outstanding check box ticked
+progressSharePrompt window >
+    window box:
+    title "share"
+    "i completed all my tasks for the day!"
+    button: post
+
+    if buttonIsClicked >
+       taken to social feed / in post editing window >
+       input: title (pre-filled/can be edited)
+       input: comment (optional)
+       selectedTemplate
+       post
+
+2. manual share prompt option
+sharePrompt button in top right corner
+if buttonIsClicked = true
+progressSharePrompt window >
+" " - from first option
  */
