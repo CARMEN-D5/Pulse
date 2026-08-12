@@ -15,6 +15,7 @@ import {
 } from "../firestore/social";
 import { uploadPostImage, deletePostImage } from "../storage/uploads";
 import { searchUserByEmail } from "../firestore/users";
+import { getTemplate } from "../components/share";
 import {
   getOrCreateConversation,
   sendMessage,
@@ -41,6 +42,12 @@ import {
  *   - Today    : compose / edit / view your own post for today
  *   - Messages : list of conversations + ability to start a new one,
  *                opens a thread overlay
+ *
+ * Two kinds of post share this feed:
+ *   - check-in    the daily photo + reflection, one per day (Today tab)
+ *   - achievement created by the share prompt, carries a templateId +
+ *                 payload that PostCard re-renders as a card. Has no
+ *                 dayKey, so it isn't capped per day.
  */
 function Social({ user, onBack }) {
   const [tab, setTab] = useState("feed");
@@ -89,9 +96,9 @@ function Social({ user, onBack }) {
   };
 
   const unreadConvCount = useMemo(
-    () => conversations.filter(isUnread).length,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [conversations, user?.uid]
+      () => conversations.filter(isUnread).length,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [conversations, user?.uid]
   );
 
   // Fast-lookup set of friend uids — derived from the friendships list.
@@ -131,8 +138,8 @@ function Social({ user, onBack }) {
       return;
     }
     const res = await getOrCreateConversation(
-      { uid: user.uid, name: displayNameFor(user), email: user.email },
-      otherUser
+        { uid: user.uid, name: displayNameFor(user), email: user.email },
+        otherUser
     );
     if (res.ok) {
       openThreadAndMarkRead({
@@ -150,85 +157,85 @@ function Social({ user, onBack }) {
   const messagesBadge = incomingRequests.length + unreadConvCount;
 
   return (
-    <div className="social-shell">
-      <div className="social-container">
-        <div className="social-header">
-          <button type="button" className="social-back" onClick={onBack}>
-            ← Home
-          </button>
-          <h1>Social</h1>
-          <div style={{ width: 60 }} />
-        </div>
-
-        {socialError && (
-          <div className="alert alert-error" role="alert">
-            <span>{socialError}</span>
-            <button
-              type="button"
-              onClick={() => setSocialError("")}
-              className="alert-dismiss"
-              aria-label="Dismiss"
-            >
-              ×
+      <div className="social-shell">
+        <div className="social-container">
+          <div className="social-header">
+            <button type="button" className="social-back" onClick={onBack}>
+              ← Home
             </button>
+            <h1>Social</h1>
+            <div style={{ width: 60 }} />
           </div>
-        )}
 
-        <div className="social-tabs" role="tablist">
-          {[
-            { id: "feed", label: "Feed" },
-            { id: "today", label: "Today" },
-            {
-              id: "messages",
-              label: messagesBadge > 0 ? `Messages (${messagesBadge})` : "Messages",
-            },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              className={`tab ${tab === t.id ? "active" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
+          {socialError && (
+              <div className="alert alert-error" role="alert">
+                <span>{socialError}</span>
+                <button
+                    type="button"
+                    onClick={() => setSocialError("")}
+                    className="alert-dismiss"
+                    aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+          )}
+
+          <div className="social-tabs" role="tablist">
+            {[
+              { id: "feed", label: "Feed" },
+              { id: "today", label: "Today" },
+              {
+                id: "messages",
+                label: messagesBadge > 0 ? `Messages (${messagesBadge})` : "Messages",
+              },
+            ].map((t) => (
+                <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    className={`tab ${tab === t.id ? "active" : ""}`}
+                    onClick={() => setTab(t.id)}
+                >
+                  {t.label}
+                </button>
+            ))}
+          </div>
+
+          {tab === "feed" && (
+              <FeedTab
+                  user={user}
+                  visibleAuthorUids={visibleAuthorUids}
+                  friendUids={friendUids}
+                  onStartConversation={startConversation}
+              />
+          )}
+          {tab === "today" && <TodayTab user={user} />}
+          {tab === "messages" && (
+              <MessagesTab
+                  user={user}
+                  friendships={friendships}
+                  friendUids={friendUids}
+                  incomingRequests={incomingRequests}
+                  outgoingRequests={outgoingRequests}
+                  conversations={conversations}
+                  isUnread={isUnread}
+                  onOpenThread={openThreadAndMarkRead}
+                  onStartConversation={startConversation}
+                  onError={setSocialError}
+              />
+          )}
         </div>
 
-        {tab === "feed" && (
-          <FeedTab
-            user={user}
-            visibleAuthorUids={visibleAuthorUids}
-            friendUids={friendUids}
-            onStartConversation={startConversation}
-          />
-        )}
-        {tab === "today" && <TodayTab user={user} />}
-        {tab === "messages" && (
-          <MessagesTab
-            user={user}
-            friendships={friendships}
-            friendUids={friendUids}
-            incomingRequests={incomingRequests}
-            outgoingRequests={outgoingRequests}
-            conversations={conversations}
-            isUnread={isUnread}
-            onOpenThread={openThreadAndMarkRead}
-            onStartConversation={startConversation}
-            onError={setSocialError}
-          />
+        {openThread && (
+            <ThreadOverlay
+                user={user}
+                thread={openThread}
+                onClose={() => setOpenThread(null)}
+            />
         )}
       </div>
-
-      {openThread && (
-        <ThreadOverlay
-          user={user}
-          thread={openThread}
-          onClose={() => setOpenThread(null)}
-        />
-      )}
-    </div>
   );
 }
 
@@ -236,12 +243,12 @@ function Social({ user, onBack }) {
 // Helpers
 // ============================================================================
 
-function displayNameFor(u) {
+export function displayNameFor(u) {
   return (
-    u?.displayName ||
-    u?.name ||
-    (u?.email ? u.email.split("@")[0] : null) ||
-    "Someone"
+      u?.displayName ||
+      u?.name ||
+      (u?.email ? u.email.split("@")[0] : null) ||
+      "Someone"
   );
 }
 
@@ -265,6 +272,15 @@ function timeAgo(ts) {
   if (day < 7) return `${day}d ago`;
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
+
+// Label above the reflection slide. Check-ins keep the original wording;
+// achievement posts get something that reads naturally next to their card.
+const REFLECTION_LABEL = {
+  journal: "How I'm feeling",
+  fitness: "My workout",
+  todo: "My tasks",
+  finance: "My budget",
+};
 
 // ============================================================================
 // Feed tab
@@ -300,22 +316,22 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
     const isPerms = feedError.code === "permission-denied";
     const urlMatch = feedError.message?.match(/https?:\/\/\S+/);
     return (
-      <div className="social-card alert alert-error" role="alert" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-        <div><strong>Couldn't load the feed.</strong></div>
-        <div style={{ fontSize: 13 }}>
-          <code>{feedError.code || "unknown"}</code>
-          {isIndex && " — Firestore needs a composite index on the posts collection. Click the link below to auto-create it (takes ~60 seconds)."}
-          {isPerms && " — Firestore rules are blocking the read. Re-publish the rules in the Firebase Console."}
+        <div className="social-card alert alert-error" role="alert" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+          <div><strong>Couldn't load the feed.</strong></div>
+          <div style={{ fontSize: 13 }}>
+            <code>{feedError.code || "unknown"}</code>
+            {isIndex && " — Firestore needs a composite index on the posts collection. Click the link below to auto-create it (takes ~60 seconds)."}
+            {isPerms && " — Firestore rules are blocking the read. Re-publish the rules in the Firebase Console."}
+          </div>
+          {urlMatch && (
+              <a href={urlMatch[0]} target="_blank" rel="noreferrer" style={{ color: "var(--pulse-primary-dark)", wordBreak: "break-all", fontSize: 12 }}>
+                {urlMatch[0]}
+              </a>
+          )}
+          <div style={{ fontSize: 12, color: "var(--pulse-text-muted)" }}>
+            Full message: {feedError.message}
+          </div>
         </div>
-        {urlMatch && (
-          <a href={urlMatch[0]} target="_blank" rel="noreferrer" style={{ color: "var(--pulse-primary-dark)", wordBreak: "break-all", fontSize: 12 }}>
-            {urlMatch[0]}
-          </a>
-        )}
-        <div style={{ fontSize: 12, color: "var(--pulse-text-muted)" }}>
-          Full message: {feedError.message}
-        </div>
-      </div>
     );
   }
   if (loading) {
@@ -323,30 +339,30 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
   }
   if (friendUids.size === 0 && posts.length === 0) {
     return (
-      <div className="social-card social-empty">
-        Add friends from the Messages tab to start seeing posts from people
-        you know. Your own posts will show up here once you check in.
-      </div>
+        <div className="social-card social-empty">
+          Add friends from the Messages tab to start seeing posts from people
+          you know. Your own posts will show up here once you check in.
+        </div>
     );
   }
   if (posts.length === 0) {
     return (
-      <div className="social-card social-empty">
-        Nothing here yet — be the first to share a moment from your day.
-      </div>
+        <div className="social-card social-empty">
+          Nothing here yet — be the first to share a moment from your day.
+        </div>
     );
   }
   return (
-    <>
-      {posts.map((p) => (
-        <PostCard
-          key={p.id}
-          post={p}
-          user={user}
-          onStartConversation={onStartConversation}
-        />
-      ))}
-    </>
+      <>
+        {posts.map((p) => (
+            <PostCard
+                key={p.id}
+                post={p}
+                user={user}
+                onStartConversation={onStartConversation}
+            />
+        ))}
+      </>
   );
 }
 
@@ -355,7 +371,15 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
 // ============================================================================
 
 function PostCard({ post, user, onStartConversation, onDeleted }) {
-  const [slide, setSlide] = useState(post.imageUrl ? 0 : 1);
+  // An achievement post carries a templateId; the template renders the card
+  // from the stored payload. Deriving `hasCard` from the lookup rather than
+  // from `post.templateId` means a template deleted later degrades to the
+  // reflection slide instead of throwing.
+  const template = post.templateId ? getTemplate(post.templateId) : null;
+  const hasCard = Boolean(template);
+  const hasImage = Boolean(post.imageUrl);
+
+  const [slide, setSlide] = useState(hasImage || hasCard ? 0 : 1);
   const [likeSummary, setLikeSummary] = useState({ count: 0, likedByMe: false });
   const [comments, setComments] = useState([]);
   const [showComments, setShowComments] = useState(false);
@@ -411,7 +435,8 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
     if (!window.confirm("Delete this post?")) return;
     // Best-effort image cleanup, then doc. The feed subscription drops it
     // from the list automatically; the Today tab uses onDeleted to swap
-    // back to the compose form.
+    // back to the compose form. Achievement posts have no image, so the
+    // cleanup step is skipped for them.
     if (post.imagePath) await deletePostImage(post.imagePath);
     await deletePost(post.id);
     if (onDeleted) onDeleted();
@@ -427,145 +452,151 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
     });
   };
 
-  const hasImage = !!post.imageUrl;
-  const slidesCount = hasImage ? 2 : 1;
+  const slidesCount = hasImage || hasCard ? 2 : 1;
 
   return (
-    <article className="post-card">
-      <div className="post-author">
-        <div className="post-avatar">{initialsFor(post.authorName)}</div>
-        <div>
-          <div className="post-name">{post.authorName}</div>
-          <div className="post-when">{timeAgo(post.createdAt)}</div>
-        </div>
-        {!isMine && (
-          <button
-            type="button"
-            className="post-msg-btn"
-            onClick={onMessageAuthor}
-            aria-label="Message author"
-          >
-            💬 Message
-          </button>
-        )}
-      </div>
-
-      <div className="post-slides">
-        {hasImage && slide === 0 && (
-          <img
-            src={post.imageUrl}
-            alt="Post"
-            className="post-slide-image"
-          />
-        )}
-        {(slide === 1 || !hasImage) && (
-          <div className="post-slide-reflection">
-            <div className="post-slide-reflection-label">
-              What I did to improve
-            </div>
-            {post.reflection}
+      <article className="post-card">
+        <div className="post-author">
+          <div className="post-avatar">{initialsFor(post.authorName)}</div>
+          <div>
+            <div className="post-name">{post.authorName}</div>
+            <div className="post-when">{timeAgo(post.createdAt)}</div>
           </div>
-        )}
-      </div>
-
-      {slidesCount > 1 && (
-        <div className="post-slide-nav">
-          {[0, 1].map((i) => (
-            <button
-              key={i}
-              type="button"
-              className={`post-slide-dot ${slide === i ? "active" : ""}`}
-              onClick={() => setSlide(i)}
-              aria-label={`Show slide ${i + 1}`}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="post-actions">
-        <button
-          type="button"
-          className={`post-action-btn ${likeSummary.likedByMe ? "liked" : ""}`}
-          onClick={onToggleLike}
-        >
-          {likeSummary.likedByMe ? "♥" : "♡"} {likeSummary.count}
-        </button>
-        <button
-          type="button"
-          className="post-action-btn"
-          onClick={() => setShowComments((s) => !s)}
-        >
-          💬 {commentCount}
-        </button>
-        {isMine && (
-          <button
-            type="button"
-            className="post-action-btn danger"
-            onClick={onDeletePost}
-            title="Delete post"
-          >
-            Delete
-          </button>
-        )}
-      </div>
-
-      {showComments && (
-        <div className="comments">
-          {comments.length === 0 ? (
-            <div className="social-empty" style={{ padding: 8 }}>
-              No comments yet — start the conversation.
-            </div>
-          ) : (
-            comments.map((c) => (
-              <div className="comment" key={c.id}>
-                <div className="comment-avatar">{initialsFor(c.authorName)}</div>
-                <div className="comment-body">
-                  <div>
-                    <strong style={{ fontSize: 13, marginRight: 6 }}>
-                      {c.authorName}
-                    </strong>
-                    <span className="comment-text">{c.text}</span>
-                  </div>
-                  <div className="comment-meta">
-                    {timeAgo(c.createdAt)}
-                    {c.authorUid === user.uid && (
-                      <>
-                        {" · "}
-                        <button
-                          type="button"
-                          onClick={() => onDeleteComment(c.id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "var(--pulse-text-muted)",
-                            cursor: "pointer",
-                            padding: 0,
-                            font: "inherit",
-                          }}
-                        >
-                          delete
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
+          {!isMine && (
+              <button
+                  type="button"
+                  className="post-msg-btn"
+                  onClick={onMessageAuthor}
+                  aria-label="Message author"
+              >
+                💬 Message
+              </button>
           )}
-          <form className="comment-form" onSubmit={onSubmitComment}>
-            <input
-              type="text"
-              placeholder="Add a comment…"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-            />
-            <button type="submit" disabled={!commentText.trim() || submitting}>
-              {submitting ? "…" : "Post"}
-            </button>
-          </form>
         </div>
-      )}
-    </article>
+
+        <div className="post-slides">
+          {hasCard && slide === 0 && (
+              <div className="post-slide-card">
+                {template.render(post.payload, { username: post.authorName })}
+              </div>
+          )}
+          {hasImage && slide === 0 && (
+              <img
+                  src={post.imageUrl}
+                  alt="Post"
+                  className="post-slide-image"
+              />
+          )}
+          {(slide === 1 || (!hasImage && !hasCard)) && (
+              <div className="post-slide-reflection">
+                <div className="post-slide-reflection-label">
+                  {hasCard
+                      ? REFLECTION_LABEL[post.domain] || "What I shared"
+                      : "What I did to improve"}
+                </div>
+                {post.reflection}
+              </div>
+          )}
+        </div>
+
+        {slidesCount > 1 && (
+            <div className="post-slide-nav">
+              {[0, 1].map((i) => (
+                  <button
+                      key={i}
+                      type="button"
+                      className={`post-slide-dot ${slide === i ? "active" : ""}`}
+                      onClick={() => setSlide(i)}
+                      aria-label={`Show slide ${i + 1}`}
+                  />
+              ))}
+            </div>
+        )}
+
+        <div className="post-actions">
+          <button
+              type="button"
+              className={`post-action-btn ${likeSummary.likedByMe ? "liked" : ""}`}
+              onClick={onToggleLike}
+          >
+            {likeSummary.likedByMe ? "♥" : "♡"} {likeSummary.count}
+          </button>
+          <button
+              type="button"
+              className="post-action-btn"
+              onClick={() => setShowComments((s) => !s)}
+          >
+            💬 {commentCount}
+          </button>
+          {isMine && (
+              <button
+                  type="button"
+                  className="post-action-btn danger"
+                  onClick={onDeletePost}
+                  title="Delete post"
+              >
+                Delete
+              </button>
+          )}
+        </div>
+
+        {showComments && (
+            <div className="comments">
+              {comments.length === 0 ? (
+                  <div className="social-empty" style={{ padding: 8 }}>
+                    No comments yet — start the conversation.
+                  </div>
+              ) : (
+                  comments.map((c) => (
+                      <div className="comment" key={c.id}>
+                        <div className="comment-avatar">{initialsFor(c.authorName)}</div>
+                        <div className="comment-body">
+                          <div>
+                            <strong style={{ fontSize: 13, marginRight: 6 }}>
+                              {c.authorName}
+                            </strong>
+                            <span className="comment-text">{c.text}</span>
+                          </div>
+                          <div className="comment-meta">
+                            {timeAgo(c.createdAt)}
+                            {c.authorUid === user.uid && (
+                                <>
+                                  {" · "}
+                                  <button
+                                      type="button"
+                                      onClick={() => onDeleteComment(c.id)}
+                                      style={{
+                                        background: "none",
+                                        border: "none",
+                                        color: "var(--pulse-text-muted)",
+                                        cursor: "pointer",
+                                        padding: 0,
+                                        font: "inherit",
+                                      }}
+                                  >
+                                    delete
+                                  </button>
+                                </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                  ))
+              )}
+              <form className="comment-form" onSubmit={onSubmitComment}>
+                <input
+                    type="text"
+                    placeholder="Add a comment…"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                />
+                <button type="submit" disabled={!commentText.trim() || submitting}>
+                  {submitting ? "…" : "Post"}
+                </button>
+              </form>
+            </div>
+        )}
+      </article>
   );
 }
 
@@ -585,6 +616,8 @@ function TodayTab({ user }) {
 
   const fileInputRef = useRef(null);
 
+  // getMyTodayPost filters on dayKey, which achievement posts don't have —
+  // so sharing a workout never makes the composer disappear.
   const refresh = async () => {
     setLoading(true);
     const res = await getMyTodayPost(user.uid);
@@ -650,73 +683,73 @@ function TodayTab({ user }) {
   if (myPost) {
     // Already posted today — show their post inline.
     return (
-      <>
-        <div className="social-card composer">
-          <h3>You've checked in today ✨</h3>
-          <p className="composer-hint">
-            Come back tomorrow to share another moment.
-          </p>
-        </div>
-        <PostCard post={myPost} user={user} onDeleted={refresh} />
-      </>
+        <>
+          <div className="social-card composer">
+            <h3>You've checked in today ✨</h3>
+            <p className="composer-hint">
+              Come back tomorrow to share another moment.
+            </p>
+          </div>
+          <PostCard post={myPost} user={user} onDeleted={refresh} />
+        </>
     );
   }
 
   return (
-    <div className="social-card composer">
-      <h3>Today's check-in</h3>
-      <p className="composer-hint">
-        Share one thing you did to improve today — a photo and a short note.
-      </p>
+      <div className="social-card composer">
+        <h3>Today's check-in</h3>
+        <p className="composer-hint">
+          Share one thing you did to improve today — a photo and a short note.
+        </p>
 
-      {error && (
-        <div className="alert alert-error" role="alert">
-          {error}
-        </div>
-      )}
+        {error && (
+            <div className="alert alert-error" role="alert">
+              {error}
+            </div>
+        )}
 
-      <form onSubmit={onSubmit} className="composer">
-        <label className="image-picker">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={onPickImage}
+        <form onSubmit={onSubmit} className="composer">
+          <label className="image-picker">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onPickImage}
+            />
+            {imagePreview ? (
+                <div className="image-picker-preview">
+                  <img src={imagePreview} alt="Preview" />
+                  <div className="image-picker-meta">
+                    Tap to choose a different image
+                  </div>
+                </div>
+            ) : (
+                <div>
+                  <div style={{ fontSize: 22 }}>📷</div>
+                  <div style={{ fontWeight: 600, marginTop: 4 }}>
+                    Add a photo (optional)
+                  </div>
+                  <div className="image-picker-meta">JPG / PNG, up to 5 MB</div>
+                </div>
+            )}
+          </label>
+
+          <textarea
+              className="reflection-input"
+              placeholder="What did you do to improve today?"
+              value={reflection}
+              onChange={(e) => setReflection(e.target.value)}
           />
-          {imagePreview ? (
-            <div className="image-picker-preview">
-              <img src={imagePreview} alt="Preview" />
-              <div className="image-picker-meta">
-                Tap to choose a different image
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div style={{ fontSize: 22 }}>📷</div>
-              <div style={{ fontWeight: 600, marginTop: 4 }}>
-                Add a photo (optional)
-              </div>
-              <div className="image-picker-meta">JPG / PNG, up to 5 MB</div>
-            </div>
-          )}
-        </label>
 
-        <textarea
-          className="reflection-input"
-          placeholder="What did you do to improve today?"
-          value={reflection}
-          onChange={(e) => setReflection(e.target.value)}
-        />
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={submitting}
-        >
-          {submitting ? "Posting…" : "Share today's check-in"}
-        </button>
-      </form>
-    </div>
+          <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+          >
+            {submitting ? "Posting…" : "Share today's check-in"}
+          </button>
+        </form>
+      </div>
   );
 }
 
@@ -725,17 +758,17 @@ function TodayTab({ user }) {
 // ============================================================================
 
 function MessagesTab({
-  user,
-  friendships,
-  friendUids,
-  incomingRequests,
-  outgoingRequests,
-  conversations,
-  isUnread,
-  onOpenThread,
-  onStartConversation,
-  onError,
-}) {
+                       user,
+                       friendships,
+                       friendUids,
+                       incomingRequests,
+                       outgoingRequests,
+                       conversations,
+                       isUnread,
+                       onOpenThread,
+                       onStartConversation,
+                       onError,
+                     }) {
   const [searchEmail, setSearchEmail] = useState("");
   const [searchState, setSearchState] = useState({ status: "idle" });
 
@@ -842,209 +875,209 @@ function MessagesTab({
   };
 
   return (
-    <>
-      {/* ------------------------------------------------------------ */}
-      {/* Find a friend                                                 */}
-      {/* ------------------------------------------------------------ */}
-      <div className="social-card">
-        <div className="composer">
-          <h3 style={{ margin: 0, fontSize: 16 }}>Add a friend</h3>
-          <p className="composer-hint" style={{ marginTop: -4 }}>
-            Search for a Pulse user by email and send a friend request.
-            Once they accept, you'll see each other's posts and be able to
-            message.
-          </p>
-          <form className="search-row" onSubmit={onSearch}>
-            <input
-              type="email"
-              placeholder="friend@example.com"
-              value={searchEmail}
-              onChange={(e) => setSearchEmail(e.target.value)}
-            />
-            <button
-              type="submit"
-              className="btn btn-primary"
-              style={{ width: "auto" }}
-            >
-              Find
-            </button>
-          </form>
-
-          {searchState.status === "loading" && (
-            <div className="composer-hint">Searching…</div>
-          )}
-          {searchState.status === "not_found" && (
-            <div className="composer-hint">No Pulse user with that email.</div>
-          )}
-          {searchState.status === "self" && (
-            <div className="composer-hint">That's you 🙂</div>
-          )}
-          {searchState.status === "error" && (
-            <div className="alert alert-error">{searchState.message}</div>
-          )}
-          {searchState.status === "found" && (
-            <SearchResultRow
-              other={searchState.user}
-              rel={relWith(searchState.user.uid)}
-              onAccept={onAccept}
-              onDecline={onDecline}
-              onSendRequest={() => onSendRequest(searchState.user)}
-              onOpenChat={() => {
-                onOpenFriendChat(searchState.user.uid, {
-                  name: searchState.user.displayName,
-                  email: searchState.user.email,
-                });
-                setSearchState({ status: "idle" });
-                setSearchEmail("");
-              }}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------ */}
-      {/* Incoming friend requests                                      */}
-      {/* ------------------------------------------------------------ */}
-      {incomingRequests.length > 0 && (
+      <>
+        {/* ------------------------------------------------------------ */}
+        {/* Find a friend                                                 */}
+        {/* ------------------------------------------------------------ */}
         <div className="social-card">
-          <SectionLabel>Friend requests</SectionLabel>
-          <div className="conv-list">
-            {incomingRequests.map((r) => (
-              <div key={r.id} className="conv-row request-row">
-                <div className="conv-avatar">
-                  {initialsFor(r.fromName || r.fromEmail)}
-                </div>
-                <div className="conv-body">
-                  <div className="conv-name">
-                    {r.fromName || r.fromEmail || "Someone"}
-                  </div>
-                  <div className="conv-last">{r.fromEmail}</div>
-                </div>
-                <div className="request-actions">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary"
-                    onClick={() => onAccept(r.id)}
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => onDecline(r.id)}
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          <div className="composer">
+            <h3 style={{ margin: 0, fontSize: 16 }}>Add a friend</h3>
+            <p className="composer-hint" style={{ marginTop: -4 }}>
+              Search for a Pulse user by email and send a friend request.
+              Once they accept, you'll see each other's posts and be able to
+              message.
+            </p>
+            <form className="search-row" onSubmit={onSearch}>
+              <input
+                  type="email"
+                  placeholder="friend@example.com"
+                  value={searchEmail}
+                  onChange={(e) => setSearchEmail(e.target.value)}
+              />
+              <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: "auto" }}
+              >
+                Find
+              </button>
+            </form>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Outgoing pending requests                                     */}
-      {/* ------------------------------------------------------------ */}
-      {outgoingRequests.length > 0 && (
-        <div className="social-card">
-          <SectionLabel>Pending</SectionLabel>
-          <div className="conv-list">
-            {outgoingRequests.map((r) => (
-              <div key={r.id} className="conv-row request-row">
-                <div className="conv-avatar">
-                  {initialsFor(r.toName || r.toEmail)}
-                </div>
-                <div className="conv-body">
-                  <div className="conv-name">
-                    {r.toName || r.toEmail || "Someone"}
-                  </div>
-                  <div className="conv-last">Request sent ⏳</div>
-                </div>
-                <div className="request-actions">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => onDecline(r.id)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------ */}
-      {/* Friends list — tap a friend to open or create a DM thread     */}
-      {/* ------------------------------------------------------------ */}
-      <div className="social-card">
-        <SectionLabel>Friends</SectionLabel>
-        {sortedFriendships.length === 0 ? (
-          <div className="social-empty">
-            No friends yet. Use the search above to send your first request.
-          </div>
-        ) : (
-          <div className="conv-list">
-            {sortedFriendships.map((f) => {
-              const otherUid = (f.participants || []).find(
-                (p) => p !== user.uid
-              );
-              const info = f.participantInfo?.[otherUid] || {};
-              const name = info.name || info.email || "Someone";
-              const conv = convByOther[otherUid];
-              const unread = conv ? isUnread(conv) : false;
-              return (
-                <div
-                  key={f.id}
-                  className={`conv-row friend-row ${unread ? "has-unread" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="friend-main"
-                    onClick={() => {
-                      const c = convByOther[otherUid];
-                      if (c) {
-                        onOpenThread({
-                          convId: c.id,
-                          otherUid,
-                          otherName: name,
-                        });
-                      } else {
-                        onOpenFriendChat(otherUid, info);
-                      }
+            {searchState.status === "loading" && (
+                <div className="composer-hint">Searching…</div>
+            )}
+            {searchState.status === "not_found" && (
+                <div className="composer-hint">No Pulse user with that email.</div>
+            )}
+            {searchState.status === "self" && (
+                <div className="composer-hint">That's you 🙂</div>
+            )}
+            {searchState.status === "error" && (
+                <div className="alert alert-error">{searchState.message}</div>
+            )}
+            {searchState.status === "found" && (
+                <SearchResultRow
+                    other={searchState.user}
+                    rel={relWith(searchState.user.uid)}
+                    onAccept={onAccept}
+                    onDecline={onDecline}
+                    onSendRequest={() => onSendRequest(searchState.user)}
+                    onOpenChat={() => {
+                      onOpenFriendChat(searchState.user.uid, {
+                        name: searchState.user.displayName,
+                        email: searchState.user.email,
+                      });
+                      setSearchState({ status: "idle" });
+                      setSearchEmail("");
                     }}
-                  >
-                    <div className="conv-avatar">
-                      {initialsFor(name)}
-                      {unread && <span className="unread-dot" aria-hidden />}
-                    </div>
-                    <div className="conv-body">
-                      <div className="conv-name">{name}</div>
-                      <div className={`conv-last ${unread ? "unread" : ""}`}>
-                        {conv?.lastMessage || "Say hi 👋"}
+                />
+            )}
+          </div>
+        </div>
+
+        {/* ------------------------------------------------------------ */}
+        {/* Incoming friend requests                                      */}
+        {/* ------------------------------------------------------------ */}
+        {incomingRequests.length > 0 && (
+            <div className="social-card">
+              <SectionLabel>Friend requests</SectionLabel>
+              <div className="conv-list">
+                {incomingRequests.map((r) => (
+                    <div key={r.id} className="conv-row request-row">
+                      <div className="conv-avatar">
+                        {initialsFor(r.fromName || r.fromEmail)}
+                      </div>
+                      <div className="conv-body">
+                        <div className="conv-name">
+                          {r.fromName || r.fromEmail || "Someone"}
+                        </div>
+                        <div className="conv-last">{r.fromEmail}</div>
+                      </div>
+                      <div className="request-actions">
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-primary"
+                            onClick={() => onAccept(r.id)}
+                        >
+                          Accept
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
+                            onClick={() => onDecline(r.id)}
+                        >
+                          Decline
+                        </button>
                       </div>
                     </div>
-                    <div className="conv-when">
-                      {conv?.lastMessageAt ? timeAgo(conv.lastMessageAt) : ""}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="unfriend-btn"
-                    onClick={() => onUnfriend(otherUid, name)}
-                    aria-label={`Remove ${name} from friends`}
-                    title="Remove friend"
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </div>
         )}
-      </div>
-    </>
+
+        {/* ------------------------------------------------------------ */}
+        {/* Outgoing pending requests                                     */}
+        {/* ------------------------------------------------------------ */}
+        {outgoingRequests.length > 0 && (
+            <div className="social-card">
+              <SectionLabel>Pending</SectionLabel>
+              <div className="conv-list">
+                {outgoingRequests.map((r) => (
+                    <div key={r.id} className="conv-row request-row">
+                      <div className="conv-avatar">
+                        {initialsFor(r.toName || r.toEmail)}
+                      </div>
+                      <div className="conv-body">
+                        <div className="conv-name">
+                          {r.toName || r.toEmail || "Someone"}
+                        </div>
+                        <div className="conv-last">Request sent ⏳</div>
+                      </div>
+                      <div className="request-actions">
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
+                            onClick={() => onDecline(r.id)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                ))}
+              </div>
+            </div>
+        )}
+
+        {/* ------------------------------------------------------------ */}
+        {/* Friends list — tap a friend to open or create a DM thread     */}
+        {/* ------------------------------------------------------------ */}
+        <div className="social-card">
+          <SectionLabel>Friends</SectionLabel>
+          {sortedFriendships.length === 0 ? (
+              <div className="social-empty">
+                No friends yet. Use the search above to send your first request.
+              </div>
+          ) : (
+              <div className="conv-list">
+                {sortedFriendships.map((f) => {
+                  const otherUid = (f.participants || []).find(
+                      (p) => p !== user.uid
+                  );
+                  const info = f.participantInfo?.[otherUid] || {};
+                  const name = info.name || info.email || "Someone";
+                  const conv = convByOther[otherUid];
+                  const unread = conv ? isUnread(conv) : false;
+                  return (
+                      <div
+                          key={f.id}
+                          className={`conv-row friend-row ${unread ? "has-unread" : ""}`}
+                      >
+                        <button
+                            type="button"
+                            className="friend-main"
+                            onClick={() => {
+                              const c = convByOther[otherUid];
+                              if (c) {
+                                onOpenThread({
+                                  convId: c.id,
+                                  otherUid,
+                                  otherName: name,
+                                });
+                              } else {
+                                onOpenFriendChat(otherUid, info);
+                              }
+                            }}
+                        >
+                          <div className="conv-avatar">
+                            {initialsFor(name)}
+                            {unread && <span className="unread-dot" aria-hidden />}
+                          </div>
+                          <div className="conv-body">
+                            <div className="conv-name">{name}</div>
+                            <div className={`conv-last ${unread ? "unread" : ""}`}>
+                              {conv?.lastMessage || "Say hi 👋"}
+                            </div>
+                          </div>
+                          <div className="conv-when">
+                            {conv?.lastMessageAt ? timeAgo(conv.lastMessageAt) : ""}
+                          </div>
+                        </button>
+                        <button
+                            type="button"
+                            className="unfriend-btn"
+                            onClick={() => onUnfriend(otherUid, name)}
+                            aria-label={`Remove ${name} from friends`}
+                            title="Remove friend"
+                        >
+                          ×
+                        </button>
+                      </div>
+                  );
+                })}
+              </div>
+          )}
+        </div>
+      </>
   );
 }
 
@@ -1054,18 +1087,18 @@ function MessagesTab({
 
 function SectionLabel({ children }) {
   return (
-    <div
-      style={{
-        fontSize: 14,
-        fontWeight: 700,
-        letterSpacing: 0.4,
-        textTransform: "uppercase",
-        color: "var(--pulse-text-muted)",
-        marginBottom: 8,
-      }}
-    >
-      {children}
-    </div>
+      <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            letterSpacing: 0.4,
+            textTransform: "uppercase",
+            color: "var(--pulse-text-muted)",
+            marginBottom: 8,
+          }}
+      >
+        {children}
+      </div>
   );
 }
 
@@ -1078,74 +1111,74 @@ function SectionLabel({ children }) {
  *   outgoing req    → "Request sent" pill + "Cancel"
  */
 function SearchResultRow({
-  other,
-  rel,
-  onAccept,
-  onDecline,
-  onSendRequest,
-  onOpenChat,
-}) {
+                           other,
+                           rel,
+                           onAccept,
+                           onDecline,
+                           onSendRequest,
+                           onOpenChat,
+                         }) {
   const name = other.displayName || other.email?.split("@")[0] || "Someone";
   const isObj = rel && typeof rel === "object";
 
   return (
-    <div className="conv-row search-result" style={{ marginTop: 4 }}>
-      <div className="conv-avatar">{initialsFor(name)}</div>
-      <div className="conv-body">
-        <div className="conv-name">{name}</div>
-        <div className="conv-last">{other.email}</div>
+      <div className="conv-row search-result" style={{ marginTop: 4 }}>
+        <div className="conv-avatar">{initialsFor(name)}</div>
+        <div className="conv-body">
+          <div className="conv-name">{name}</div>
+          <div className="conv-last">{other.email}</div>
+        </div>
+        <div className="request-actions">
+          {rel === "friend" && (
+              <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={onOpenChat}
+              >
+                Message
+              </button>
+          )}
+          {rel === "none" && (
+              <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={onSendRequest}
+              >
+                Add friend
+              </button>
+          )}
+          {isObj && rel.kind === "outgoing" && (
+              <>
+                <span className="pill pill-pending">Request sent</span>
+                <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => onDecline(rel.request.id)}
+                >
+                  Cancel
+                </button>
+              </>
+          )}
+          {isObj && rel.kind === "incoming" && (
+              <>
+                <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => onAccept(rel.request.id)}
+                >
+                  Accept
+                </button>
+                <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => onDecline(rel.request.id)}
+                >
+                  Decline
+                </button>
+              </>
+          )}
+        </div>
       </div>
-      <div className="request-actions">
-        {rel === "friend" && (
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            onClick={onOpenChat}
-          >
-            Message
-          </button>
-        )}
-        {rel === "none" && (
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            onClick={onSendRequest}
-          >
-            Add friend
-          </button>
-        )}
-        {isObj && rel.kind === "outgoing" && (
-          <>
-            <span className="pill pill-pending">Request sent</span>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => onDecline(rel.request.id)}
-            >
-              Cancel
-            </button>
-          </>
-        )}
-        {isObj && rel.kind === "incoming" && (
-          <>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={() => onAccept(rel.request.id)}
-            >
-              Accept
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => onDecline(rel.request.id)}
-            >
-              Decline
-            </button>
-          </>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -1193,56 +1226,56 @@ function ThreadOverlay({ user, thread, onClose }) {
   };
 
   return (
-    <div className="thread-overlay" onClick={(e) => {
-      if (e.target === e.currentTarget) onClose();
-    }}>
-      <div className="thread-card">
-        <div className="thread-header">
-          <button
-            type="button"
-            className="thread-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ×
-          </button>
-          <div className="conv-avatar">{initialsFor(thread.otherName)}</div>
-          <div className="thread-title">{thread.otherName}</div>
-        </div>
+      <div className="thread-overlay" onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}>
+        <div className="thread-card">
+          <div className="thread-header">
+            <button
+                type="button"
+                className="thread-close"
+                onClick={onClose}
+                aria-label="Close"
+            >
+              ×
+            </button>
+            <div className="conv-avatar">{initialsFor(thread.otherName)}</div>
+            <div className="thread-title">{thread.otherName}</div>
+          </div>
 
-        <div className="thread-scroll" ref={scrollRef}>
-          {messages.length === 0 && (
-            <div className="social-empty">
-              No messages yet. Say hi 👋
-            </div>
-          )}
-          {messages.map((m) => {
-            const mine = m.senderUid === user.uid;
-            return (
-              <div
-                key={m.id}
-                className={`msg-bubble ${mine ? "mine" : "theirs"}`}
-              >
-                {m.text}
-                <div className="msg-time">{timeAgo(m.createdAt)}</div>
-              </div>
-            );
-          })}
-        </div>
+          <div className="thread-scroll" ref={scrollRef}>
+            {messages.length === 0 && (
+                <div className="social-empty">
+                  No messages yet. Say hi 👋
+                </div>
+            )}
+            {messages.map((m) => {
+              const mine = m.senderUid === user.uid;
+              return (
+                  <div
+                      key={m.id}
+                      className={`msg-bubble ${mine ? "mine" : "theirs"}`}
+                  >
+                    {m.text}
+                    <div className="msg-time">{timeAgo(m.createdAt)}</div>
+                  </div>
+              );
+            })}
+          </div>
 
-        <form className="thread-compose" onSubmit={onSend}>
-          <input
-            type="text"
-            placeholder="Message…"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <button type="submit" disabled={!text.trim() || sending}>
-            {sending ? "…" : "Send"}
-          </button>
-        </form>
+          <form className="thread-compose" onSubmit={onSend}>
+            <input
+                type="text"
+                placeholder="Message…"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+            />
+            <button type="submit" disabled={!text.trim() || sending}>
+              {sending ? "…" : "Send"}
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
   );
 }
 

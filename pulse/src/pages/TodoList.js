@@ -12,6 +12,8 @@ import {
     serverTimestamp
 } from 'firebase/firestore';
 import { logAction } from '../firestore/scoring';
+import { todayKey } from '../firestore/social';
+import { useSharePrompt, ShareButton } from '../components/share';
 import "./TodoList.css";
 
 /**
@@ -108,6 +110,8 @@ function TodoList({ user, onBack, onActivityLogged }) {
     const [sortMode, setSortMode] = useState('dueDate'); // 'dueDate' | 'priority'
     const [loading, setLoading] = useState(true);
 
+    const { openSharePrompt } = useSharePrompt();
+
 
     // 1. Listen to Firestore
     // Subscribe to this user's todo collection, ordered by most recent.
@@ -142,11 +146,17 @@ function TodoList({ user, onBack, onActivityLogged }) {
     const completedCount = todos.filter(t => t.completed).length;
     const totalCount     = todos.length;
 
+    const sharePayload = {
+        completedCount,
+        totalCount,
+        date: todayKey(),
+    };
+
     const filteredTodos = sortTodos(
         todos.filter(todo => {
-        if (tab === 'pending') return todo.completed === false;
-        if (tab === 'completed') return todo.completed === true;
-        return true;
+            if (tab === 'pending') return todo.completed === false;
+            if (tab === 'completed') return todo.completed === true;
+            return true;
         }),
         sortMode
     );
@@ -237,6 +247,29 @@ function TodoList({ user, onBack, onActivityLogged }) {
             if (!todo.completed) {
                 logAction(user.uid, 'productivity', 'task');
                 onActivityLogged?.();
+
+                // Share prompt — two-part gate:
+                //   action: a task was just ticked off
+                //   requirement:it was the last outstanding one
+                //
+                // `todos` still holds the pre-write value inside this closure,
+                // so the task being ticked is excluded by id rather than by
+                // trusting its `completed` flag.
+                const remaining = todos.filter(
+                    t => !t.completed && t.id !== todo.id
+                ).length;
+
+                if (remaining === 0 && todos.length > 0) {
+                    openSharePrompt(
+                        'todo',
+                        {
+                            completedCount: todos.length,
+                            totalCount: todos.length,
+                            date: todayKey(),
+                        },
+                        { source: 'auto' }
+                    );
+                }
             }
         }catch(err){
             console.error("Toggle error:", err);
@@ -269,6 +302,8 @@ function TodoList({ user, onBack, onActivityLogged }) {
                         Back
                     </button>
                     <h2 className="todo-title">My to-do list</h2>
+                    {/* Manual share — hides itself when nothing is completed yet */}
+                    <ShareButton domain="todo" payload={sharePayload} />
                 </div>
 
                 <div className="todo-form-card">
@@ -285,7 +320,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
                             value={descInput}
                             onChange={(e) => setDescInput(e.target.value)}
                             placeholder="Add a description(optional)..."
-                            />
+                        />
 
                         <div style={{ display: 'flex', gap: '10px' }}>
                             <input
@@ -378,13 +413,13 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                                     autoFocus
                                                     onChange={(e) => setEditText(e.target.value)}
                                                     onKeyDown={(e) => handleKeyDown(e, todo.id)}
-                                                    />
+                                                />
                                                 <textarea
                                                     className="edit-desc-textarea"
                                                     placeholder="Add a description..."
                                                     value={editDesc}
                                                     onChange={(e) => setEditDesc(e.target.value)}
-                                                    />
+                                                />
 
                                                 <div className="item-meta-edit">
                                                     <select
@@ -464,8 +499,8 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                         )}
                                     </div>
                                 </li>
-                             );
-                         })}
+                            );
+                        })}
                     </ul>
                 )}
 

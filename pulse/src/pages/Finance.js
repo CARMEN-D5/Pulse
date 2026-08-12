@@ -4,6 +4,7 @@ import "./auth.css";
 import { logAction } from "../firestore/scoring";
 import DonutChart from "./DonutChart";
 import SpendingCalendar from "./SpendingCalendar";
+import { ShareButton } from "../components/share";
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_ACCOUNTS,
@@ -27,13 +28,19 @@ import {
  * Finance / budget tracker page.
  *
  * Layout (top -> bottom):
- *   - Header (back, title, settings cog)
+ *   - Header (back, title, share, settings cog)
  *   - Donut chart + legend (this-month spending split by category)
  *   - Spending P&L calendar (per-day vs daily allowance)
  *   - Per-category progress bars vs each budget cap
  *   - Add expense form (amount + category + account + date + note)
  *   - Recent transactions with delete
  *   - Settings modal: Budgets tab + Accounts tab
+ *
+ * SHARE PROMPT
+ * achievement for prompt is staying under budget
+ *
+ * finance only uses manual share option/trigger as sharing budgeting might not
+ * be appealing to users
  */
 function Finance({ user, onBack, onActivityLogged }) {
   const uid = user?.uid;
@@ -87,47 +94,61 @@ function Finance({ user, onBack, onActivityLogged }) {
   }, [expenses]);
 
   const totalSpent = useMemo(
-    () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
-    [spentByCategory]
+      () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
+      [spentByCategory]
   );
 
   const totalBudget = useMemo(
-    () =>
-      DEFAULT_CATEGORIES.reduce(
-        (acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0),
-        0
-      ),
-    [budgets]
+      () =>
+          DEFAULT_CATEGORIES.reduce(
+              (acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0),
+              0
+          ),
+      [budgets]
   );
 
   const dailyAllowance = useMemo(
-    () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
-    [totalBudget, monthDayCount]
+      () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
+      [totalBudget, monthDayCount]
   );
+
+  // Payload for the manual share button. `isAvailable` on the finance
+  // templates requires totalBudget > 0, so the button hides itself until the
+  // user has actually set some budgets.
+  //
+  // For a single category instead, the payload is:
+  //   { kind: "category-under", categoryLabel, categoryIcon, categoryColor,
+  //     spent, cap, monthLabel }
+  const monthSharePayload = {
+    kind: "month-under",
+    monthLabel: monthName,
+    totalSpent,
+    totalBudget,
+  };
 
   // Categories sorted by this-month spend, descending. Ties keep their
   // original order. Used to rank both the donut legend and (filtered to
   // non-zero) the donut chart slices, so the most prevalent category sits
   // at the top of the legend list.
   const rankedCategories = useMemo(
-    () =>
-      [...DEFAULT_CATEGORIES].sort(
-        (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
-      ),
-    [spentByCategory]
+      () =>
+          [...DEFAULT_CATEGORIES].sort(
+              (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
+          ),
+      [spentByCategory]
   );
 
   const donutData = useMemo(
-    () =>
-      rankedCategories
-        .filter((c) => spentByCategory[c.id] > 0)
-        .map((c) => ({
-          id: c.id,
-          label: c.label,
-          value: spentByCategory[c.id],
-          color: c.color,
-        })),
-    [rankedCategories, spentByCategory]
+      () =>
+          rankedCategories
+              .filter((c) => spentByCategory[c.id] > 0)
+              .map((c) => ({
+                id: c.id,
+                label: c.label,
+                value: spentByCategory[c.id],
+                color: c.color,
+              })),
+      [rankedCategories, spentByCategory]
   );
 
   // Track most-recently-used account so the form can preselect it.
@@ -157,7 +178,7 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   const handleSaveBudgets = async (next) => {
     const writes = Object.entries(next).map(([cat, lim]) =>
-      setBudget(uid, cat, lim)
+        setBudget(uid, cat, lim)
     );
     const results = await Promise.all(writes);
     const fail = results.find((r) => !r.ok);
@@ -179,195 +200,212 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   // ---- render ------------------------------------------------------------
   return (
-    <div className="finance-shell">
-      <div className="finance-container">
-        <div className="finance-header">
-          <button type="button" className="finance-back" onClick={onBack}>
-            ← Home
-          </button>
-          <div className="finance-title-block" style={{ flex: 1 }}>
-            <h1>Budget</h1>
-            <div className="month-label">{monthName}</div>
+      <div className="finance-shell">
+        <div className="finance-container">
+          <div className="finance-header">
+            <button type="button" className="finance-back" onClick={onBack}>
+              ← Home
+            </button>
+            <div className="finance-title-block" style={{ flex: 1 }}>
+              <h1>Budget</h1>
+              <div className="month-label">{monthName}</div>
+            </div>
+            <ShareButton domain="finance" payload={monthSharePayload} />
+            <button
+                type="button"
+                className="cog-btn"
+                onClick={() => setShowSettings(true)}
+                aria-label="Settings"
+                title="Settings"
+            >
+              ⚙️
+            </button>
           </div>
-          <button
-            type="button"
-            className="cog-btn"
-            onClick={() => setShowSettings(true)}
-            aria-label="Settings"
-            title="Settings"
-          >
-            ⚙️
-          </button>
-        </div>
 
-        {error && (
-          <div className="alert alert-error" role="alert">
-            {error}
-          </div>
-        )}
+          {error && (
+              <div className="alert alert-error" role="alert">
+                {error}
+              </div>
+          )}
 
-        {/* ---------- Chart + legend ---------- */}
-        <div className="finance-card">
-          <div className="finance-summary">
-            <DonutChart
-              data={donutData}
-              size={220}
-              thickness={28}
-              centerLabel={`$${totalSpent.toFixed(0)}`}
-              centerSub={
-                totalBudget > 0
-                  ? `of $${totalBudget.toFixed(0)}`
-                  : "spent this month"
-              }
-            />
-            <div className="donut-legend">
-              {rankedCategories.map((c) => (
-                <div className="legend-row" key={c.id}>
+          {/* ---------- Chart + legend ---------- */}
+          <div className="finance-card">
+            <div className="finance-summary">
+              <DonutChart
+                  data={donutData}
+                  size={220}
+                  thickness={28}
+                  centerLabel={`$${totalSpent.toFixed(0)}`}
+                  centerSub={
+                    totalBudget > 0
+                        ? `of $${totalBudget.toFixed(0)}`
+                        : "spent this month"
+                  }
+              />
+              <div className="donut-legend">
+                {rankedCategories.map((c) => (
+                    <div className="legend-row" key={c.id}>
                   <span
-                    className="legend-swatch"
-                    style={{ background: c.color }}
+                      className="legend-swatch"
+                      style={{ background: c.color }}
                   />
-                  <span>
+                      <span>
                     {c.icon} {c.label}
                   </span>
-                  <span className="legend-amount">
+                      <span className="legend-amount">
                     ${spentByCategory[c.id].toFixed(0)}
                   </span>
-                </div>
-              ))}
+                    </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* ---------- Daily P&L calendar ---------- */}
-        <div className="finance-card">
-          <SpendingCalendar
-            expenses={expenses}
-            monthStart={monthStart}
-            dailyAllowance={dailyAllowance}
-          />
-        </div>
+          {/* ---------- Daily P&L calendar ---------- */}
+          <div className="finance-card">
+            <SpendingCalendar
+                expenses={expenses}
+                monthStart={monthStart}
+                dailyAllowance={dailyAllowance}
+            />
+          </div>
 
-        {/* ---------- Per-category bars ---------- */}
-        <div className="finance-card">
-          <div className="section-title">Category limits</div>
-          <div className="budget-rows">
-            {DEFAULT_CATEGORIES.map((c) => {
-              const cap = budgets[c.id]?.monthlyLimit || 0;
-              const spent = spentByCategory[c.id];
-              const ratio = cap > 0 ? spent / cap : 0;
-              const pct = Math.min(ratio, 1) * 100;
-              const cls = ratio >= 1 ? "over" : ratio >= 0.8 ? "warn" : "";
-              return (
-                <div key={c.id} className="budget-row">
-                  <div className="budget-row-head">
+          {/* ---------- Per-category bars ---------- */}
+          <div className="finance-card">
+            <div className="section-title">Category limits</div>
+            <div className="budget-rows">
+              {DEFAULT_CATEGORIES.map((c) => {
+                const cap = budgets[c.id]?.monthlyLimit || 0;
+                const spent = spentByCategory[c.id];
+                const ratio = cap > 0 ? spent / cap : 0;
+                const pct = Math.min(ratio, 1) * 100;
+                const cls = ratio >= 1 ? "over" : ratio >= 0.8 ? "warn" : "";
+                return (
+                    <div key={c.id} className="budget-row">
+                      <div className="budget-row-head">
                     <span className="budget-row-name">
                       <span aria-hidden="true">{c.icon}</span>
                       {c.label}
                     </span>
-                    <span className="budget-row-amount">
+                        <span className="budget-row-amount">
                       ${spent.toFixed(0)}
-                      {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
+                          {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
                     </span>
-                  </div>
-                  <div className="bar-track">
-                    <div
-                      className={`bar-fill ${cls}`}
-                      style={{
-                        width: `${pct}%`,
-                        background: c.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ---------- Add expense ---------- */}
-        <div className="finance-card">
-          <div className="section-title">Add an expense</div>
-          <AddExpenseForm
-            accounts={accounts}
-            defaultAccount={lastUsedAccount}
-            onSubmit={handleAddExpense}
-          />
-        </div>
-
-        {/* ---------- Recent transactions ---------- */}
-        <div className="finance-card">
-          <div className="section-title">Recent transactions</div>
-          {loading ? (
-            <div className="empty-state">Loading…</div>
-          ) : expenses.length === 0 ? (
-            <div className="empty-state">
-              No expenses yet — add one above to get started.
-            </div>
-          ) : (
-            <div className="tx-list">
-              {expenses.slice(0, 12).map((e) => {
-                const cat = categoryById(e.category);
-                const acc = accountById(accounts, e.account);
-                const date = e.date?.toDate
-                  ? e.date.toDate()
-                  : new Date(e.date);
-                return (
-                  <div key={e.id} className="tx-row">
-                    <div
-                      className="tx-icon"
-                      style={{ background: cat.color + "22" }}
-                    >
-                      {cat.icon}
-                    </div>
-                    <div className="tx-main">
-                      <div className="tx-cat">
-                        <span
-                          className="tx-account-icon"
-                          title={acc.name}
-                          style={{ background: acc.color + "22" }}
-                        >
-                          {acc.icon}
-                        </span>
-                        {cat.label}
+                        {/* Share this category, but only once it's actually
+                        under a cap that exists. */}
+                        {cap > 0 && ratio < 1 && (
+                            <ShareButton
+                                domain="finance"
+                                payload={{
+                                  kind: "category-under",
+                                  categoryLabel: c.label,
+                                  categoryIcon: c.icon,
+                                  categoryColor: c.color,
+                                  spent,
+                                  cap,
+                                  monthLabel: monthName,
+                                }}
+                            />
+                        )}
                       </div>
-                      <div className="tx-meta">
-                        {acc.name} ·{" "}
-                        {date.toLocaleDateString("en-AU", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                        {e.note ? ` · ${e.note}` : ""}
+                      <div className="bar-track">
+                        <div
+                            className={`bar-fill ${cls}`}
+                            style={{
+                              width: `${pct}%`,
+                              background: c.color,
+                            }}
+                        />
                       </div>
                     </div>
-                    <div className="tx-amount">${e.amount.toFixed(2)}</div>
-                    <button
-                      type="button"
-                      className="tx-delete"
-                      onClick={() => handleDelete(e.id)}
-                      aria-label="Delete expense"
-                      title="Delete"
-                    >
-                      ×
-                    </button>
-                  </div>
                 );
               })}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {showSettings && (
-        <SettingsModal
-          budgets={budgets}
-          accounts={accounts}
-          onSaveBudgets={handleSaveBudgets}
-          onSaveAccounts={handleSaveAccounts}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-    </div>
+          {/* ---------- Add expense ---------- */}
+          <div className="finance-card">
+            <div className="section-title">Add an expense</div>
+            <AddExpenseForm
+                accounts={accounts}
+                defaultAccount={lastUsedAccount}
+                onSubmit={handleAddExpense}
+            />
+          </div>
+
+          {/* ---------- Recent transactions ---------- */}
+          <div className="finance-card">
+            <div className="section-title">Recent transactions</div>
+            {loading ? (
+                <div className="empty-state">Loading…</div>
+            ) : expenses.length === 0 ? (
+                <div className="empty-state">
+                  No expenses yet — add one above to get started.
+                </div>
+            ) : (
+                <div className="tx-list">
+                  {expenses.slice(0, 12).map((e) => {
+                    const cat = categoryById(e.category);
+                    const acc = accountById(accounts, e.account);
+                    const date = e.date?.toDate
+                        ? e.date.toDate()
+                        : new Date(e.date);
+                    return (
+                        <div key={e.id} className="tx-row">
+                          <div
+                              className="tx-icon"
+                              style={{ background: cat.color + "22" }}
+                          >
+                            {cat.icon}
+                          </div>
+                          <div className="tx-main">
+                            <div className="tx-cat">
+                        <span
+                            className="tx-account-icon"
+                            title={acc.name}
+                            style={{ background: acc.color + "22" }}
+                        >
+                          {acc.icon}
+                        </span>
+                              {cat.label}
+                            </div>
+                            <div className="tx-meta">
+                              {acc.name} ·{" "}
+                              {date.toLocaleDateString("en-AU", {
+                                day: "numeric",
+                                month: "short",
+                              })}
+                              {e.note ? ` · ${e.note}` : ""}
+                            </div>
+                          </div>
+                          <div className="tx-amount">${e.amount.toFixed(2)}</div>
+                          <button
+                              type="button"
+                              className="tx-delete"
+                              onClick={() => handleDelete(e.id)}
+                              aria-label="Delete expense"
+                              title="Delete"
+                          >
+                            ×
+                          </button>
+                        </div>
+                    );
+                  })}
+                </div>
+            )}
+          </div>
+        </div>
+
+        {showSettings && (
+            <SettingsModal
+                budgets={budgets}
+                accounts={accounts}
+                onSaveBudgets={handleSaveBudgets}
+                onSaveAccounts={handleSaveAccounts}
+                onClose={() => setShowSettings(false)}
+            />
+        )}
+      </div>
   );
 }
 
@@ -419,85 +457,85 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
   };
 
   return (
-    <form className="add-expense" onSubmit={submit}>
-      <input
-        className="amount-input"
-        type="number"
-        inputMode="decimal"
-        min="0"
-        step="0.01"
-        placeholder="$0.00"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-      />
-
-      <div className="category-chips" role="radiogroup" aria-label="Category">
-        {DEFAULT_CATEGORIES.map((c) => (
-          <button
-            type="button"
-            key={c.id}
-            className={`chip ${category === c.id ? "selected" : ""}`}
-            onClick={() => setCategory(c.id)}
-            role="radio"
-            aria-checked={category === c.id}
-          >
-            <span aria-hidden="true">{c.icon}</span>
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="account-chips" role="radiogroup" aria-label="Account">
-        {accounts.map((a) => (
-          <button
-            type="button"
-            key={a.id}
-            className={`account-chip ${account === a.id ? "selected" : ""}`}
-            onClick={() => setAccount(a.id)}
-            role="radio"
-            aria-checked={account === a.id}
-          >
-            <span className="account-swatch" style={{ background: a.color }} />
-            <span aria-hidden="true">{a.icon}</span>
-            {a.name}
-          </button>
-        ))}
-      </div>
-
-      <div className="field-row">
+      <form className="add-expense" onSubmit={submit}>
         <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{
-            padding: "10px 12px",
-            border: "1px solid var(--pulse-border)",
-            borderRadius: 10,
-            fontSize: 14,
-          }}
+            className="amount-input"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            placeholder="$0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
         />
-        <input
-          type="text"
-          placeholder="Note (optional)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          style={{
-            padding: "10px 12px",
-            border: "1px solid var(--pulse-border)",
-            borderRadius: 10,
-            fontSize: 14,
-          }}
-        />
-      </div>
 
-      <button
-        type="submit"
-        className="btn btn-primary"
-        disabled={!canSubmit}
-      >
-        {submitting ? "Adding…" : "Add expense"}
-      </button>
-    </form>
+        <div className="category-chips" role="radiogroup" aria-label="Category">
+          {DEFAULT_CATEGORIES.map((c) => (
+              <button
+                  type="button"
+                  key={c.id}
+                  className={`chip ${category === c.id ? "selected" : ""}`}
+                  onClick={() => setCategory(c.id)}
+                  role="radio"
+                  aria-checked={category === c.id}
+              >
+                <span aria-hidden="true">{c.icon}</span>
+                {c.label}
+              </button>
+          ))}
+        </div>
+
+        <div className="account-chips" role="radiogroup" aria-label="Account">
+          {accounts.map((a) => (
+              <button
+                  type="button"
+                  key={a.id}
+                  className={`account-chip ${account === a.id ? "selected" : ""}`}
+                  onClick={() => setAccount(a.id)}
+                  role="radio"
+                  aria-checked={account === a.id}
+              >
+                <span className="account-swatch" style={{ background: a.color }} />
+                <span aria-hidden="true">{a.icon}</span>
+                {a.name}
+              </button>
+          ))}
+        </div>
+
+        <div className="field-row">
+          <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{
+                padding: "10px 12px",
+                border: "1px solid var(--pulse-border)",
+                borderRadius: 10,
+                fontSize: 14,
+              }}
+          />
+          <input
+              type="text"
+              placeholder="Note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              style={{
+                padding: "10px 12px",
+                border: "1px solid var(--pulse-border)",
+                borderRadius: 10,
+                fontSize: 14,
+              }}
+          />
+        </div>
+
+        <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={!canSubmit}
+        >
+          {submitting ? "Adding…" : "Add expense"}
+        </button>
+      </form>
   );
 }
 
@@ -506,12 +544,12 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
 // ============================================================================
 
 function SettingsModal({
-  budgets,
-  accounts,
-  onSaveBudgets,
-  onSaveAccounts,
-  onClose,
-}) {
+                         budgets,
+                         accounts,
+                         onSaveBudgets,
+                         onSaveAccounts,
+                         onClose,
+                       }) {
   const [tab, setTab] = useState("budgets");
 
   // ----- Budgets tab state -----
@@ -526,7 +564,7 @@ function SettingsModal({
   // ----- Accounts tab state -----
   // Working copy of accounts so edits don't hit Firestore until "Save".
   const [acctDraft, setAcctDraft] = useState(
-    () => accounts.map((a) => ({ ...a })) || []
+      () => accounts.map((a) => ({ ...a })) || []
   );
   const [deletedIds, setDeletedIds] = useState([]);
 
@@ -553,7 +591,7 @@ function SettingsModal({
 
   const updateAcct = (idx, patch) => {
     setAcctDraft((prev) =>
-      prev.map((a, i) => (i === idx ? { ...a, ...patch } : a))
+        prev.map((a, i) => (i === idx ? { ...a, ...patch } : a))
     );
   };
 
@@ -572,174 +610,174 @@ function SettingsModal({
   };
 
   return (
-    <div
-      className="modal-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
       <div
-        className="modal-card"
-        role="dialog"
-        aria-label="Settings"
-        style={{ maxWidth: 460 }}
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
       >
-        <h3>Settings</h3>
+        <div
+            className="modal-card"
+            role="dialog"
+            aria-label="Settings"
+            style={{ maxWidth: 460 }}
+        >
+          <h3>Settings</h3>
 
-        <div className="tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "budgets"}
-            className={`tab ${tab === "budgets" ? "active" : ""}`}
-            onClick={() => setTab("budgets")}
-          >
-            Budgets
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "accounts"}
-            className={`tab ${tab === "accounts" ? "active" : ""}`}
-            onClick={() => setTab("accounts")}
-          >
-            Accounts
-          </button>
-        </div>
-
-        {tab === "budgets" ? (
-          <>
-            <p
-              style={{
-                margin: 0,
-                color: "var(--pulse-text-muted)",
-                fontSize: 13,
-              }}
-            >
-              Set the most you want to spend in each category each month.
-            </p>
-            {DEFAULT_CATEGORIES.map((c) => (
-              <div key={c.id} className="budget-edit-row">
-                <label htmlFor={`bud-${c.id}`}>
-                  <span aria-hidden="true">{c.icon}</span>
-                  {c.label}
-                </label>
-                <span style={{ color: "var(--pulse-text-muted)" }}>$</span>
-                <input
-                  id={`bud-${c.id}`}
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputMode="decimal"
-                  placeholder="0"
-                  value={budgetDraft[c.id]}
-                  onChange={(e) =>
-                    setBudgetDraft((d) => ({ ...d, [c.id]: e.target.value }))
-                  }
-                />
-              </div>
-            ))}
-
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={onClose}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={saveBudgets}
-                disabled={saving}
-                style={{ flex: 1 }}
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p
-              style={{
-                margin: 0,
-                color: "var(--pulse-text-muted)",
-                fontSize: 13,
-              }}
-            >
-              Manage the bank accounts and payment methods you spend from.
-            </p>
-
-            {acctDraft.map((a, i) => (
-              <div key={a.id} className="account-edit-row">
-                <input
-                  className="acc-icon"
-                  type="text"
-                  value={a.icon}
-                  onChange={(e) =>
-                    updateAcct(i, { icon: e.target.value.slice(0, 2) })
-                  }
-                  aria-label="Icon"
-                />
-                <input
-                  className="acc-name"
-                  type="text"
-                  value={a.name}
-                  onChange={(e) => updateAcct(i, { name: e.target.value })}
-                  aria-label="Account name"
-                />
-                <input
-                  className="acc-color"
-                  type="color"
-                  value={a.color}
-                  onChange={(e) => updateAcct(i, { color: e.target.value })}
-                  aria-label="Color"
-                />
-                <button
-                  type="button"
-                  className="delete-acc"
-                  onClick={() => deleteAcct(i)}
-                  aria-label="Delete account"
-                  title="Delete"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-
+          <div className="tabs" role="tablist">
             <button
-              type="button"
-              className="add-account-btn"
-              onClick={addAcct}
+                type="button"
+                role="tab"
+                aria-selected={tab === "budgets"}
+                className={`tab ${tab === "budgets" ? "active" : ""}`}
+                onClick={() => setTab("budgets")}
             >
-              + Add account
+              Budgets
             </button>
+            <button
+                type="button"
+                role="tab"
+                aria-selected={tab === "accounts"}
+                className={`tab ${tab === "accounts" ? "active" : ""}`}
+                onClick={() => setTab("accounts")}
+            >
+              Accounts
+            </button>
+          </div>
 
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={onClose}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={saveAccounts}
-                disabled={saving}
-                style={{ flex: 1 }}
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </>
-        )}
+          {tab === "budgets" ? (
+              <>
+                <p
+                    style={{
+                      margin: 0,
+                      color: "var(--pulse-text-muted)",
+                      fontSize: 13,
+                    }}
+                >
+                  Set the most you want to spend in each category each month.
+                </p>
+                {DEFAULT_CATEGORIES.map((c) => (
+                    <div key={c.id} className="budget-edit-row">
+                      <label htmlFor={`bud-${c.id}`}>
+                        <span aria-hidden="true">{c.icon}</span>
+                        {c.label}
+                      </label>
+                      <span style={{ color: "var(--pulse-text-muted)" }}>$</span>
+                      <input
+                          id={`bud-${c.id}`}
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputMode="decimal"
+                          placeholder="0"
+                          value={budgetDraft[c.id]}
+                          onChange={(e) =>
+                              setBudgetDraft((d) => ({ ...d, [c.id]: e.target.value }))
+                          }
+                      />
+                    </div>
+                ))}
+
+                <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                  <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={onClose}
+                      style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={saveBudgets}
+                      disabled={saving}
+                      style={{ flex: 1 }}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </>
+          ) : (
+              <>
+                <p
+                    style={{
+                      margin: 0,
+                      color: "var(--pulse-text-muted)",
+                      fontSize: 13,
+                    }}
+                >
+                  Manage the bank accounts and payment methods you spend from.
+                </p>
+
+                {acctDraft.map((a, i) => (
+                    <div key={a.id} className="account-edit-row">
+                      <input
+                          className="acc-icon"
+                          type="text"
+                          value={a.icon}
+                          onChange={(e) =>
+                              updateAcct(i, { icon: e.target.value.slice(0, 2) })
+                          }
+                          aria-label="Icon"
+                      />
+                      <input
+                          className="acc-name"
+                          type="text"
+                          value={a.name}
+                          onChange={(e) => updateAcct(i, { name: e.target.value })}
+                          aria-label="Account name"
+                      />
+                      <input
+                          className="acc-color"
+                          type="color"
+                          value={a.color}
+                          onChange={(e) => updateAcct(i, { color: e.target.value })}
+                          aria-label="Color"
+                      />
+                      <button
+                          type="button"
+                          className="delete-acc"
+                          onClick={() => deleteAcct(i)}
+                          aria-label="Delete account"
+                          title="Delete"
+                      >
+                        ×
+                      </button>
+                    </div>
+                ))}
+
+                <button
+                    type="button"
+                    className="add-account-btn"
+                    onClick={addAcct}
+                >
+                  + Add account
+                </button>
+
+                <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                  <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={onClose}
+                      style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={saveAccounts}
+                      disabled={saving}
+                      style={{ flex: 1 }}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </>
+          )}
+        </div>
       </div>
-    </div>
   );
 }
 

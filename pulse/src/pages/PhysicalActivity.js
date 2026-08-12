@@ -12,6 +12,7 @@ import {
     orderBy,
     serverTimestamp
 } from 'firebase/firestore';
+import { useSharePrompt, ShareButton } from '../components/share';
 
 
 
@@ -37,6 +38,24 @@ function formatDueDate(dateStr) {
     return `${dateStr} (${day})`;
 }
 
+/**
+ * fucntion to help determine if workout is worth sharing to social
+ *
+ * cardio    needs a distance or a time
+ * strength  needs at least one set with a real weight or rep count — the form
+ *           initialises with one blank exercise holding one blank set, so
+ *           "has exercises" would be true even for an empty submission and the
+ *           card would read "1 exercise, 1 set, 0 kg".
+ */
+function isWorthSharing(activity) {
+    if (activity.type === 'cardio') {
+        return Number(activity.distance) > 0 || Boolean(activity.duration);
+    }
+    return (activity.exercises || []).some(ex =>
+        (ex.sets || []).some(s => Number(s.reps) > 0 || Number(s.weight) > 0)
+    );
+}
+
 
 
 
@@ -58,6 +77,12 @@ function PhysicalActivity({ user, onBack}){
     const [editDistance, setEditDistance] = useState('');
     const [time, setTime] = useState('');
     const [editTime, setEditTime] = useState('');
+
+    const { openSharePrompt } = useSharePrompt();
+
+    // Most recent activity, used by the manual share button in the header.
+    // The query orders by createdAt ascending, so that's the last element.
+    const latestActivity = activities[activities.length - 1];
 
 
     // Load Activities from firebase
@@ -148,32 +173,31 @@ function PhysicalActivity({ user, onBack}){
         e.preventDefault();
         if (!input.trim()) return;
 
+        const isCardio = tab === 'cardio';
+        const activityDoc = {
+            text: input,
+            description: descInput,
+            type: tab,
+            distance: isCardio ? distance : 0,
+            duration: isCardio ? time : 0,
+            exercises: isCardio ? [] : exercises,
+            activityDate: activityDate,
+        };
+
         try{
             setError(null);
-            if (tab === 'cardio') {
-                await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
-                    text: input,
-                    description: descInput,
-                    type: tab,
-                    distance: distance,
-                    duration: time,
-                    exercises: [],
-                    activityDate: activityDate,
-                    createdAt: serverTimestamp(),
-                });
+            await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
+                ...activityDoc,
+                createdAt: serverTimestamp(),
+            });
+
+            // Share prompt — two-part gate:
+            //   action > the activity was saved
+            //   requirement > it actually has something worth showing
+            if (isWorthSharing(activityDoc)) {
+                openSharePrompt('fitness', activityDoc, { source: 'auto' });
             }
-            else {
-                await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
-                    text: input,
-                    description: descInput,
-                    type: tab,
-                    distance: 0,
-                    duration: 0,
-                    exercises: exercises,
-                    activityDate: activityDate,
-                    createdAt: serverTimestamp(),
-                });
-            }
+
             setInput('');
             setDescInput('');
             setActivityDate('');
@@ -187,7 +211,7 @@ function PhysicalActivity({ user, onBack}){
                 }
             ]);
         }catch(err){
-            console.error("Add error", error);
+            console.error("Add error", err);
             setError("Failed to add task. Please try again.");
         }
     };
@@ -211,11 +235,11 @@ function PhysicalActivity({ user, onBack}){
     ]);
 
     const [editExercises, setEditExercises] = useState([
-            {
-                name: '',
-                sets: [{ weight: '', reps: '' }]
-            }
-        ]);
+        {
+            name: '',
+            sets: [{ weight: '', reps: '' }]
+        }
+    ]);
 
     const addExercise = () => {
         setExercises([
@@ -267,6 +291,9 @@ function PhysicalActivity({ user, onBack}){
                         Back
                     </button>
                     <h2 className="activity-title">My Physical Activities</h2>
+                    {/* Manual share of the most recent activity. Hides itself
+                        when there's nothing shareable yet. */}
+                    <ShareButton domain="fitness" payload={latestActivity} />
                 </div>
 
                 <div className="activity-form-card">
@@ -413,13 +440,13 @@ function PhysicalActivity({ user, onBack}){
                                                 autoFocus
                                                 onChange={(e) => setEditText(e.target.value)}
                                                 onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                />
+                                            />
                                             <textarea
                                                 className="edit-desc-textarea"
                                                 placeholder="Add a description..."
                                                 value={editDesc}
                                                 onChange={(e) => setEditDesc(e.target.value)}
-                                                />
+                                            />
 
                                             <div className="item-meta-edit">
                                                 <input
@@ -439,35 +466,35 @@ function PhysicalActivity({ user, onBack}){
                                                             autoFocus
                                                             onChange={(e) => setEditDistance(e.target.value)}
                                                             onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                            />
+                                                        />
                                                         <input
                                                             className="input-field-styled"
                                                             value={editTime}
                                                             autoFocus
                                                             onChange={(e) => setEditTime(e.target.value)}
                                                             onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                            />
+                                                        />
                                                     </div>
                                                 ) : (
-                                                     <div>
-                                                         <span>Type: Gym </span>
-                                                         {editExercises.map((exercise, index) => (
-                                                             <div key={index}>
-                                                                 <input
-                                                                     className="input-field-styled"
-                                                                     value={exercise.name}
-                                                                     autoFocus
-                                                                     onChange={(e) =>{
+                                                    <div>
+                                                        <span>Type: Gym </span>
+                                                        {editExercises.map((exercise, index) => (
+                                                            <div key={index}>
+                                                                <input
+                                                                    className="input-field-styled"
+                                                                    value={exercise.name}
+                                                                    autoFocus
+                                                                    onChange={(e) =>{
                                                                         const updated = [...editExercises];
                                                                         updated[index] = {
                                                                             ...updated[index],
                                                                             name: e.target.value
                                                                         };
                                                                         setEditExercises(updated);
-                                                                     }}
-                                                                     onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                     />
-                                                                 {exercise.sets.map((set, index2) =>
+                                                                    }}
+                                                                    onKeyDown={(e) => handleKeyDown(e, activity.id)}
+                                                                />
+                                                                {exercise.sets.map((set, index2) =>
                                                                     <div key={index2}>
                                                                         <input
                                                                             className="input-field-styled"
@@ -479,14 +506,14 @@ function PhysicalActivity({ user, onBack}){
                                                                                     ...updated[index],
                                                                                     sets: updated[index].sets.map((s, i) =>
                                                                                         i === index2
-                                                                                        ? {...s, weight: e.target.value }
-                                                                                        : s
+                                                                                            ? {...s, weight: e.target.value }
+                                                                                            : s
                                                                                     )
                                                                                 };
                                                                                 setEditExercises(updated);
                                                                             }}
                                                                             onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                            />
+                                                                        />
                                                                         <input
                                                                             className="input-field-styled"
                                                                             value={set.reps}
@@ -497,19 +524,19 @@ function PhysicalActivity({ user, onBack}){
                                                                                     ...updated[index],
                                                                                     sets: updated[index].sets.map((s, i) =>
                                                                                         i === index2
-                                                                                        ? {...s, reps: e.target.value }
-                                                                                        : s
+                                                                                            ? {...s, reps: e.target.value }
+                                                                                            : s
                                                                                     )
                                                                                 };
                                                                                 setEditExercises(updated);
                                                                             }}
                                                                             onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                            />
+                                                                        />
                                                                     </div>
-                                                                 )}
-                                                             </div>
-                                                         ))}
-                                                     </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 )}
 
                                                 <span className="done-text" onClick={() => saveEdit(activity.id)}>
@@ -529,12 +556,12 @@ function PhysicalActivity({ user, onBack}){
                                             </div>
                                             {activity.description && (
                                                 <span className="item-description"
-                                                   style={{
-                                                       fontSize:'0.85rem',
-                                                       color:'#666',
-                                                       margin:'4px 0',
-                                                       lineHeight: '1.4'
-                                                   }}>
+                                                      style={{
+                                                          fontSize:'0.85rem',
+                                                          color:'#666',
+                                                          margin:'4px 0',
+                                                          lineHeight: '1.4'
+                                                      }}>
                                                     {activity.description}
                                                 </span>
                                             )}
@@ -559,7 +586,7 @@ function PhysicalActivity({ user, onBack}){
                                                             <div key={index}>
                                                                 <div><span>Exercise: {exercise.name}</span></div>
                                                                 {exercise.sets.map((set, index2) =>
-                                                                    <div><span>{set.weight} x{set.reps}</span></div>
+                                                                    <div key={index2}><span>{set.weight} x{set.reps}</span></div>
 
                                                                 )}
                                                             </div>
@@ -572,7 +599,7 @@ function PhysicalActivity({ user, onBack}){
 
                                         </div>
                                     )
-                                }
+                                    }
                                 </div>
                             </li>
                         )
