@@ -3190,6 +3190,96 @@ button {
   gap: 12px;
   flex-wrap: wrap;
 }
+.mood-card--today {
+  background: var(--mood-bg);
+  border: 1px solid var(--mood-border);
+}
+
+.mood-card--today .section-title,
+.mood-card--today .mood-today-label,
+.mood-card--today .mood-today-note {
+  color: var(--mood-text);
+}
+.mood-card__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mood-card__head .section-title {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.mood-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.mood-pill-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 11px;
+  border-radius: 20px;
+  border: 1.5px solid var(--mood-outline, var(--pulse-border));
+  background: transparent;
+  color: var(--mood-text, var(--pulse-text));
+  cursor: pointer;
+}
+
+.mood-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Today card body */
+.mood-today-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mood-today-label {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.mood-today-note {
+  font-size: 13px;
+  opacity: 0.8;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mood-today-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mood-today-empty span {
+  font-size: 14px;
+  color: var(--pulse-text-muted);
+}
+.mood-picker {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 360px) {
+  .mood-picker { gap: 6px; }
+}
 
 .mood-back {
   background: transparent;
