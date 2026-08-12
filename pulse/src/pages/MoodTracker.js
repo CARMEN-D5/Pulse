@@ -7,11 +7,15 @@ import {
     getTimeOfDay,
     buildWeekData,
 } from "../data/spirituality";
+import { ShareButton } from "../components/share";
 
 // ---------------------------------------------------------------------------
 // MoodFace — soft filled circle, dot eyes, curved mouth. No eyebrows.
 // Always rendered filled with the mood colour; feature colour is white when
 // selected (solid fill) or the mood colour when unselected (light fill).
+//
+// Exported and reused by the share prompt's mood card, so a shared mood
+// looks identical to the one on this screen.
 // ---------------------------------------------------------------------------
 
 // Mouth paths per mood id, drawn on a 48×48 viewBox centred at (24,24).
@@ -184,6 +188,10 @@ export function MoodCheckInOverlay({ onSelect, onSkip }) {
 
 // ---------------------------------------------------------------------------
 // JournalPromptOverlay.  write a journal entry
+//
+// Note: this component only reports back via onSave — the share prompt is
+// triggered by SpiritualityPage after the entry is persisted, so a failed
+// write can never produce a post for an entry that doesn't exist.
 // ---------------------------------------------------------------------------
 
 export function JournalPromptOverlay({ moodId, onSave, onSkip }) {
@@ -472,56 +480,52 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
                     </div>
                 </div>
 
-                {/* Today card */}
+                {}
                 <div
-                    className="mood-card"
-                    style={{
-                        background: todayMood ? todayMood.bg : undefined,
-                        border: todayMood ? `1px solid ${todayMood.color}33` : undefined,
-                        position: "relative",
-                    }}
+                    className={`mood-card${todayMood ? " mood-card--today" : ""}`}
+                    style={todayMood ? {
+                        "--mood-bg": todayMood.bg,
+                        "--mood-border": `${todayMood.color}33`,
+                        "--mood-outline": `${todayMood.color}66`,
+                        "--mood-text": todayMood.textColor,
+                    } : undefined}
                 >
-                    {todayMood && (
-                        <button
-                            type="button"
-                            onClick={onLogNewMood}
-                            style={{
-                                position: "absolute", top: 14, right: 14,
-                                fontSize: 12, padding: "4px 11px", borderRadius: 20,
-                                border: `1.5px solid ${todayMood.color}66`,
-                                background: "transparent", color: todayMood.textColor,
-                                fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-                            }}
-                        >
-                            Update
-                        </button>
-                    )}
-                    <div className="section-title" style={{ color: todayMood ? todayMood.textColor : undefined }}>
-                        Today's mood
+                    <div className="mood-card__head">
+                        <div className="section-title">Today's mood</div>
+                        {todayMood && (
+                            <div className="mood-card__actions">
+                                {/* Manual share. Hides itself if today's entry
+                                    has nothing shareable. */}
+                                <ShareButton
+                                    domain="journal"
+                                    payload={{ key: todayKey(), ...todayData }}
+                                />
+                                <button
+                                    type="button"
+                                    className="mood-pill-btn"
+                                    onClick={onLogNewMood}
+                                >
+                                    Update
+                                </button>
+                            </div>
+                        )}
                     </div>
                     {todayMood ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div className="mood-today-row">
                             <MoodFace moodId={todayData.moodId} size={52} selected />
                             <div>
-                                <div style={{ fontWeight: 600, fontSize: 18, color: todayMood.textColor }}>
-                                    {todayMood.label}
-                                </div>
+                                <div className="mood-today-label">{todayMood.label}</div>
                                 {todayData.journalText && (
-                                    <div style={{
-                                        fontSize: 13, color: todayMood.textColor, opacity: 0.8,
-                                        maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                                    }}>
+                                    <div className="mood-today-note">
                                         {todayData.journalText}
                                     </div>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 14, color: "var(--pulse-text-muted)" }}>
-                No mood logged yet today
-              </span>
-                            <button type="button" className="btn btn-primary" style={{ fontSize: 13 }} onClick={onLogNewMood}>
+                        <div className="mood-today-empty">
+                            <span>No mood logged yet today</span>
+                            <button type="button" className="btn btn-primary" onClick={onLogNewMood}>
                                 Log mood →
                             </button>
                         </div>
