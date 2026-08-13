@@ -18,6 +18,8 @@ import SegmentedField from '../components/SegmentedField';
 import { Alert, Loading, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { db } from '../firebase';
 import { logAction } from '../firestore/scoring';
+import { todayKey } from '../firestore/social';
+import { useSharePrompt, ShareButton } from '../components/share';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { confirm } from '../utils/dialogs';
 
@@ -147,6 +149,14 @@ function TodoList({ user, onBack, onActivityLogged }) {
     const completedCount = todos.filter(t => t.completed).length;
     const totalCount     = todos.length;
 
+    const { openSharePrompt } = useSharePrompt();
+
+    const sharePayload = {
+        completedCount,
+        totalCount,
+        date: todayKey(),
+    };
+
     const filteredTodos = sortTodos(
         todos.filter(todo => {
             if (tab === 'pending') return todo.completed === false;
@@ -225,6 +235,29 @@ function TodoList({ user, onBack, onActivityLogged }) {
             if (!todo.completed) {
                 logAction(user.uid, 'productivity', 'task');
                 onActivityLogged?.();
+
+                // Share prompt — two-part gate:
+                //   action: a task was just ticked off
+                //   requirement:it was the last outstanding one
+                //
+                // `todos` still holds the pre-write value inside this closure,
+                // so the task being ticked is excluded by id rather than by
+                // trusting its `completed` flag.
+                const remaining = todos.filter(
+                    t => !t.completed && t.id !== todo.id
+                ).length;
+
+                if (remaining === 0 && todos.length > 0) {
+                    openSharePrompt(
+                        'todo',
+                        {
+                            completedCount: todos.length,
+                            totalCount: todos.length,
+                            date: todayKey(),
+                        },
+                        { source: 'auto' }
+                    );
+                }
             }
         } catch (err) {
             console.error("Toggle error:", err);
@@ -256,7 +289,12 @@ function TodoList({ user, onBack, onActivityLogged }) {
 
     return (
         <Screen contentContainerStyle={styles.screen}>
-            <ScreenHeader title="My to-do list" onBack={onBack} />
+            {/* Manual share — hides itself when nothing is completed yet */}
+            <ScreenHeader
+                title="My to-do list"
+                onBack={onBack}
+                right={<ShareButton domain="todo" payload={sharePayload} />}
+            />
 
             {error ? (
                 <Pressable onPress={() => setError(null)} accessibilityRole="button">

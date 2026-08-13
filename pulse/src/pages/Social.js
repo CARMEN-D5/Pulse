@@ -247,7 +247,8 @@ function Social({ user, onBack, onActivityLogged }) {
 // Helpers
 // ============================================================================
 
-function displayNameFor(u) {
+// Exported so App can stamp the same author name onto share-prompt posts.
+export function displayNameFor(u) {
   return (
     u?.displayName || u?.name || (u?.email ? u.email.split("@")[0] : null) || "Someone"
   );

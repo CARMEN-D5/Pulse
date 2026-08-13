@@ -22,7 +22,9 @@ import PhysicalActivity from "./pages/PhysicalActivity";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
 import DailyMissionsPage from "./pages/DailyMissionsPage";
-import Social from "./pages/Social";
+import Social, { displayNameFor } from "./pages/Social";
+import { SharePromptProvider, resetSharePromptHistory } from "./components/share";
+import { createAchievementPost } from "./firestore/social";
 import {
   signUp,
   logIn,
@@ -200,8 +202,21 @@ function App() {
 
   const handleLogout = async () => {
     await logOut();
+    // Prompt history is per-session and in-memory, so the next account on this
+    // device gets its own share prompts.
+    resetSharePromptHistory();
     setView("splash");
   };
+
+  // Hands a finished share off to Firestore as an achievement post. Returns
+  // the { ok, error } shape the share modal expects, so a failed write shows
+  // its error inline instead of closing the modal.
+  const handleSharePost = (post) =>
+    createAchievementPost({
+      ...post,
+      authorUid: user.uid,
+      authorName: displayNameFor(user),
+    });
 
   // Domain card on Home was tapped. Each domain has its own destination:
   //   finance       -> rich budget-tracker page
@@ -387,10 +402,18 @@ function App() {
 
   // SafeAreaProvider has to wrap everything: the Screen primitive reads the
   // notch/home-indicator insets through useSafeAreaInsets.
+  // The share prompt lives above the view switch rather than inside any single
+  // page, so a prompt raised on one domain survives navigating away.
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      {screen()}
+      <SharePromptProvider
+        user={user}
+        onPost={handleSharePost}
+        onOpenSocial={() => setView("social")}
+      >
+        {screen()}
+      </SharePromptProvider>
     </SafeAreaProvider>
   );
 }

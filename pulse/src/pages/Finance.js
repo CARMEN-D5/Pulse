@@ -4,6 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import DateField from "../components/DateField";
 import Icon from "../components/Icon";
 import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
+import { ShareButton } from "../components/share";
 import SavingView from "./SavingView";
 import {
   accountById,
@@ -115,6 +116,20 @@ function Finance({ user, onBack, onActivityLogged }) {
     [totalBudget, monthDayCount]
   );
 
+  // Payload for the manual share button. `isAvailable` on the finance
+  // templates requires totalBudget > 0, so the button hides itself until the
+  // user has actually set some budgets.
+  //
+  // For a single category instead, the payload is:
+  //   { kind: "category-under", categoryLabel, categoryIcon, categoryColor,
+  //     spent, cap, monthLabel }
+  const monthSharePayload = {
+    kind: "month-under",
+    monthLabel: monthName,
+    totalSpent,
+    totalBudget,
+  };
+
   // Categories sorted by this-month spend, descending. Ties keep their
   // original order. Used to rank both the donut legend and (filtered to
   // non-zero) the donut chart slices, so the most prevalent category sits
@@ -194,15 +209,20 @@ function Finance({ user, onBack, onActivityLogged }) {
         onBack={onBack}
         right={
           financeTab === "spending" ? (
-            <Pressable
-              onPress={() => setShowSettings(true)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-              style={({ pressed }) => [styles.cogBtn, pressed && styles.pressed]}
-            >
-              <Icon name="settings" size={20} color={colors.text} />
-            </Pressable>
+            <View style={styles.headerActions}>
+              {/* finance only uses the manual share trigger — an automatic
+                  prompt about budgeting is unlikely to be welcome */}
+              <ShareButton domain="finance" payload={monthSharePayload} />
+              <Pressable
+                onPress={() => setShowSettings(true)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                style={({ pressed }) => [styles.cogBtn, pressed && styles.pressed]}
+              >
+                <Icon name="settings" size={20} color={colors.text} />
+              </Pressable>
+            </View>
           ) : null
         }
       />
@@ -709,6 +729,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
 
   cogBtn: { padding: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.glass },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 
   card: {
     backgroundColor: colors.card,

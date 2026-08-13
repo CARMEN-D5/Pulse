@@ -19,6 +19,7 @@ import { db } from '../firebase';
 import { logAction } from '../firestore/scoring';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { confirm } from '../utils/dialogs';
+import { useSharePrompt, ShareButton } from '../components/share';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -47,6 +48,24 @@ const TYPE_OPTIONS = [
     { value: 'strength', label: 'Strength' },
 ];
 
+/**
+ * Helper to determine if a workout is worth sharing to social.
+ *
+ * cardio    needs a distance or a time
+ * strength  needs at least one set with a real weight or rep count — the form
+ *           initialises with one blank exercise holding one blank set, so
+ *           "has exercises" would be true even for an empty submission and the
+ *           card would read "1 exercise, 1 set, 0 kg".
+ */
+function isWorthSharing(activity) {
+    if (activity.type === 'cardio') {
+        return Number(activity.distance) > 0 || Boolean(activity.duration);
+    }
+    return (activity.exercises || []).some(ex =>
+        (ex.sets || []).some(s => Number(s.reps) > 0 || Number(s.weight) > 0)
+    );
+}
+
 const PAGE_OPTIONS = [
     { value: 'new', label: 'New Activity' },
     { value: 'templates', label: 'Templates' },
@@ -74,6 +93,12 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
 
     const [exercises, setExercises] = useState(EMPTY_EXERCISES);
     const [editExercises, setEditExercises] = useState(EMPTY_EXERCISES);
+
+    const { openSharePrompt } = useSharePrompt();
+
+    // Most recent activity, used by the manual share button in the header.
+    // The query orders by createdAt DESCENDING, so the newest is index 0.
+    const latestActivity = activities[0];
 
     // Load Activities from firebase
     useEffect(() => {
@@ -141,7 +166,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
         try {
             setError(null);
             const isCardio = tab === 'cardio';
-            await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
+            const activityDoc = {
                 text: input,
                 description: descInput,
                 type: tab,
@@ -149,10 +174,22 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                 duration: isCardio ? time : 0,
                 exercises: isCardio ? [] : exercises,
                 activityDate: activityDate,
-                createdAt: serverTimestamp(),
                 isTemplate: false,
+            };
+
+            await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
+                ...activityDoc,
+                createdAt: serverTimestamp(),
             });
 
+            // Share prompt — two-part gate:
+            //   action      > the activity was saved
+            //   requirement > it actually has something worth showing
+            if (isWorthSharing(activityDoc)) {
+                openSharePrompt('fitness', activityDoc, { source: 'auto' });
+            }
+
+            // Reset runs either way, shared or not.
             setInput('');
             setDescInput('');
             setActivityDate('');
@@ -250,7 +287,11 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
 
     return (
         <Screen contentContainerStyle={styles.screen}>
-            <ScreenHeader title="My Physical Activities" onBack={onBack} />
+            <ScreenHeader
+                title="My Physical Activities"
+                onBack={onBack}
+                right={<ShareButton domain="fitness" payload={latestActivity} />}
+            />
 
             {error ? (
                 <Pressable onPress={() => setError(null)} accessibilityRole="button">

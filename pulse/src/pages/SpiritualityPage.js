@@ -4,6 +4,7 @@ import { Loading, Screen } from "../components/ui";
 import { loadMoodData, saveMoodData, todayKey } from "../data/spirituality";
 import { logAction, logReflection } from "../firestore/scoring";
 import { JournalPromptOverlay, MoodCheckInOverlay, MoodDashboard } from "./MoodTracker";
+import { useSharePrompt } from "../components/share";
 
 /**
  * Phase machine:
@@ -21,6 +22,8 @@ function SpiritualityPage({ user, onBack, onActivityLogged }) {
   // opening phase is decided once the read resolves.
   const [phase, setPhase] = useState("loading");
   const [pendingMoodId, setPendingMoodId] = useState(null);
+
+  const { openSharePrompt } = useSharePrompt();
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +59,25 @@ function SpiritualityPage({ user, onBack, onActivityLogged }) {
     [moodData, uid, onActivityLogged]
   );
 
+  const handleJournalSave = (text, emotions) => {
+    persistMood(pendingMoodId, text, emotions);
+
+    if (text.trim() || emotions.length > 0) {
+      openSharePrompt(
+        "journal",
+        {
+          key: todayKey(),
+          moodId: pendingMoodId,
+          journalText: text,
+          emotions,
+        },
+        { source: "auto" }
+      );
+    }
+
+    setPhase("dashboard");
+  };
+
   if (phase === "loading") {
     return (
       <Screen scroll={false} center keyboardAvoiding={false}>
@@ -80,10 +102,8 @@ function SpiritualityPage({ user, onBack, onActivityLogged }) {
     return (
       <JournalPromptOverlay
         moodId={pendingMoodId}
-        onSave={(text, emotions) => {
-          persistMood(pendingMoodId, text, emotions);
-          setPhase("dashboard");
-        }}
+        onSave={handleJournalSave}
+        // no prompt created after skip is chosen
         onSkip={() => {
           if (pendingMoodId) persistMood(pendingMoodId, "", []);
           setPhase("dashboard");

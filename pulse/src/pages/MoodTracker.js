@@ -12,6 +12,7 @@ import {
   todayKey,
 } from "../data/spirituality";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { ShareButton } from "../components/share";
 
 // ---------------------------------------------------------------------------
 // MoodFace — soft filled circle, dot eyes, curved mouth. No eyebrows.
@@ -437,17 +438,22 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
             Today's mood
           </Text>
           {todayMood ? (
-            <Pressable
-              onPress={onLogNewMood}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.updateBtn,
-                { borderColor: `${todayMood.color}66` },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={[styles.updateBtnText, { color: todayMood.textColor }]}>Update</Text>
-            </Pressable>
+            <View style={styles.todayActions}>
+              {/* Manual share. Hides itself if today's entry
+                  has nothing shareable. */}
+              <ShareButton domain="journal" payload={{ key: todayKey(), ...todayData }} />
+              <Pressable
+                onPress={onLogNewMood}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.updateBtn,
+                  { borderColor: `${todayMood.color}66` },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.updateBtnText, { color: todayMood.textColor }]}>Update</Text>
+              </Pressable>
+            </View>
           ) : null}
         </View>
 
@@ -655,6 +661,7 @@ const styles = StyleSheet.create({
   sectionTitle: { ...type.title, fontFamily: fonts.semibold, color: colors.text },
 
   todayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  todayActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   updateBtn: {
     paddingVertical: 4,
     paddingHorizontal: 11,
