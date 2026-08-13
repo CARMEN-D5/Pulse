@@ -30,11 +30,14 @@ import {
  *
  * Layout (top -> bottom):
  *   - Header (back, title, share, settings cog)
- *   - Donut chart + legend (this-month spending split by category)
- *   - Spending P&L calendar (per-day vs daily allowance)
- *   - Per-category progress bars vs each budget cap
- *   - Add expense form (amount + category + account + date + note)
- *   - Recent transactions with delete
+ *   - View tabs: Spending | Saving
+ *   - Spending tab:
+ *       - Donut chart + legend (this-month spending split by category)
+ *       - Spending P&L calendar (per-day vs daily allowance)
+ *       - Per-category progress bars vs each budget cap
+ *       - Add expense form (amount + category + account + date + note)
+ *       - Recent transactions with delete
+ *   - Saving tab: SavingView (kept mounted, hidden, so its state survives)
  *   - Settings modal: Budgets tab + Accounts tab
  *
  * SHARE PROMPT
@@ -96,22 +99,22 @@ function Finance({ user, onBack, onActivityLogged }) {
   }, [expenses]);
 
   const totalSpent = useMemo(
-    () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
-    [spentByCategory]
+      () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
+      [spentByCategory]
   );
 
   const totalBudget = useMemo(
-    () =>
-      DEFAULT_CATEGORIES.reduce(
-        (acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0),
-        0
-      ),
-    [budgets]
+      () =>
+          DEFAULT_CATEGORIES.reduce(
+              (acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0),
+              0
+          ),
+      [budgets]
   );
 
   const dailyAllowance = useMemo(
-    () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
-    [totalBudget, monthDayCount]
+      () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
+      [totalBudget, monthDayCount]
   );
 
   // Payload for the manual share button. `isAvailable` on the finance
@@ -133,24 +136,24 @@ function Finance({ user, onBack, onActivityLogged }) {
   // non-zero) the donut chart slices, so the most prevalent category sits
   // at the top of the legend list.
   const rankedCategories = useMemo(
-    () =>
-      [...DEFAULT_CATEGORIES].sort(
-        (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
-      ),
-    [spentByCategory]
+      () =>
+          [...DEFAULT_CATEGORIES].sort(
+              (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
+          ),
+      [spentByCategory]
   );
 
   const donutData = useMemo(
-    () =>
-      rankedCategories
-        .filter((c) => spentByCategory[c.id] > 0)
-        .map((c) => ({
-          id: c.id,
-          label: c.label,
-          value: spentByCategory[c.id],
-          color: c.color,
-        })),
-    [rankedCategories, spentByCategory]
+      () =>
+          rankedCategories
+              .filter((c) => spentByCategory[c.id] > 0)
+              .map((c) => ({
+                id: c.id,
+                label: c.label,
+                value: spentByCategory[c.id],
+                color: c.color,
+              })),
+      [rankedCategories, spentByCategory]
   );
 
   // Track most-recently-used account so the form can preselect it.
@@ -166,7 +169,7 @@ function Finance({ user, onBack, onActivityLogged }) {
       setError(res.error || "Couldn't save the expense.");
       return false;
     }
-    logAction(uid, 'finance', 'expense');
+    logAction(uid, "finance", "expense");
     onActivityLogged?.();
     await refresh();
     return true;
@@ -180,7 +183,7 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   const handleSaveBudgets = async (next) => {
     const writes = Object.entries(next).map(([cat, lim]) =>
-      setBudget(uid, cat, lim)
+        setBudget(uid, cat, lim)
     );
     const results = await Promise.all(writes);
     const fail = results.find((r) => !r.ok);
@@ -202,30 +205,9 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   // ---- render ------------------------------------------------------------
   return (
-    <div className="finance-shell">
-      <div className="finance-container">
-        <div className="finance-header">
-          <button type="button" className="finance-back" onClick={onBack}>
-            ← Home
-          </button>
-          <div className="finance-title-block" style={{ flex: 1 }}>
-            <h1>Budget</h1>
-            <div className="month-label">{monthName}</div>
-          </div>
-          {financeTab === "spending" && (
-            <button
-              type="button"
-              className="cog-btn"
-              onClick={() => setShowSettings(true)}
-              aria-label="Settings"
-              title="Settings"
-            >
-              ⚙️
-            </button>
-          )}
-        </div>
       <div className="finance-shell">
         <div className="finance-container">
+          {/* ---------- Header ---------- */}
           <div className="finance-header">
             <button type="button" className="finance-back" onClick={onBack}>
               ← Home
@@ -235,15 +217,17 @@ function Finance({ user, onBack, onActivityLogged }) {
               <div className="month-label">{monthName}</div>
             </div>
             <ShareButton domain="finance" payload={monthSharePayload} />
-            <button
-                type="button"
-                className="cog-btn"
-                onClick={() => setShowSettings(true)}
-                aria-label="Settings"
-                title="Settings"
-            >
-              ⚙️
-            </button>
+            {financeTab === "spending" && (
+                <button
+                    type="button"
+                    className="cog-btn"
+                    onClick={() => setShowSettings(true)}
+                    aria-label="Settings"
+                    title="Settings"
+                >
+                  ⚙️
+                </button>
+            )}
           </div>
 
           {error && (
@@ -251,218 +235,210 @@ function Finance({ user, onBack, onActivityLogged }) {
                 {error}
               </div>
           )}
-        {error && (
-          <div className="alert alert-error" role="alert">
-            {error}
-          </div>
-        )}
 
-        <div className="finance-view-tabs" role="tablist" aria-label="Finance view">
-          <button type="button" role="tab" aria-selected={financeTab === "spending"} className={financeTab === "spending" ? "active" : ""} onClick={() => setFinanceTab("spending")}>Spending</button>
-          <button type="button" role="tab" aria-selected={financeTab === "saving"} className={financeTab === "saving" ? "active" : ""} onClick={() => setFinanceTab("saving")}>Saving</button>
-        </div>
-
-        {financeTab === "spending" ? <>
-
-        {/* ---------- Chart + legend ---------- */}
-        <div className="finance-card">
-          <div className="finance-summary">
-            <DonutChart
-              data={donutData}
-              size={220}
-              thickness={28}
-              centerLabel={`$${totalSpent.toFixed(0)}`}
-              centerSub={
-                totalBudget > 0
-                  ? `of $${totalBudget.toFixed(0)}`
-                  : "spent this month"
-              }
-            />
-            <div className="donut-legend">
-              {rankedCategories.map((c) => (
-                <div className="legend-row" key={c.id}>
-                  <span
-                      className="legend-swatch"
-                      style={{ background: c.color }}
-                  />
-                      <span>
-                    {c.icon} {c.label}
-                  </span>
-                      <span className="legend-amount">
-                    ${spentByCategory[c.id].toFixed(0)}
-                  </span>
-                    </div>
-                ))}
-              </div>
-            </div>
+          {/* ---------- View tabs ---------- */}
+          <div
+              className="finance-view-tabs"
+              role="tablist"
+              aria-label="Finance view"
+          >
+            <button
+                type="button"
+                role="tab"
+                aria-selected={financeTab === "spending"}
+                className={financeTab === "spending" ? "active" : ""}
+                onClick={() => setFinanceTab("spending")}
+            >
+              Spending
+            </button>
+            <button
+                type="button"
+                role="tab"
+                aria-selected={financeTab === "saving"}
+                className={financeTab === "saving" ? "active" : ""}
+                onClick={() => setFinanceTab("saving")}
+            >
+              Saving
+            </button>
           </div>
 
-          {/* ---------- Daily P&L calendar ---------- */}
-          <div className="finance-card">
-            <SpendingCalendar
-                expenses={expenses}
-                monthStart={monthStart}
-                dailyAllowance={dailyAllowance}
-            />
-          </div>
-
-          {/* ---------- Per-category bars ---------- */}
-          <div className="finance-card">
-            <div className="section-title">Category limits</div>
-            <div className="budget-rows">
-              {DEFAULT_CATEGORIES.map((c) => {
-                const cap = budgets[c.id]?.monthlyLimit || 0;
-                const spent = spentByCategory[c.id];
-                const ratio = cap > 0 ? spent / cap : 0;
-                const pct = Math.min(ratio, 1) * 100;
-                const cls = ratio >= 1 ? "over" : ratio >= 0.8 ? "warn" : "";
-                return (
-                    <div key={c.id} className="budget-row">
-                      <div className="budget-row-head">
-                    <span className="budget-row-name">
-                      <span aria-hidden="true">{c.icon}</span>
-                      {c.label}
-                    </span>
-                        <span className="budget-row-amount">
-                      ${spent.toFixed(0)}
-                          {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
-                    </span>
-                        {/* Share this category, but only once it's actually
-                        under a cap that exists. */}
-                        {cap > 0 && ratio < 1 && (
-                            <ShareButton
-                                domain="finance"
-                                payload={{
-                                  kind: "category-under",
-                                  categoryLabel: c.label,
-                                  categoryIcon: c.icon,
-                                  categoryColor: c.color,
-                                  spent,
-                                  cap,
-                                  monthLabel: monthName,
-                                }}
-                            />
-                        )}
-                      </div>
-                      <div className="bar-track">
-                        <div
-                            className={`bar-fill ${cls}`}
-                            style={{
-                              width: `${pct}%`,
-                              background: c.color,
-                            }}
-                        />
-                      </div>
-                    </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ---------- Add expense ---------- */}
-          <div className="finance-card">
-            <div className="section-title">Add an expense</div>
-            <AddExpenseForm
-                accounts={accounts}
-                defaultAccount={lastUsedAccount}
-                onSubmit={handleAddExpense}
-            />
-          </div>
-
-          {/* ---------- Recent transactions ---------- */}
-          <div className="finance-card">
-            <div className="section-title">Recent transactions</div>
-            {loading ? (
-                <div className="empty-state">Loading…</div>
-            ) : expenses.length === 0 ? (
-                <div className="empty-state">
-                  No expenses yet — add one above to get started.
-                </div>
-            ) : (
-                <div className="tx-list">
-                  {expenses.slice(0, 12).map((e) => {
-                    const cat = categoryById(e.category);
-                    const acc = accountById(accounts, e.account);
-                    const date = e.date?.toDate
-                        ? e.date.toDate()
-                        : new Date(e.date);
-                    return (
-                        <div key={e.id} className="tx-row">
-                          <div
-                              className="tx-icon"
-                              style={{ background: cat.color + "22" }}
-                          >
-                            {cat.icon}
+          {financeTab === "spending" && (
+              <>
+                {/* ---------- Chart + legend ---------- */}
+                <div className="finance-card">
+                  <div className="finance-summary">
+                    <DonutChart
+                        data={donutData}
+                        size={220}
+                        thickness={28}
+                        centerLabel={`$${totalSpent.toFixed(0)}`}
+                        centerSub={
+                          totalBudget > 0
+                              ? `of $${totalBudget.toFixed(0)}`
+                              : "spent this month"
+                        }
+                    />
+                    <div className="donut-legend">
+                      {rankedCategories.map((c) => (
+                          <div className="legend-row" key={c.id}>
+                      <span
+                          className="legend-swatch"
+                          style={{ background: c.color }}
+                      />
+                            <span>
+                        {c.icon} {c.label}
+                      </span>
+                            <span className="legend-amount">
+                        ${(spentByCategory[c.id] || 0).toFixed(0)}
+                      </span>
                           </div>
-                          <div className="tx-main">
-                            <div className="tx-cat">
-                        <span
-                            className="tx-account-icon"
-                            title={acc.name}
-                            style={{ background: acc.color + "22" }}
-                        >
-                          {acc.icon}
-                        </span>
-                              {cat.label}
-                            </div>
-                            <div className="tx-meta">
-                              {acc.name} ·{" "}
-                              {date.toLocaleDateString("en-AU", {
-                                day: "numeric",
-                                month: "short",
-                              })}
-                              {e.note ? ` · ${e.note}` : ""}
-                            </div>
-                          </div>
-                          <div className="tx-amount">${e.amount.toFixed(2)}</div>
-                          <button
-                              type="button"
-                              className="tx-delete"
-                              onClick={() => handleDelete(e.id)}
-                              aria-label="Delete expense"
-                              title="Delete"
-                          >
-                            ×
-                          </button>
-                        </div>
-                    );
-                  })}
-                </div>
-            )}
-          </div>
-        </div>
-                        {cat.label}
-                      </div>
-                      <div className="tx-meta">
-                        {acc.name} ·{" "}
-                        {date.toLocaleDateString("en-AU", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                        {e.note ? ` · ${e.note}` : ""}
-                      </div>
+                      ))}
                     </div>
-                    <div className="tx-amount">${e.amount.toFixed(2)}</div>
-                    <button
-                      type="button"
-                      className="tx-delete"
-                      onClick={() => handleDelete(e.id)}
-                      aria-label="Delete expense"
-                      title="Delete"
-                    >
-                      ×
-                    </button>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+
+                {/* ---------- Daily P&L calendar ---------- */}
+                <div className="finance-card">
+                  <SpendingCalendar
+                      expenses={expenses}
+                      monthStart={monthStart}
+                      dailyAllowance={dailyAllowance}
+                  />
+                </div>
+
+                {/* ---------- Per-category bars ---------- */}
+                <div className="finance-card">
+                  <div className="section-title">Category limits</div>
+                  <div className="budget-rows">
+                    {DEFAULT_CATEGORIES.map((c) => {
+                      const cap = budgets[c.id]?.monthlyLimit || 0;
+                      const spent = spentByCategory[c.id] || 0;
+                      const ratio = cap > 0 ? spent / cap : 0;
+                      const pct = Math.min(ratio, 1) * 100;
+                      const cls = ratio >= 1 ? "over" : ratio >= 0.8 ? "warn" : "";
+                      return (
+                          <div key={c.id} className="budget-row">
+                            <div className="budget-row-head">
+                        <span className="budget-row-name">
+                          <span aria-hidden="true">{c.icon}</span>
+                          {c.label}
+                        </span>
+                              <span className="budget-row-amount">
+                          ${spent.toFixed(0)}
+                                {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
+                        </span>
+                              {/* Share this category, but only once it's actually
+                            under a cap that exists. */}
+                              {cap > 0 && ratio < 1 && (
+                                  <ShareButton
+                                      domain="finance"
+                                      payload={{
+                                        kind: "category-under",
+                                        categoryLabel: c.label,
+                                        categoryIcon: c.icon,
+                                        categoryColor: c.color,
+                                        spent,
+                                        cap,
+                                        monthLabel: monthName,
+                                      }}
+                                  />
+                              )}
+                            </div>
+                            <div className="bar-track">
+                              <div
+                                  className={`bar-fill ${cls}`}
+                                  style={{
+                                    width: `${pct}%`,
+                                    background: c.color,
+                                  }}
+                              />
+                            </div>
+                          </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ---------- Add expense ---------- */}
+                <div className="finance-card">
+                  <div className="section-title">Add an expense</div>
+                  <AddExpenseForm
+                      accounts={accounts}
+                      defaultAccount={lastUsedAccount}
+                      onSubmit={handleAddExpense}
+                  />
+                </div>
+
+                {/* ---------- Recent transactions ---------- */}
+                <div className="finance-card">
+                  <div className="section-title">Recent transactions</div>
+                  {loading ? (
+                      <div className="empty-state">Loading…</div>
+                  ) : expenses.length === 0 ? (
+                      <div className="empty-state">
+                        No expenses yet — add one above to get started.
+                      </div>
+                  ) : (
+                      <div className="tx-list">
+                        {expenses.slice(0, 12).map((e) => {
+                          const cat = categoryById(e.category);
+                          const acc = accountById(accounts, e.account);
+                          const date = e.date?.toDate
+                              ? e.date.toDate()
+                              : new Date(e.date);
+                          return (
+                              <div key={e.id} className="tx-row">
+                                <div
+                                    className="tx-icon"
+                                    style={{ background: cat.color + "22" }}
+                                >
+                                  {cat.icon}
+                                </div>
+                                <div className="tx-main">
+                                  <div className="tx-cat">
+                            <span
+                                className="tx-account-icon"
+                                title={acc.name}
+                                style={{ background: acc.color + "22" }}
+                            >
+                              {acc.icon}
+                            </span>
+                                    {cat.label}
+                                  </div>
+                                  <div className="tx-meta">
+                                    {acc.name} ·{" "}
+                                    {date.toLocaleDateString("en-AU", {
+                                      day: "numeric",
+                                      month: "short",
+                                    })}
+                                    {e.note ? ` · ${e.note}` : ""}
+                                  </div>
+                                </div>
+                                <div className="tx-amount">${e.amount.toFixed(2)}</div>
+                                <button
+                                    type="button"
+                                    className="tx-delete"
+                                    onClick={() => handleDelete(e.id)}
+                                    aria-label="Delete expense"
+                                    title="Delete"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                          );
+                        })}
+                      </div>
+                  )}
+                </div>
+              </>
           )}
+
+          {/* Kept mounted but hidden so SavingView keeps its internal state
+            when the user flips between tabs. */}
+          <div className="saving-view-stack" hidden={financeTab !== "saving"}>
+            <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
+          </div>
         </div>
-        </> : null}
-        <div className="saving-view-stack" hidden={financeTab !== "saving"}>
-          <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
-        </div>
-      </div>
 
         {showSettings && (
             <SettingsModal
@@ -596,11 +572,7 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
           />
         </div>
 
-        <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={!canSubmit}
-        >
+        <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
           {submitting ? "Adding…" : "Add expense"}
         </button>
       </form>
@@ -631,8 +603,8 @@ function SettingsModal({
 
   // ----- Accounts tab state -----
   // Working copy of accounts so edits don't hit Firestore until "Save".
-  const [acctDraft, setAcctDraft] = useState(
-      () => accounts.map((a) => ({ ...a })) || []
+  const [acctDraft, setAcctDraft] = useState(() =>
+      (accounts || []).map((a) => ({ ...a }))
   );
   const [deletedIds, setDeletedIds] = useState([]);
 
@@ -815,11 +787,7 @@ function SettingsModal({
                     </div>
                 ))}
 
-                <button
-                    type="button"
-                    className="add-account-btn"
-                    onClick={addAcct}
-                >
+                <button type="button" className="add-account-btn" onClick={addAcct}>
                   + Add account
                 </button>
 
