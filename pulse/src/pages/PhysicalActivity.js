@@ -43,11 +43,11 @@ function formatDueDate(dateStr) {
 function PhysicalActivity({ user, onBack}){
 //     State
     const [activities, setActivities] = useState([]);
-    const [input, setInput] = useState('');
     const [descInput, setDescInput] = useState('');
     const [activityDate, setActivityDate] = useState('');
     const [priority, setPriority] = useState('Medium');
-    const [tab, setTab] = useState('pending');
+    const [activityTab, setActivityTab] = useState('pending');
+    const [pageTab, setPageTab] = useState('pending')
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [editDesc, setEditDesc] = useState('');
@@ -65,7 +65,7 @@ function PhysicalActivity({ user, onBack}){
         if (!user) return;
 
         const activityRef = collection(db, 'users', user.uid, 'physicalActivities')
-        const q = query(activityRef, orderBy('createdAt', 'asc'));
+        const q = query(activityRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setActivities(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -146,38 +146,39 @@ function PhysicalActivity({ user, onBack}){
     // Create Activity
     const addActivity = async (e) => {
         e.preventDefault();
-        if (!input.trim()) return;
-
         try{
             setError(null);
-            if (tab === 'cardio') {
+            if (activityTab === 'cardio') {
                 await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
-                    text: input,
+                    text: activityTab,
                     description: descInput,
-                    type: tab,
+                    type: activityTab,
                     distance: distance,
                     duration: time,
                     exercises: [],
                     activityDate: activityDate,
                     createdAt: serverTimestamp(),
+                    isTemplate: false,
                 });
             }
-            else {
+            else if (activityTab === 'strength') {
                 await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
-                    text: input,
+                    text: activityTab,
                     description: descInput,
-                    type: tab,
+                    type: activityTab,
                     distance: 0,
                     duration: 0,
                     exercises: exercises,
                     activityDate: activityDate,
                     createdAt: serverTimestamp(),
+                    isTemplate: false,
                 });
             }
-            setInput('');
+            else {return;}
             setDescInput('');
             setActivityDate('');
-            setTab('')
+            setActivityTab('')
+            setPageTab('')
             setDistance('')
             setTime('')
             setExercises([
@@ -254,6 +255,31 @@ function PhysicalActivity({ user, onBack}){
         setExercises(updated)
     }
 
+    const applyTemplate  = (template) =>{
+        setPageTab("New Activity")
+        setActivityTab(template.type)
+        setDescInput(template.description)
+        setDistance(template.distance)
+        setTime(template.duration)
+        setExercises(template.exercises)
+    }
+
+    const changeTemplate = async (id, val) => {
+        const activity = activities.find(activity => activity.id === id);
+
+        try{
+            setError(null);
+            const activityRef = doc(db, 'users', user.uid, 'physicalActivities', id);
+            await updateDoc(activityRef, {isTemplate: val});
+        }catch (err){
+            console.error("Save error", err);
+            setError("Could not update Activity. Please try again");
+        }
+    };
+
+    const templateActivities = activities.filter(activity => {
+        return activity.isTemplate === true});
+
     return (
         <div className="activity-shell">
             {error && (
@@ -270,316 +296,416 @@ function PhysicalActivity({ user, onBack}){
                 </div>
 
                 <div className="activity-form-card">
-                    <form onSubmit={addActivity} className="activity-input-group">
-                        <input
-                            className="input-field-styled"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="New Activity..."
-                            style={{ flex: 1, padding: '8px'}}
-                        />
-                        <textarea
-                            className="input-field-styled"
-                            value={descInput}
-                            onChange={(e) => setDescInput(e.target.value)}
-                            placeholder="Add a description(optional)..."
-                        />
-
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                type="date"
-                                className="input-field-styled"
-                                style={{ flex: 1 }}
-                                value={activityDate}
-                                onChange={(e) => setActivityDate(e.target.value)}
-                            />
-                        </div>
-
-                        <div className='activity-tabs-card'>
-                            {['cardio', 'strength'].map(t => (
-                                <button
-                                    key={t}
-                                    className={`tab-btn ${tab === t ? 'active' : ''}`}
-                                    onClick={() => setTab(t)}
-                                    type="button"
-                                >
-                                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-
-
-                        <div className="activity-form">
-                            {tab === 'cardio' && (
-                                <div>
-                                    <input
-                                        className="input-field-styled"
-                                        value={distance}
-                                        onChange={(e) => setDistance(e.target.value)}
-                                        placeholder="Distance (km)"
-                                        style={{ flex: 1, padding: '8px'}}
-                                    />
-                                    <input
-                                        className="input-field-styled"
-                                        value={time}
-                                        onChange={(e) => setTime(e.target.value)}
-                                        placeholder="Duration (HH:MM)"
-                                        style={{ flex: 1, padding: '8px'}}
-                                    />
-                                </div>
-                            )}
-
-                            {tab === 'strength' && (
-                                <div>
-                                    {exercises.map((exercise, index) => (
-                                        <div key={index} className="exercise-card">
-
-                                            <input
-                                                className="input-field-styled"
-                                                placeholder="Exercise"
-                                                style={{ flex: 1, padding: '8px'}}
-                                                value={exercise.name}
-                                                onChange={(e) => {
-                                                    const updated = [...exercises];
-                                                    updated[index].name = e.target.value;
-                                                    setExercises(updated);
-                                                }}
-                                            />
-
-                                            {exercise.sets.map((set, index2) => (
-                                                <div key={index2} className="set-card">
-                                                    <input
-                                                        className="input-field-styled"
-                                                        placeholder="weight"
-                                                        style={{ flex: 1, padding: '8px'}}
-                                                        value={set.weight}
-                                                        onChange={(e) => {
-                                                            const updated = [...exercises];
-                                                            updated[index].sets[index2].weight = e.target.value;
-                                                            setExercises(updated);
-                                                        }}
-                                                    /> kg
-                                                    <input
-                                                        className="input-field-styled"
-                                                        placeholder="reps"
-                                                        style={{ flex: 1, padding: '8px'}}
-                                                        value={set.reps}
-                                                        onChange={(e) => {
-                                                            const updated = [...exercises];
-                                                            updated[index].sets[index2].reps = e.target.value;
-                                                            setExercises(updated);
-                                                        }}
-
-                                                    /> reps
-                                                </div>
-                                            ))}
-
-                                            <button type="button" className="btn-back" onClick={() => addSet(index)}>
-                                                + Add Set
-                                            </button>
-
-                                            <button type="button" className="btn-back" onClick={() => removeSet(index)}>
-                                                - Remove Set
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    <button type="button" className="btn-back" onClick={addExercise}>
-                                        + Add Exercise
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        <button type="submit" className="btn-teal">Add</button>
-                    </form>
-                </div>
-
-                <ul className="activity-list-styled">
-                    {activities.map(activity => {
-                        return(
-                            <li key={activity.id}
-                                className="activity-item-card"
-                                onContextMenu={(e) => {
-                                    e.stopPropagation();
-                                    handleContextMenu(e,activity.id);
-                                }}
+                    <div className='activity-tabs-card'>
+                        {['New Activity', 'Templates'].map(t => (
+                            <button
+                                key={t}
+                                className={`tab-btn ${pageTab === t ? 'active' : ''}`}
+                                onClick={() => setPageTab(t)}
+                                type="button"
                             >
-                                <div className="item-content">
-                                    {editingId === activity.id ? (
-                                        <div className="edit-mode-container">
-                                            <input
-                                                className="edit-input-styled"
-                                                value={editText}
-                                                autoFocus
-                                                onChange={(e) => setEditText(e.target.value)}
-                                                onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                />
-                                            <textarea
-                                                className="edit-desc-textarea"
-                                                placeholder="Add a description..."
-                                                value={editDesc}
-                                                onChange={(e) => setEditDesc(e.target.value)}
-                                                />
+                                {t.charAt(0).toUpperCase() + t.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="activity-form">
+                        {pageTab === 'New Activity' && (
+                            <div>
+                                 <div className='activity-tabs-card'>
+                                    {['cardio', 'strength'].map(t => (
+                                        <button
+                                            key={t}
+                                            className={`tab-btn ${activityTab === t ? 'active' : ''}`}
+                                            onClick={() => setActivityTab(t)}
+                                            type="button"
+                                        >
+                                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                                        </button>
+                                    ))}
+                                </div>
+                                <form onSubmit={addActivity} className="activity-input-group">
+                                    <textarea
+                                        className="input-field-styled"
+                                        value={descInput}
+                                        onChange={(e) => setDescInput(e.target.value)}
+                                        placeholder="Add a description(optional)..."
+                                    />
 
-                                            <div className="item-meta-edit">
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <input
+                                            type="date"
+                                            className="input-field-styled"
+                                            style={{ flex: 1 }}
+                                            value={activityDate}
+                                            onChange={(e) => setActivityDate(e.target.value)}
+                                        />
+                                    </div>
+
+
+                                    <div className="activity-form">
+                                        {activityTab === 'cardio' && (
+                                            <div>
                                                 <input
-                                                    type = "date"
-                                                    className="edit-date-mini"
-                                                    defaultValue={activity.activityDate === "9999-12-31" ? "" : activity.activityDate}
-                                                    onChange={(e) => saveEdit(activity.id, {dueDate: e.target.value || "9999-12-31"})}
+                                                    className="input-field-styled"
+                                                    value={distance}
+                                                    onChange={(e) => setDistance(e.target.value)}
+                                                    placeholder="Distance (km)"
+                                                    style={{ flex: 1, padding: '8px'}}
+                                                />
+                                                <input
+                                                    className="input-field-styled"
+                                                    value={time}
+                                                    onChange={(e) => setTime(e.target.value)}
+                                                    placeholder="Duration (HH:MM)"
+                                                    style={{ flex: 1, padding: '8px'}}
                                                 />
                                             </div>
-                                            <div className="activity-data">
-                                                {activity.type === "cardio" ? (
-                                                    <div>
-                                                        <span>Type: Cardio</span>
+                                        )}
+
+                                        {activityTab === 'strength' && (
+                                            <div>
+                                                {exercises.map((exercise, index) => (
+                                                    <div key={index} className="exercise-card">
+//                                                    TODO make this a dropdown
                                                         <input
                                                             className="input-field-styled"
-                                                            value={editDistance}
-                                                            autoFocus
-                                                            onChange={(e) => setEditDistance(e.target.value)}
-                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                            />
-                                                        <input
-                                                            className="input-field-styled"
-                                                            value={editTime}
-                                                            autoFocus
-                                                            onChange={(e) => setEditTime(e.target.value)}
-                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                            />
-                                                    </div>
-                                                ) : (
-                                                     <div>
-                                                         <span>Type: Gym </span>
-                                                         {editExercises.map((exercise, index) => (
-                                                             <div key={index}>
-                                                                 <input
-                                                                     className="input-field-styled"
-                                                                     value={exercise.name}
-                                                                     autoFocus
-                                                                     onChange={(e) =>{
-                                                                        const updated = [...editExercises];
-                                                                        updated[index] = {
-                                                                            ...updated[index],
-                                                                            name: e.target.value
-                                                                        };
-                                                                        setEditExercises(updated);
-                                                                     }}
-                                                                     onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                     />
-                                                                 {exercise.sets.map((set, index2) =>
-                                                                    <div key={index2}>
-                                                                        <input
-                                                                            className="input-field-styled"
-                                                                            value={set.weight}
-                                                                            autoFocus
-                                                                            onChange={(e) => {
-                                                                                const updated = [...editExercises];
-                                                                                updated[index] = {
-                                                                                    ...updated[index],
-                                                                                    sets: updated[index].sets.map((s, i) =>
-                                                                                        i === index2
-                                                                                        ? {...s, weight: e.target.value }
-                                                                                        : s
-                                                                                    )
-                                                                                };
-                                                                                setEditExercises(updated);
-                                                                            }}
-                                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                            />
-                                                                        <input
-                                                                            className="input-field-styled"
-                                                                            value={set.reps}
-                                                                            autoFocus
-                                                                            onChange={(e) => {
-                                                                                const updated = [...editExercises];
-                                                                                updated[index] = {
-                                                                                    ...updated[index],
-                                                                                    sets: updated[index].sets.map((s, i) =>
-                                                                                        i === index2
-                                                                                        ? {...s, reps: e.target.value }
-                                                                                        : s
-                                                                                    )
-                                                                                };
-                                                                                setEditExercises(updated);
-                                                                            }}
-                                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                            />
-                                                                    </div>
-                                                                 )}
-                                                             </div>
-                                                         ))}
-                                                     </div>
-                                                )}
+                                                            placeholder="Exercise"
+                                                            style={{ flex: 1, padding: '8px'}}
+                                                            value={exercise.name}
+                                                            onChange={(e) => {
+                                                                const updated = [...exercises];
+                                                                updated[index].name = e.target.value;
+                                                                setExercises(updated);
+                                                            }}
+                                                        />
 
-                                                <span className="done-text" onClick={() => saveEdit(activity.id)}>
-                                                     Done
-                                                </span>
-                                            </div>
+                                                        {exercise.sets.map((set, index2) => (
+                                                            <div key={index2} className="set-card">
+                                                                <input
+                                                                    className="input-field-styled"
+                                                                    placeholder="weight"
+                                                                    style={{ flex: 1, padding: '8px'}}
+                                                                    value={set.weight}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...exercises];
+                                                                        updated[index].sets[index2].weight = e.target.value;
+                                                                        setExercises(updated);
+                                                                    }}
+                                                                /> kg
+                                                                <input
+                                                                    className="input-field-styled"
+                                                                    placeholder="reps"
+                                                                    style={{ flex: 1, padding: '8px'}}
+                                                                    value={set.reps}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...exercises];
+                                                                        updated[index].sets[index2].reps = e.target.value;
+                                                                        setExercises(updated);
+                                                                    }}
 
-                                        </div>
-                                    ):(
-                                        <div onDoubleClick={() => startEdit(activity)} title="Double click to edit">
-                                            <div className="item-title-row">
-                                                <span
-                                                    className="item-text"
-                                                >
-                                                    {activity.text}
-                                                </span>
-                                            </div>
-                                            {activity.description && (
-                                                <span className="item-description"
-                                                   style={{
-                                                       fontSize:'0.85rem',
-                                                       color:'#666',
-                                                       margin:'4px 0',
-                                                       lineHeight: '1.4'
-                                                   }}>
-                                                    {activity.description}
-                                                </span>
-                                            )}
-                                            <div className="item-meta">
-                                                {activity.activityDate !== '9999-12-31' && (
-                                                    <span>
-                                                        📅 Date: {formatDueDate(activity.activityDate)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="activity-data">
-                                                {activity.type === 'cardio' ? (
-                                                    <div>
-                                                        <div><span>Type: Cardio</span></div>
-                                                        <div><span>Distance: {activity.distance}km</span></div>
-                                                        <div><span>Time: {activity.duration}</span></div>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <div><span>Type: GYM </span></div>
-                                                        {activity.exercises.map((exercise, index) => (
-                                                            <div key={index}>
-                                                                <div><span>Exercise: {exercise.name}</span></div>
-                                                                {exercise.sets.map((set, index2) =>
-                                                                    <div><span>{set.weight} x{set.reps}</span></div>
-
-                                                                )}
+                                                                /> reps
                                                             </div>
                                                         ))}
+
+                                                        <button type="button" className="btn-back" onClick={() => addSet(index)}>
+                                                            + Add Set
+                                                        </button>
+
+                                                        <button type="button" className="btn-back" onClick={() => removeSet(index)}>
+                                                            - Remove Set
+                                                        </button>
                                                     </div>
+                                                ))}
 
-                                                )}
+                                                <button type="button" className="btn-back" onClick={addExercise}>
+                                                    + Add Exercise
+                                                </button>
                                             </div>
+                                        )}
+                                    </div>
+                                    <button type="submit" className="btn-teal">Add</button>
+                                </form>
+                            </div>
+                        )}
+                        {pageTab === 'Templates' && (
+                            <div>
 
 
-                                        </div>
+
+                                <ul className="activity-list-styled">
+                                    {templateActivities.map(activity => {
+                                        return(
+                                            <li key={activity.id}
+                                                className="activity-item-card"
+                                                onContextMenu={(e) => {
+                                                    e.stopPropagation();
+                                                    handleContextMenu(e,activity.id);
+                                                }}
+                                            >
+                                                <div className="item-content">
+                                                    <div className="item-title-row">
+                                                        <span
+                                                            className="item-text"
+                                                        >
+                                                            {activity.text}
+                                                        </span>
+
+                                                    </div>
+                                                    {activity.description && (
+                                                        <span className="item-description"
+                                                           style={{
+                                                               fontSize:'0.85rem',
+                                                               color:'#666',
+                                                               margin:'4px 0',
+                                                               lineHeight: '1.4'
+                                                           }}>
+                                                            {activity.description}
+                                                        </span>
+                                                    )}
+                                                    <div className="item-meta">
+                                                        {activity.activityDate !== '9999-12-31' && (
+                                                            <span>
+                                                                📅 Date: {formatDueDate(activity.activityDate)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="activity-data">
+                                                        {activity.type === 'cardio' ? (
+                                                            <div>
+                                                                <div><span>Type: Cardio</span></div>
+                                                                <div><span>Distance: {activity.distance}km</span></div>
+                                                                <div><span>Time: {activity.duration}</span></div>
+                                                            </div>
+                                                        ) : (
+                                                            <div>
+                                                                <div><span>Type: GYM </span></div>
+                                                                {activity.exercises.map((exercise, index) => (
+                                                                    <div key={index}>
+                                                                        <div><span>Exercise: {exercise.name}</span></div>
+                                                                        {exercise.sets.map((set, index2) =>
+                                                                            <div><span>{set.weight} x{set.reps}</span></div>
+
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                        )}
+
+                                                    </div>
+                                                    <button className="btn-back" onClick={() => applyTemplate(activity)}>Use Template</button>
+                                                </div>
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <div className="activity-form">
+                    {pageTab !== 'Templates' && (
+                        <div>
+
+
+                            <ul className="activity-list-styled">
+                                {activities.map(activity => {
+                                    return(
+                                        <li key={activity.id}
+                                            className="activity-item-card"
+                                            onContextMenu={(e) => {
+                                                e.stopPropagation();
+                                                handleContextMenu(e,activity.id);
+                                            }}
+                                        >
+                                            <div className="item-content">
+                                                {editingId === activity.id ? (
+                                                    <div className="edit-mode-container">
+                                                        <input
+                                                            className="edit-input-styled"
+                                                            value={editText}
+                                                            autoFocus
+                                                            onChange={(e) => setEditText(e.target.value)}
+                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
+                                                            />
+                                                        <textarea
+                                                            className="edit-desc-textarea"
+                                                            placeholder="Add a description..."
+                                                            value={editDesc}
+                                                            onChange={(e) => setEditDesc(e.target.value)}
+                                                            />
+
+                                                        <div className="item-meta-edit">
+                                                            <input
+                                                                type = "date"
+                                                                className="edit-date-mini"
+                                                                defaultValue={activity.activityDate === "9999-12-31" ? "" : activity.activityDate}
+                                                                onChange={(e) => saveEdit(activity.id, {dueDate: e.target.value || "9999-12-31"})}
+                                                            />
+                                                        </div>
+                                                        <div className="activity-data">
+                                                            {activity.type === "cardio" ? (
+                                                                <div>
+                                                                    <span>Type: Cardio</span>
+                                                                    <input
+                                                                        className="input-field-styled"
+                                                                        value={editDistance}
+                                                                        autoFocus
+                                                                        onChange={(e) => setEditDistance(e.target.value)}
+                                                                        onKeyDown={(e) => handleKeyDown(e, activity.id)}
+                                                                        />
+                                                                    <input
+                                                                        className="input-field-styled"
+                                                                        value={editTime}
+                                                                        autoFocus
+                                                                        onChange={(e) => setEditTime(e.target.value)}
+                                                                        onKeyDown={(e) => handleKeyDown(e, activity.id)}
+                                                                        />
+                                                                </div>
+                                                            ) : (
+                                                                 <div>
+                                                                     <span>Type: Gym </span>
+                                                                     {editExercises.map((exercise, index) => (
+                                                                         <div key={index}>
+                                                                             <input
+                                                                                 className="input-field-styled"
+                                                                                 value={exercise.name}
+                                                                                 autoFocus
+                                                                                 onChange={(e) =>{
+                                                                                    const updated = [...editExercises];
+                                                                                    updated[index] = {
+                                                                                        ...updated[index],
+                                                                                        name: e.target.value
+                                                                                    };
+                                                                                    setEditExercises(updated);
+                                                                                 }}
+                                                                                 onKeyDown={(e) => handleKeyDown(e, activity.id)}
+                                                                                 />
+                                                                             {exercise.sets.map((set, index2) =>
+                                                                                <div key={index2}>
+                                                                                    <input
+                                                                                        className="input-field-styled"
+                                                                                        value={set.weight}
+                                                                                        autoFocus
+                                                                                        onChange={(e) => {
+                                                                                            const updated = [...editExercises];
+                                                                                            updated[index] = {
+                                                                                                ...updated[index],
+                                                                                                sets: updated[index].sets.map((s, i) =>
+                                                                                                    i === index2
+                                                                                                    ? {...s, weight: e.target.value }
+                                                                                                    : s
+                                                                                                )
+                                                                                            };
+                                                                                            setEditExercises(updated);
+                                                                                        }}
+                                                                                        onKeyDown={(e) => handleKeyDown(e, activity.id)}
+                                                                                        />
+                                                                                    <input
+                                                                                        className="input-field-styled"
+                                                                                        value={set.reps}
+                                                                                        autoFocus
+                                                                                        onChange={(e) => {
+                                                                                            const updated = [...editExercises];
+                                                                                            updated[index] = {
+                                                                                                ...updated[index],
+                                                                                                sets: updated[index].sets.map((s, i) =>
+                                                                                                    i === index2
+                                                                                                    ? {...s, reps: e.target.value }
+                                                                                                    : s
+                                                                                                )
+                                                                                            };
+                                                                                            setEditExercises(updated);
+                                                                                        }}
+                                                                                        onKeyDown={(e) => handleKeyDown(e, activity.id)}
+                                                                                        />
+                                                                                </div>
+                                                                             )}
+                                                                         </div>
+                                                                     ))}
+                                                                 </div>
+                                                            )}
+
+                                                            <span className="done-text" onClick={() => saveEdit(activity.id)}>
+                                                                 Done
+                                                            </span>
+                                                        </div>
+
+                                                    </div>
+                                                ):(
+                                                    <div onDoubleClick={() => startEdit(activity)} title="Double click to edit">
+                                                        <div className="item-title-row">
+                                                            <span
+                                                                className="item-text"
+                                                            >
+                                                                {activity.text} </span>
+                                                            {activity.isTemplate === true? (
+                                                                <button className="btn-heart" onClick={() => changeTemplate(activity.id, false)}>❤️</button>
+
+                                                            ) : (
+                                                                <button className="btn-heart" onClick={() => changeTemplate(activity.id, true)}>🤍</button>
+                                                            )}
+                                                        </div>
+                                                        {activity.description && (
+                                                            <span className="item-description"
+                                                               style={{
+                                                                   fontSize:'0.85rem',
+                                                                   color:'#666',
+                                                                   margin:'4px 0',
+                                                                   lineHeight: '1.4'
+                                                               }}>
+                                                                {activity.description}
+                                                            </span>
+                                                        )}
+                                                        <div className="item-meta">
+                                                            {activity.activityDate !== '9999-12-31' && (
+                                                                <span>
+                                                                    📅 Date: {formatDueDate(activity.activityDate)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="activity-data">
+                                                            {activity.type === 'cardio' ? (
+                                                                <div>
+                                                                    <div><span>Type: Cardio</span></div>
+                                                                    <div><span>Distance: {activity.distance}km</span></div>
+                                                                    <div><span>Time: {activity.duration}</span></div>
+                                                                </div>
+                                                            ) : (
+                                                                <div>
+                                                                    <div><span>Type: GYM </span></div>
+                                                                    {activity.exercises.map((exercise, index) => (
+                                                                        <div key={index}>
+                                                                            <div><span>Exercise: {exercise.name}</span></div>
+                                                                            {exercise.sets.map((set, index2) =>
+                                                                                <div><span>{set.weight} x{set.reps}</span></div>
+
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+
+                                                            )}
+                                                        </div>
+
+
+                                                    </div>
+                                                )
+                                            }
+                                            </div>
+                                        </li>
                                     )
-                                }
-                                </div>
-                            </li>
-                        )
-                    })}
+                                })}
 
-                </ul>
+                            </ul>
+                        </div>
+                    )}
+                </div>
+
+
             </div>
+
+
 
             {menuPos && (
                 <div
@@ -595,7 +721,7 @@ function PhysicalActivity({ user, onBack}){
                             setMenuPos(null);
                         }}
                     >
-                        🗑️ Delete Task
+                        🗑️ Delete Activity
                     </div>
                 </div>
             )}
