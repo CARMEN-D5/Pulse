@@ -74,6 +74,22 @@ button {
     box-shadow: 0 2px 5px rgba(201, 24, 74, 0.06);
 }
 
+.btn-heart {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--pulse-border);
+    color: var(--activity-primary);
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(201, 24, 74, 0.06);
+    margin-left: auto;
+}
+
 .btn-back:hover {
     background: #ffffff;
     transform: translateX(-3px);

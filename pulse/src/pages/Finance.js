@@ -5,6 +5,7 @@ import { logAction } from "../firestore/scoring";
 import DonutChart from "./DonutChart";
 import SpendingCalendar from "./SpendingCalendar";
 import { ShareButton } from "../components/share";
+import SavingView from "./SavingView";
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_ACCOUNTS,
@@ -52,6 +53,7 @@ function Finance({ user, onBack, onActivityLogged }) {
   const [error, setError] = useState("");
 
   const [showSettings, setShowSettings] = useState(false);
+  const [financeTab, setFinanceTab] = useState("spending");
 
   const { monthStart, monthEnd } = useMemo(() => monthBounds(), []);
   const monthName = useMemo(() => monthLabel(), []);
@@ -94,22 +96,22 @@ function Finance({ user, onBack, onActivityLogged }) {
   }, [expenses]);
 
   const totalSpent = useMemo(
-      () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
-      [spentByCategory]
+    () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
+    [spentByCategory]
   );
 
   const totalBudget = useMemo(
-      () =>
-          DEFAULT_CATEGORIES.reduce(
-              (acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0),
-              0
-          ),
-      [budgets]
+    () =>
+      DEFAULT_CATEGORIES.reduce(
+        (acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0),
+        0
+      ),
+    [budgets]
   );
 
   const dailyAllowance = useMemo(
-      () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
-      [totalBudget, monthDayCount]
+    () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
+    [totalBudget, monthDayCount]
   );
 
   // Payload for the manual share button. `isAvailable` on the finance
@@ -131,24 +133,24 @@ function Finance({ user, onBack, onActivityLogged }) {
   // non-zero) the donut chart slices, so the most prevalent category sits
   // at the top of the legend list.
   const rankedCategories = useMemo(
-      () =>
-          [...DEFAULT_CATEGORIES].sort(
-              (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
-          ),
-      [spentByCategory]
+    () =>
+      [...DEFAULT_CATEGORIES].sort(
+        (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
+      ),
+    [spentByCategory]
   );
 
   const donutData = useMemo(
-      () =>
-          rankedCategories
-              .filter((c) => spentByCategory[c.id] > 0)
-              .map((c) => ({
-                id: c.id,
-                label: c.label,
-                value: spentByCategory[c.id],
-                color: c.color,
-              })),
-      [rankedCategories, spentByCategory]
+    () =>
+      rankedCategories
+        .filter((c) => spentByCategory[c.id] > 0)
+        .map((c) => ({
+          id: c.id,
+          label: c.label,
+          value: spentByCategory[c.id],
+          color: c.color,
+        })),
+    [rankedCategories, spentByCategory]
   );
 
   // Track most-recently-used account so the form can preselect it.
@@ -178,7 +180,7 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   const handleSaveBudgets = async (next) => {
     const writes = Object.entries(next).map(([cat, lim]) =>
-        setBudget(uid, cat, lim)
+      setBudget(uid, cat, lim)
     );
     const results = await Promise.all(writes);
     const fail = results.find((r) => !r.ok);
@@ -200,6 +202,28 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   // ---- render ------------------------------------------------------------
   return (
+    <div className="finance-shell">
+      <div className="finance-container">
+        <div className="finance-header">
+          <button type="button" className="finance-back" onClick={onBack}>
+            ← Home
+          </button>
+          <div className="finance-title-block" style={{ flex: 1 }}>
+            <h1>Budget</h1>
+            <div className="month-label">{monthName}</div>
+          </div>
+          {financeTab === "spending" && (
+            <button
+              type="button"
+              className="cog-btn"
+              onClick={() => setShowSettings(true)}
+              aria-label="Settings"
+              title="Settings"
+            >
+              ⚙️
+            </button>
+          )}
+        </div>
       <div className="finance-shell">
         <div className="finance-container">
           <div className="finance-header">
@@ -227,24 +251,36 @@ function Finance({ user, onBack, onActivityLogged }) {
                 {error}
               </div>
           )}
+        {error && (
+          <div className="alert alert-error" role="alert">
+            {error}
+          </div>
+        )}
 
-          {/* ---------- Chart + legend ---------- */}
-          <div className="finance-card">
-            <div className="finance-summary">
-              <DonutChart
-                  data={donutData}
-                  size={220}
-                  thickness={28}
-                  centerLabel={`$${totalSpent.toFixed(0)}`}
-                  centerSub={
-                    totalBudget > 0
-                        ? `of $${totalBudget.toFixed(0)}`
-                        : "spent this month"
-                  }
-              />
-              <div className="donut-legend">
-                {rankedCategories.map((c) => (
-                    <div className="legend-row" key={c.id}>
+        <div className="finance-view-tabs" role="tablist" aria-label="Finance view">
+          <button type="button" role="tab" aria-selected={financeTab === "spending"} className={financeTab === "spending" ? "active" : ""} onClick={() => setFinanceTab("spending")}>Spending</button>
+          <button type="button" role="tab" aria-selected={financeTab === "saving"} className={financeTab === "saving" ? "active" : ""} onClick={() => setFinanceTab("saving")}>Saving</button>
+        </div>
+
+        {financeTab === "spending" ? <>
+
+        {/* ---------- Chart + legend ---------- */}
+        <div className="finance-card">
+          <div className="finance-summary">
+            <DonutChart
+              data={donutData}
+              size={220}
+              thickness={28}
+              centerLabel={`$${totalSpent.toFixed(0)}`}
+              centerSub={
+                totalBudget > 0
+                  ? `of $${totalBudget.toFixed(0)}`
+                  : "spent this month"
+              }
+            />
+            <div className="donut-legend">
+              {rankedCategories.map((c) => (
+                <div className="legend-row" key={c.id}>
                   <span
                       className="legend-swatch"
                       style={{ background: c.color }}
@@ -395,6 +431,38 @@ function Finance({ user, onBack, onActivityLogged }) {
             )}
           </div>
         </div>
+                        {cat.label}
+                      </div>
+                      <div className="tx-meta">
+                        {acc.name} ·{" "}
+                        {date.toLocaleDateString("en-AU", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                        {e.note ? ` · ${e.note}` : ""}
+                      </div>
+                    </div>
+                    <div className="tx-amount">${e.amount.toFixed(2)}</div>
+                    <button
+                      type="button"
+                      className="tx-delete"
+                      onClick={() => handleDelete(e.id)}
+                      aria-label="Delete expense"
+                      title="Delete"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        </> : null}
+        <div className="saving-view-stack" hidden={financeTab !== "saving"}>
+          <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
+        </div>
+      </div>
 
         {showSettings && (
             <SettingsModal
