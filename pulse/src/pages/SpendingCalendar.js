@@ -87,6 +87,19 @@ function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
     ? monthGrid.cells.find((c) => !c.blank && c.key === selectedKey)
     : null;
 
+  // Explicit week rows rather than one wrapped grid. Android rounds each
+  // child's width up to whole physical pixels, so seven cells at 100/7%
+  // overflow the row and the last one wraps — the month renders six days wide
+  // with the weekday header out of step. Rows of seven flex:1 cells divide
+  // exactly on every platform. `cells` is already padded to a multiple of 7.
+  const weeks = useMemo(() => {
+    const out = [];
+    for (let index = 0; index < monthGrid.cells.length; index += 7) {
+      out.push(monthGrid.cells.slice(index, index + 7));
+    }
+    return out;
+  }, [monthGrid.cells]);
+
   return (
     <View style={styles.root}>
       <View style={styles.head}>
@@ -119,8 +132,9 @@ function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
         ))}
       </View>
 
-      <View style={styles.grid}>
-        {monthGrid.cells.map((cell) =>
+      {weeks.map((week, weekIndex) => (
+        <View style={styles.week} key={`week-${weekIndex}`}>
+        {week.map((cell) =>
           cell.blank ? (
             <View key={cell.key} style={styles.cell} />
           ) : (
@@ -148,7 +162,8 @@ function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
             </Pressable>
           )
         )}
-      </View>
+        </View>
+      ))}
 
       {selected ? (
         <View style={styles.detail}>
@@ -186,20 +201,21 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: radius.pill, borderWidth: 1 },
   legendText: { ...type.caption, fontSize: 10, color: colors.textMuted },
 
-  // Seven columns at 1/7 each. `aspectRatio` keeps them square regardless of
-  // the container width, which is what the CSS grid did on the web.
+  // Seven equal columns per week row. `aspectRatio` keeps them square
+  // regardless of the container width, which is what the CSS grid did on the
+  // web. flex:1 rather than a 1/7 percentage — see the `weeks` comment above.
   weekdays: { flexDirection: "row" },
   weekday: {
-    width: `${100 / 7}%`,
+    flex: 1,
     textAlign: "center",
     ...type.caption,
     fontSize: 10,
     color: colors.textMuted,
   },
 
-  grid: { flexDirection: "row", flexWrap: "wrap" },
+  week: { flexDirection: "row" },
   cell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     aspectRatio: 1,
     padding: 2,
   },

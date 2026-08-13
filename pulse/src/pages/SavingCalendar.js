@@ -55,6 +55,24 @@ export default function SavingCalendar({
     return result;
   }, [monthStart, byDay]);
 
+  // Chunked into explicit week rows rather than wrapped with percentage
+  // widths. Android rounds each child's width up to whole physical pixels, so
+  // seven cells at 100/7% overflow the row and the last one wraps — the month
+  // renders six days wide with the weekday header out of step. Rows of seven
+  // flex:1 cells divide exactly on every platform. The final week is padded
+  // so its cells keep the same width as the rest.
+  const weeks = useMemo(() => {
+    const out = [];
+    for (let index = 0; index < cells.length; index += 7) {
+      const week = cells.slice(index, index + 7);
+      while (week.length < 7) {
+        week.push({ blank: true, key: `pad-${index}-${week.length}` });
+      }
+      out.push(week);
+    }
+    return out;
+  }, [cells]);
+
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
   const earliest = new Date();
@@ -110,8 +128,9 @@ export default function SavingCalendar({
         ))}
       </View>
 
-      <View style={styles.grid}>
-        {cells.map((cell) => {
+      {weeks.map((week, weekIndex) => (
+        <View style={styles.week} key={`week-${weekIndex}`} testID="saving-calendar-week">
+          {week.map((cell) => {
           if (cell.blank) return <View key={cell.key} style={styles.cell} />;
 
           const future = cell.date > todayEnd;
@@ -156,8 +175,9 @@ export default function SavingCalendar({
               ) : null}
             </Pressable>
           );
-        })}
-      </View>
+          })}
+        </View>
+      ))}
 
       <PrimaryButton
         label={hasActivePlans ? "+ Add saving plan" : "Create a saving plan"}
@@ -189,13 +209,13 @@ const styles = StyleSheet.create({
   weekdayText: {
     ...type.caption,
     color: colors.textMuted,
-    width: `${100 / 7}%`,
+    flex: 1,
     textAlign: "center",
   },
 
-  grid: { flexDirection: "row", flexWrap: "wrap" },
+  week: { flexDirection: "row" },
   cell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     aspectRatio: 1,
     padding: 2,
     alignItems: "center",
