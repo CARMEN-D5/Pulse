@@ -1,4 +1,8 @@
 import React, { useState } from "react";
+import { StyleSheet, Text, TextInput, View } from "react-native";
+
+import { Alert, PrimaryButton } from "../ui";
+import { colors, radius, spacing, type } from "../../theme";
 
 const REFLECTION_MAX = 280;
 
@@ -22,53 +26,71 @@ export default function SharePostEditor({
     const canPost = reflection.trim().length > 0 && !posting;
 
     return (
-        <form
-            className="sp-editor"
-            onSubmit={(e) => {
-                e.preventDefault();
-                if (canPost) onSubmit({ reflection: reflection.trim() });
-            }}
-        >
-            <div className="sp-editor__preview">
-                {template.render(payload, { username })}
-            </div>
+        <View style={styles.editor}>
+            <View style={styles.preview}>{template.render(payload, { username })}</View>
 
-            <label className="sp-field">
-        <span className="sp-field__label">
-          What I did to improve
-          <span className="sp-field__count">
-            {reflection.length}/{REFLECTION_MAX}
-          </span>
-        </span>
-                <textarea
-                    className="sp-input sp-input--area"
+            <View style={styles.field}>
+                <View style={styles.fieldHead}>
+                    <Text style={styles.fieldLabel}>What I did to improve</Text>
+                    <Text style={styles.fieldCount}>
+                        {reflection.length}/{REFLECTION_MAX}
+                    </Text>
+                </View>
+                <TextInput
+                    style={[styles.input, styles.inputArea]}
                     value={reflection}
                     maxLength={REFLECTION_MAX}
-                    rows={3}
-                    onChange={(e) => setReflection(e.target.value)}
+                    onChangeText={setReflection}
                     placeholder="Say something about it…"
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
                 />
-            </label>
+            </View>
 
-            {error && (
-                <div className="alert alert-error" role="alert">
-                    {error}
-                </div>
-            )}
+            <Alert message={error} />
 
-            <div className="sp-window__foot">
-                <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={onCancel}
+            <View style={styles.foot}>
+                <PrimaryButton
+                    label="Not now"
+                    variant="danger"
+                    onPress={onCancel}
                     disabled={posting}
-                >
-                    Not now
-                </button>
-                <button className="btn btn-primary" type="submit" disabled={!canPost}>
-                    {posting ? "Posting…" : "Share to feed"}
-                </button>
-            </div>
-        </form>
+                    style={styles.flex}
+                />
+                <PrimaryButton
+                    label={posting ? "Posting…" : "Share to feed"}
+                    onPress={() => canPost && onSubmit({ reflection: reflection.trim() })}
+                    disabled={!canPost}
+                    loading={posting}
+                    style={styles.flex}
+                />
+            </View>
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    flex: { flex: 1 },
+    editor: { gap: spacing.md },
+    preview: { alignSelf: "stretch" },
+
+    field: { gap: spacing.sm },
+    fieldHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    fieldLabel: { ...type.label, color: colors.text },
+    fieldCount: { ...type.caption, color: colors.textMuted },
+    input: {
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.md,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        ...type.body,
+        color: colors.text,
+    },
+    inputArea: { minHeight: 84 },
+
+    foot: { flexDirection: "row", gap: spacing.sm },
+});

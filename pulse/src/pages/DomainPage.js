@@ -1,26 +1,39 @@
-import React, { useState } from 'react';
-import { DOMAINS } from '../scoring/scoringEngine';
-import { logReflection, logAction } from '../firestore/scoring';
-import './auth.css';
+import React, { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-const RATING_LABELS = ['', 'Poor', 'Fair', 'Okay', 'Good', 'Great'];
+import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
+import { logAction, logReflection } from "../firestore/scoring";
+import { DOMAINS } from "../scoring/scoringEngine";
+import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+
+const RATING_LABELS = ["", "Poor", "Fair", "Okay", "Good", "Great"];
 
 function RatingPicker({ value, onChange }) {
   return (
-    <div className="rating-picker">
-      {[1, 2, 3, 4, 5].map(n => (
-        <button
-          key={n}
-          type="button"
-          className={`rating-btn${value === n ? ' rating-btn--active' : ''}`}
-          onClick={() => onChange(n)}
-          aria-label={`${n} – ${RATING_LABELS[n]}`}
-        >
-          <span className="rating-num">{n}</span>
-          <span className="rating-label">{RATING_LABELS[n]}</span>
-        </button>
-      ))}
-    </div>
+    <View style={styles.ratingPicker} accessibilityRole="radiogroup">
+      {[1, 2, 3, 4, 5].map((n) => {
+        const active = value === n;
+        return (
+          <Pressable
+            key={n}
+            onPress={() => onChange(n)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`${n} – ${RATING_LABELS[n]}`}
+            style={({ pressed }) => [
+              styles.ratingBtn,
+              active && styles.ratingBtnActive,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.ratingNum, active && styles.ratingTextActive]}>{n}</Text>
+            <Text style={[styles.ratingLabel, active && styles.ratingTextActive]}>
+              {RATING_LABELS[n]}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -54,7 +67,7 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
     setError(null);
     const result = await logAction(user.uid, domainKey, actionType);
     if (result.ok) {
-      setActionsDone(prev => [...prev, actionType]);
+      setActionsDone((prev) => [...prev, actionType]);
       onActivityLogged?.();
     } else {
       setError(result.error);
@@ -63,85 +76,146 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
   };
 
   return (
-    <div className="home-shell">
-      <div className="domain-page-container">
+    <Screen contentContainerStyle={styles.screen}>
+      <ScreenHeader title={domain.label} onBack={onBack} />
 
-        {/* Header */}
-        <div className="domain-page-header">
-          <button type="button" className="btn btn-ghost domain-back-btn" onClick={onBack}>
-            ← Back
-          </button>
-          <div className="domain-page-title">
-            <span className="domain-page-icon" aria-hidden="true">{domain.icon}</span>
-            <div>
-              <h1 className="domain-page-name">{domain.label}</h1>
-              {domainScore != null && (
-                <p className="domain-page-score">
-                  Current score: <strong>{Math.round(domainScore)}</strong> / 100
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Domain identity */}
+      <View style={styles.titleRow}>
+        <Text style={styles.domainIcon}>{domain.icon}</Text>
+        <View style={styles.flex}>
+          <Text style={styles.domainName}>{domain.label}</Text>
+          {domainScore != null ? (
+            <Text style={styles.domainScore}>
+              Current score:{" "}
+              <Text style={styles.domainScoreValue}>{Math.round(domainScore)}</Text> / 100
+            </Text>
+          ) : null}
+        </View>
+      </View>
 
-        {error && <div className="alert alert-error">{error}</div>}
+      <Alert message={error} />
 
-        {/* Reflection section */}
-        <div className="domain-section">
-          <h2 className="domain-section-title">Daily Check-in</h2>
-          <p className="domain-section-prompt">{domain.reflectionPrompt}</p>
+      {/* Reflection section */}
+      <View style={[styles.section, shadow("sm")]}>
+        <Text style={styles.sectionTitle}>Daily Check-in</Text>
+        <Text style={styles.sectionPrompt}>{domain.reflectionPrompt}</Text>
 
-          {reflectionDone ? (
-            <div className="alert alert-success">
-              Check-in logged! Your reflection score has been updated.
-            </div>
-          ) : (
-            <>
-              <RatingPicker value={rating} onChange={setRating} />
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ marginTop: 12 }}
-                disabled={rating === 0 || reflectionLoading}
-                onClick={handleLogReflection}
+        {reflectionDone ? (
+          <Alert
+            tone="success"
+            message="Check-in logged! Your reflection score has been updated."
+          />
+        ) : (
+          <>
+            <RatingPicker value={rating} onChange={setRating} />
+            <PrimaryButton
+              label={reflectionLoading ? "Saving…" : "Log check-in"}
+              onPress={handleLogReflection}
+              disabled={rating === 0}
+              loading={reflectionLoading}
+              style={styles.sectionCta}
+            />
+          </>
+        )}
+      </View>
+
+      {/* Actions section */}
+      <View style={[styles.section, shadow("sm")]}>
+        <Text style={styles.sectionTitle}>Log an Action</Text>
+        <Text style={styles.sectionSub}>
+          Each action earns points toward your weekly action score.
+        </Text>
+
+        <View style={styles.actionList}>
+          {Object.entries(domain.actions).map(([actionType, action]) => {
+            const done = actionsDone.includes(actionType);
+            return (
+              <Pressable
+                key={actionType}
+                onPress={() => handleLogAction(actionType)}
+                disabled={actionLoading === actionType}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: actionLoading === actionType }}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  done && styles.actionBtnDone,
+                  pressed && styles.pressed,
+                ]}
               >
-                {reflectionLoading ? 'Saving…' : 'Log check-in'}
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Actions section */}
-        <div className="domain-section">
-          <h2 className="domain-section-title">Log an Action</h2>
-          <p className="domain-section-sub">
-            Each action earns points toward your weekly action score.
-          </p>
-
-          <div className="action-list">
-            {Object.entries(domain.actions).map(([type, action]) => {
-              const done = actionsDone.includes(type);
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  className={`action-btn${done ? ' action-btn--done' : ''}`}
-                  disabled={actionLoading === type}
-                  onClick={() => handleLogAction(type)}
-                >
-                  <span className="action-btn-label">{action.label}</span>
-                  <span className="action-btn-points">
-                    {done ? '✓ logged' : `+${action.points} pts`}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-      </div>
-    </div>
+                <Text style={styles.actionLabel}>{action.label}</Text>
+                <Text style={[styles.actionPoints, done && styles.actionPointsDone]}>
+                  {done ? "✓ logged" : `+${action.points} pts`}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { gap: spacing.lg, paddingBottom: 40 },
+  flex: { flex: 1 },
+  pressed: { opacity: 0.7 },
+
+  titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  domainIcon: { fontSize: 34 },
+  domainName: { ...type.h2, color: colors.text },
+  domainScore: { ...type.small, color: colors.textMuted },
+  domainScoreValue: { fontFamily: fonts.bold, color: colors.text },
+
+  section: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  sectionTitle: { ...type.title, fontFamily: fonts.bold, color: colors.text },
+  sectionPrompt: { ...type.body, color: colors.text },
+  sectionSub: { ...type.small, color: colors.textMuted },
+  sectionCta: { marginTop: spacing.xs },
+
+  ratingPicker: { flexDirection: "row", gap: 6 },
+  ratingBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: 2,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.pulseBg,
+    gap: 2,
+  },
+  ratingBtnActive: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
+  ratingNum: { ...type.label, fontFamily: fonts.bold, fontSize: 16, color: colors.text },
+  ratingLabel: { ...type.caption, fontSize: 10, color: colors.textMuted },
+  ratingTextActive: { color: "#fff" },
+
+  actionList: { gap: spacing.sm },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.pulseBg,
+  },
+  actionBtnDone: {
+    backgroundColor: "rgba(47, 158, 122, 0.10)",
+    borderColor: "rgba(47, 158, 122, 0.35)",
+  },
+  actionLabel: { ...type.bodyMedium, flex: 1, color: colors.text },
+  actionPoints: { ...type.label, fontSize: 12, color: colors.pulsePrimaryDark },
+  actionPointsDone: { color: colors.success },
+});
 
 export default DomainPage;

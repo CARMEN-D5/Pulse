@@ -11,9 +11,12 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { DOMAIN_META, ALL_DOMAINS } from './missionPools';
-import {loadHistory, getDayKey, getWeekKey, loadDailyDoc} from './missionEngine';
-import './MissionHistory.css';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { Loading, Screen, ScreenHeader } from '../components/ui';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { getWeekKey, loadDailyDoc, loadHistory } from './missionEngine';
+import { ALL_DOMAINS, DOMAIN_META } from './missionPools';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,12 +45,9 @@ function aggregateDomains(records) {
 
 function PctBar({ pct, color }) {
     return (
-        <div className="mh-pct-track">
-            <div
-                className="mh-pct-fill"
-                style={{ width: `${pct}%`, background: color }}
-            />
-        </div>
+        <View style={styles.pctTrack}>
+            <View style={[styles.pctFill, { width: `${pct}%`, backgroundColor: color }]} />
+        </View>
     );
 }
 
@@ -60,52 +60,71 @@ function DayRow({ record }) {
     const allDone   = completed === total;
 
     return (
-        <div className="mh-day-row">
-            <button
-                type="button"
-                className="mh-day-header"
-                onClick={() => setOpen(o => !o)}
-                aria-expanded={open}
+        <View style={styles.dayRow}>
+            <Pressable
+                onPress={() => setOpen(o => !o)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                style={({ pressed }) => [styles.dayHeader, pressed && styles.pressed]}
             >
-                <div className="mh-day-left">
-                    <span className="mh-day-label">{formatDay(record.dayKey)}</span>
-                    <span className={`mh-day-badge ${allDone ? 'mh-day-badge--done' : ''}`}>
-            {completed}/{total}
-          </span>
-                </div>
-                <div className="mh-day-right">
-          <span className="mh-day-pct" style={{ color: allDone ? '#2f9e7a' : '#c9184a' }}>
-            {pct}%
-          </span>
-                    <span className="mh-chevron">{open ? '▲' : '▼'}</span>
-                </div>
-            </button>
+                <View style={styles.dayLeft}>
+                    <Text style={styles.dayLabel}>{formatDay(record.dayKey)}</Text>
+                    <View style={[styles.dayBadge, allDone && styles.dayBadgeDone]}>
+                        <Text style={[styles.dayBadgeText, allDone && styles.dayBadgeTextDone]}>
+                            {completed}/{total}
+                        </Text>
+                    </View>
+                </View>
 
-            {open && (
-                <ul className="mh-mission-list">
+                <View style={styles.dayRight}>
+                    <Text style={[styles.dayPct, { color: allDone ? '#2f9e7a' : '#c9184a' }]}>
+                        {pct}%
+                    </Text>
+                    <Text style={styles.chevron}>{open ? '▲' : '▼'}</Text>
+                </View>
+            </Pressable>
+
+            {open ? (
+                <View style={styles.missionList}>
                     {(record.missions ?? []).map((m, i) => {
                         const meta = DOMAIN_META[m.domain] ?? { label: m.domain, icon: '⭐', color: '#888' };
                         return (
-                            <li key={i} className={`mh-mission-item ${m.completed ? 'mh-mission-item--done' : ''}`}>
-                <span
-                    className="mh-mission-dot"
-                    style={{ background: m.completed ? meta.color : '#ddd' }}
-                />
-                                <div className="mh-mission-body">
-                                    <p className="mh-mission-text">{m.text}</p>
-                                    <span className="mh-mission-domain" style={{ color: meta.color }}>
-                    {meta.icon} {meta.label}
-                  </span>
-                                </div>
-                                <span className={`mh-mission-status ${m.completed ? 'mh-mission-status--done' : ''}`}>
-                  {m.completed ? '✓ Done' : '✗ Missed'}
-                </span>
-                            </li>
+                            <View key={i} style={[styles.missionItem, m.completed && styles.missionItemDone]}>
+                                <View
+                                    style={[
+                                        styles.missionDot,
+                                        { backgroundColor: m.completed ? meta.color : '#ddd' },
+                                    ]}
+                                />
+                                <View style={styles.missionBody}>
+                                    <Text style={styles.missionText}>{m.text}</Text>
+                                    <Text style={[styles.missionDomain, { color: meta.color }]}>
+                                        {meta.icon} {meta.label}
+                                    </Text>
+                                </View>
+                                <Text
+                                    style={[
+                                        styles.missionStatus,
+                                        m.completed && styles.missionStatusDone,
+                                    ]}
+                                >
+                                    {m.completed ? '✓ Done' : '✗ Missed'}
+                                </Text>
+                            </View>
                         );
                     })}
-                </ul>
-            )}
-        </div>
+                </View>
+            ) : null}
+        </View>
+    );
+}
+
+function EmptyTab({ title, sub }) {
+    return (
+        <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>{title}</Text>
+            <Text style={styles.emptySub}>{sub}</Text>
+        </View>
     );
 }
 
@@ -121,33 +140,31 @@ function TabThisWeek({ history }) {
 
     if (weekRecs.length === 0) {
         return (
-            <div className="mh-empty">
-                <p>No mission history yet for this week.</p>
-                <p className="mh-empty-sub">Complete today's missions and come back tomorrow!</p>
-            </div>
+            <EmptyTab
+                title="No mission history yet for this week."
+                sub="Complete today's missions and come back tomorrow!"
+            />
         );
     }
 
     return (
-        <div className="mh-tab-content">
+        <View style={styles.tabContent}>
             {/* Week summary */}
-            <div className="mh-week-summary">
-                <div className="mh-summary-row">
-                    <span className="mh-summary-label">This week's completion</span>
-                    <span className="mh-summary-pct" style={{color}}>
-            {pct}%
-          </span>
-                </div>
+            <View style={[styles.summary, shadow('sm')]}>
+                <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>This week's completion</Text>
+                    <Text style={[styles.summaryPct, { color }]}>{pct}%</Text>
+                </View>
                 <PctBar pct={pct} color={color} />
-                <p className="mh-summary-sub">{completed} of {total} missions completed</p>
-            </div>
+                <Text style={styles.summarySub}>{completed} of {total} missions completed</Text>
+            </View>
 
             {/* Daily breakdown */}
-            <div className="mh-section-title">Daily Breakdown</div>
+            <Text style={styles.sectionTitle}>Daily Breakdown</Text>
             {weekRecs.map(rec => (
                 <DayRow key={rec.dayKey} record={rec} />
             ))}
-        </div>
+        </View>
     );
 }
 
@@ -159,16 +176,16 @@ function TabByDomain({ history }) {
 
     if (totalMissions === 0) {
         return (
-            <div className="mh-empty">
-                <p>No mission history yet.</p>
-                <p className="mh-empty-sub">Start completing missions to see your domain stats!</p>
-            </div>
+            <EmptyTab
+                title="No mission history yet."
+                sub="Start completing missions to see your domain stats!"
+            />
         );
     }
 
     return (
-        <div className="mh-tab-content">
-            <div className="mh-section-title">Completion Rate by Domain</div>
+        <View style={styles.tabContent}>
+            <Text style={styles.sectionTitle}>Completion Rate by Domain</Text>
             {ALL_DOMAINS.map(key => {
                 const meta  = DOMAIN_META[key];
                 const s     = stats[key];
@@ -176,21 +193,21 @@ function TabByDomain({ history }) {
                 const share = totalMissions > 0 ? Math.round((s.total / totalMissions) * 100) : 0;
 
                 return (
-                    <div key={key} className="mh-domain-card">
-                        <div className="mh-domain-card-header">
-                            <span className="mh-domain-icon">{meta.icon}</span>
-                            <span className="mh-domain-name">{meta.label}</span>
-                            <span className="mh-domain-pct" style={{ color: meta.color }}>{pct}%</span>
-                        </div>
+                    <View key={key} style={[styles.domainCard, shadow('sm')]}>
+                        <View style={styles.domainCardHeader}>
+                            <Text style={styles.domainIcon}>{meta.icon}</Text>
+                            <Text style={styles.domainName}>{meta.label}</Text>
+                            <Text style={[styles.domainPct, { color: meta.color }]}>{pct}%</Text>
+                        </View>
                         <PctBar pct={pct} color={meta.color} />
-                        <div className="mh-domain-meta">
-                            <span>{s.completed}/{s.total} missions done</span>
-                            <span className="mh-domain-share">{share}% of all missions</span>
-                        </div>
-                    </div>
+                        <View style={styles.domainMeta}>
+                            <Text style={styles.domainMetaText}>{s.completed}/{s.total} missions done</Text>
+                            <Text style={styles.domainMetaText}>{share}% of all missions</Text>
+                        </View>
+                    </View>
                 );
             })}
-        </div>
+        </View>
     );
 }
 
@@ -207,67 +224,67 @@ function TabAllTime({ history }) {
 
     if (history.length === 0) {
         return (
-            <div className="mh-empty">
-                <p>No mission history yet.</p>
-                <p className="mh-empty-sub">Come back after your first day of missions!</p>
-            </div>
+            <EmptyTab
+                title="No mission history yet."
+                sub="Come back after your first day of missions!"
+            />
         );
     }
 
     return (
-        <div className="mh-tab-content">
+        <View style={styles.tabContent}>
             {/* Overall summary */}
-            <div className="mh-week-summary">
-                <div className="mh-summary-row">
-                    <span className="mh-summary-label">Overall completion</span>
-                    <span className="mh-summary-pct" style={{ color }}>
-            {pct}%
-          </span>
-                </div>
+            <View style={[styles.summary, shadow('sm')]}>
+                <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Overall completion</Text>
+                    <Text style={[styles.summaryPct, { color }]}>{pct}%</Text>
+                </View>
                 <PctBar pct={pct} color={color} />
-                <p className="mh-summary-sub">
+                <Text style={styles.summarySub}>
                     {completed} of {total} missions · {history.length} days tracked
-                </p>
-            </div>
+                </Text>
+            </View>
 
             {/* Domain distribution */}
-            <div className="mh-section-title">Domain Distribution</div>
-            <div className="mh-domain-strips">
+            <Text style={styles.sectionTitle}>Domain Distribution</Text>
+            <View style={styles.strips}>
                 {ALL_DOMAINS.map(key => {
                     const meta  = DOMAIN_META[key];
                     const s     = domainStats[key];
                     const share = total > 0 ? Math.round((s.total / total) * 100) : 0;
+                    // flex: 0 collapses a domain with no missions, same as the
+                    // web build's `flex: share`.
                     return (
-                        <div
+                        <View
                             key={key}
-                            className="mh-domain-strip"
-                            style={{ flex: share, background: meta.color }}
-                            title={`${meta.label}: ${share}%`}
+                            style={{ flex: share, backgroundColor: meta.color }}
+                            accessibilityLabel={`${meta.label}: ${share}%`}
                         />
                     );
                 })}
-            </div>
-            <div className="mh-domain-legend">
+            </View>
+
+            <View style={styles.domainLegend}>
                 {ALL_DOMAINS.map(key => {
                     const meta  = DOMAIN_META[key];
                     const s     = domainStats[key];
                     const share = total > 0 ? Math.round((s.total / total) * 100) : 0;
                     return (
-                        <div key={key} className="mh-legend-item">
-                            <span className="mh-legend-dot" style={{ background: meta.color }} />
-                            <span className="mh-legend-label">{meta.icon} {meta.label}</span>
-                            <span className="mh-legend-pct">{share}%</span>
-                        </div>
+                        <View key={key} style={styles.legendItem}>
+                            <View style={[styles.legendDot, { backgroundColor: meta.color }]} />
+                            <Text style={styles.legendLabel}>{meta.icon} {meta.label}</Text>
+                            <Text style={styles.legendPct}>{share}%</Text>
+                        </View>
                     );
                 })}
-            </div>
+            </View>
 
             {/* Full day-by-day log */}
-            <div className="mh-section-title" style={{ marginTop: 20 }}>Full History</div>
+            <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Full History</Text>
             {history.map(rec => (
                 <DayRow key={rec.dayKey} record={rec} />
             ))}
-        </div>
+        </View>
     );
 }
 
@@ -296,32 +313,33 @@ export default function MissionHistory({ user, onBack }) {
     }, [user?.uid]);
 
     return (
-        <div className="mh-shell">
-            {/* Top bar */}
-            <div className="mh-topbar">
-                <button type="button" className="mh-back-btn" onClick={onBack}>
-                    ← Back
-                </button>
-                <h1 className="mh-page-title">Mission History</h1>
-            </div>
+        <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false}>
+            <ScreenHeader title="Mission History" onBack={onBack} />
 
             {/* Tabs */}
-            <div className="mh-tab-bar">
+            <View style={styles.tabBar}>
                 {TABS.map((label, i) => (
-                    <button
+                    <Pressable
                         key={label}
-                        type="button"
-                        className={`mh-tab-btn ${activeTab === i ? 'mh-tab-btn--active' : ''}`}
-                        onClick={() => setActiveTab(i)}
+                        onPress={() => setActiveTab(i)}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: activeTab === i }}
+                        style={({ pressed }) => [
+                            styles.tabBtn,
+                            activeTab === i && styles.tabBtnActive,
+                            pressed && styles.pressed,
+                        ]}
                     >
-                        {label}
-                    </button>
+                        <Text style={[styles.tabBtnText, activeTab === i && styles.tabBtnTextActive]}>
+                            {label}
+                        </Text>
+                    </Pressable>
                 ))}
-            </div>
+            </View>
 
             {/* Content */}
             {loading ? (
-                <div className="mh-loading">Loading history…</div>
+                <Loading label="Loading history…" style={styles.loading} />
             ) : (
                 <>
                     {activeTab === 0 && <TabThisWeek history={history} />}
@@ -329,6 +347,116 @@ export default function MissionHistory({ user, onBack }) {
                     {activeTab === 2 && <TabAllTime  history={history} />}
                 </>
             )}
-        </div>
+        </Screen>
     );
 }
+
+const styles = StyleSheet.create({
+    screen: { gap: spacing.md, paddingBottom: 40 },
+    pressed: { opacity: 0.7 },
+    loading: { paddingVertical: 60 },
+
+    tabBar: { flexDirection: 'row', gap: 6 },
+    tabBtn: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: spacing.sm,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.card,
+    },
+    tabBtnActive: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
+    tabBtnText: { ...type.small, fontSize: 13, color: colors.text },
+    tabBtnTextActive: { color: '#fff', fontFamily: fonts.semibold },
+
+    tabContent: { gap: spacing.md },
+    sectionTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+    sectionTitleSpaced: { marginTop: 20 },
+
+    empty: { alignItems: 'center', gap: spacing.sm, paddingVertical: 48 },
+    emptyTitle: { ...type.body, color: colors.text, textAlign: 'center' },
+    emptySub: { ...type.small, color: colors.textMuted, textAlign: 'center' },
+
+    summary: {
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        gap: spacing.sm,
+    },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    summaryLabel: { ...type.small, color: colors.text },
+    summaryPct: { ...type.h3, fontFamily: fonts.extrabold },
+    summarySub: { ...type.caption, color: colors.textMuted },
+
+    pctTrack: {
+        height: 8,
+        borderRadius: radius.pill,
+        backgroundColor: colors.pulseBgTintAlt,
+        overflow: 'hidden',
+    },
+    pctFill: { height: '100%', borderRadius: radius.pill },
+
+    dayRow: {
+        backgroundColor: colors.card,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
+    },
+    dayHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: spacing.md,
+        gap: spacing.sm,
+    },
+    dayLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
+    dayLabel: { ...type.small, color: colors.text },
+    dayBadge: {
+        paddingHorizontal: 7,
+        paddingVertical: 1,
+        borderRadius: radius.pill,
+        backgroundColor: colors.pulseBg,
+    },
+    dayBadgeDone: { backgroundColor: 'rgba(47,158,122,0.15)' },
+    dayBadgeText: { ...type.caption, fontSize: 10, color: colors.textMuted },
+    dayBadgeTextDone: { color: colors.success },
+    dayRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    dayPct: { ...type.label, fontSize: 13 },
+    chevron: { ...type.caption, fontSize: 9, color: colors.textMuted },
+
+    missionList: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.sm },
+    missionItem: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+    missionItemDone: { opacity: 0.75 },
+    missionDot: { width: 8, height: 8, borderRadius: radius.pill, marginTop: 5 },
+    missionBody: { flex: 1, gap: 1 },
+    missionText: { ...type.small, fontSize: 12, color: colors.text },
+    missionDomain: { ...type.caption, fontSize: 10 },
+    missionStatus: { ...type.caption, fontSize: 10, color: '#c9184a' },
+    missionStatusDone: { color: colors.success },
+
+    domainCard: {
+        backgroundColor: colors.card,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        gap: 6,
+    },
+    domainCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    domainIcon: { fontSize: 15 },
+    domainName: { ...type.label, fontSize: 13, flex: 1, color: colors.text },
+    domainPct: { ...type.label, fontFamily: fonts.bold, fontSize: 13 },
+    domainMeta: { flexDirection: 'row', justifyContent: 'space-between' },
+    domainMetaText: { ...type.caption, fontSize: 10, color: colors.textMuted },
+
+    strips: { flexDirection: 'row', height: 12, borderRadius: radius.pill, overflow: 'hidden' },
+    domainLegend: { gap: 4 },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    legendDot: { width: 8, height: 8, borderRadius: radius.pill },
+    legendLabel: { ...type.caption, fontSize: 11, flex: 1, color: colors.text },
+    legendPct: { ...type.caption, fontSize: 11, color: colors.textMuted },
+});

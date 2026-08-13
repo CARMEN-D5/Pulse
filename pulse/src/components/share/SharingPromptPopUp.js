@@ -1,8 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+
 import { templatesFor, serialisePayload } from "./shareTemplates";
 import TemplateCarousel from "./TemplateCarousel";
 import SharePostEditor from "./SharePostEditor";
-import "./share.css";
+import Icon from "../Icon";
+import { PrimaryButton } from "../ui";
+import { colors, radius, spacing, type } from "../../theme";
 
 export default function SharingPromptPopUp({
                                                domain,
@@ -25,18 +29,9 @@ export default function SharingPromptPopUp({
 
     const selected = templates[index];
 
-    // esc key closes. body scroll locks while open
-    useEffect(() => {
-        const onKey = (e) => e.key === "Escape" && !posting && onClose();
-        document.addEventListener("keydown", onKey);
-        const prev = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
-        return () => {
-            document.removeEventListener("keydown", onKey);
-            document.body.style.overflow = prev;
-        };
-    }, [onClose, posting]);
-
+    // The web build bound Escape and locked body scroll. On native, <Modal>
+    // already traps interaction, and onRequestClose covers the Android back
+    // button — the equivalent of the Escape key here.
     if (!selected) return null;
 
     const handlePost = async ({ reflection }) => {
@@ -65,34 +60,53 @@ export default function SharingPromptPopUp({
     };
 
     return (
-        <div
-            className="sp-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Share to feed"
-            onMouseDown={(e) => e.target === e.currentTarget && !posting && onClose()}
+        <Modal
+            visible
+            transparent
+            animationType="slide"
+            onRequestClose={() => !posting && onClose()}
         >
-            <div className="sp-window">
-                <header className="sp-window__head">
-                    {step === "edit" ? (
-                        <button
-                            className="sp-icon-btn"
-                            onClick={() => setStep("select")}
-                            aria-label="Back to templates"
-                        >
-                            ‹
-                        </button>
-                    ) : (
-                        <span className="sp-icon-btn sp-icon-btn--ghost" aria-hidden />
-                    )}
-                    <h2 className="sp-window__title">Share</h2>
-                    <button className="sp-icon-btn" onClick={onClose} aria-label="Close">
-                        ×
-                    </button>
-                </header>
+            <Pressable
+                style={styles.overlay}
+                onPress={() => !posting && onClose()}
+                accessibilityLabel="Close"
+            />
 
-                {step === "select" ? (
-                    <>
+            <View style={styles.window} accessibilityViewIsModal accessibilityLabel="Share to feed">
+                <View style={styles.head}>
+                    {step === "edit" ? (
+                        <Pressable
+                            onPress={() => setStep("select")}
+                            hitSlop={8}
+                            accessibilityRole="button"
+                            accessibilityLabel="Back to templates"
+                            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                        >
+                            <Text style={styles.iconText}>‹</Text>
+                        </Pressable>
+                    ) : (
+                        <View style={styles.iconBtnGhost} />
+                    )}
+
+                    <Text style={styles.title}>Share</Text>
+
+                    <Pressable
+                        onPress={onClose}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Close"
+                        style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                    >
+                        <Icon name="close" size={20} color={colors.text} />
+                    </Pressable>
+                </View>
+
+                <ScrollView
+                    style={styles.body}
+                    contentContainerStyle={styles.bodyContent}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {step === "select" ? (
                         <TemplateCarousel
                             templates={templates}
                             index={index}
@@ -100,34 +114,65 @@ export default function SharingPromptPopUp({
                             payload={payload}
                             username={username}
                         />
-                        <div className="sp-window__foot">
-                            <button type="button" className="btn btn-ghost" onClick={onClose}>
-                                Not now
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={() => setStep("edit")}
-                            >
-                                Post →
-                            </button>
-                        </div>
-                    </>
-                ) : (
-                    <SharePostEditor
-                        template={selected}
-                        payload={payload}
-                        username={username}
-                        posting={posting}
-                        error={error}
-                        onSubmit={handlePost}
-                        onCancel={onClose}
-                    />
+                    ) : (
+                        <SharePostEditor
+                            template={selected}
+                            payload={payload}
+                            username={username}
+                            posting={posting}
+                            error={error}
+                            onSubmit={handlePost}
+                            onCancel={onClose}
+                        />
+                    )}
+                </ScrollView>
+
+                {step === "select" && (
+                    <View style={styles.foot}>
+                        <PrimaryButton
+                            label="Not now"
+                            variant="danger"
+                            onPress={onClose}
+                            style={styles.flex}
+                        />
+                        <PrimaryButton
+                            label="Post →"
+                            onPress={() => setStep("edit")}
+                            style={styles.flex}
+                        />
+                    </View>
                 )}
-            </div>
-        </div>
+            </View>
+        </Modal>
     );
 }
+
+const styles = StyleSheet.create({
+    flex: { flex: 1 },
+    pressed: { opacity: 0.7 },
+
+    overlay: { flex: 1, backgroundColor: colors.overlay },
+    window: {
+        maxHeight: "85%",
+        backgroundColor: colors.card,
+        borderTopLeftRadius: radius.xl,
+        borderTopRightRadius: radius.xl,
+        padding: spacing.lg,
+        paddingBottom: spacing.xxl,
+        gap: spacing.md,
+    },
+
+    head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    title: { ...type.h3, color: colors.text },
+    iconBtn: { padding: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.rowTint },
+    iconBtnGhost: { width: 28, height: 28 },
+    iconText: { ...type.h3, color: colors.text },
+
+    body: { flexGrow: 0 },
+    bodyContent: { gap: spacing.md },
+    foot: { flexDirection: "row", gap: spacing.sm },
+});
+
 /*
 logic for share prompt in each domain
 

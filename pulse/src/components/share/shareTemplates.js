@@ -1,5 +1,9 @@
 import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
+
 import { MoodFace, MOODS } from "./adapters";
+import { colors, fonts, radius, spacing, type } from "../../theme";
 
 /**
  * share card templates
@@ -96,51 +100,61 @@ const hasRealSets = (activity) =>
 /**
  * `tint` lets a card take a colour trio instead of the app accent — journal
  * cards use the logged mood's colours, finance cards use the category's.
+ *
+ * The card is a fixed-aspect square so the carousel can page it cleanly and
+ * so what the user previews matches what lands in the feed.
  */
 const Card = ({ children, username, tint }) => (
-    <div
-        className="sp-card"
-        style={
-            tint
-                ? {
-                    background: tint.bg,
-                    border: `1px solid ${tint.color}33`,
-                    color: tint.textColor ?? undefined,
-                }
-                : undefined
-        }
+    <View
+        style={[
+            styles.card,
+            tint && { backgroundColor: tint.bg, borderColor: `${tint.color}33` },
+        ]}
     >
-        <div className="sp-card__body">{children}</div>
-        <div className="sp-card__handle">@{username ?? "username"}</div>
-    </div>
+        <View style={styles.cardBody}>{children}</View>
+        <Text style={[styles.handle, tint?.textColor && { color: tint.textColor }]}>
+            @{username ?? "username"}
+        </Text>
+    </View>
 );
 
 const Stat = ({ value, label }) => (
-    <div className="sp-stat">
-        <div className="sp-stat__value">{value}</div>
-        <div className="sp-stat__label">{label}</div>
-    </div>
+    <View style={styles.stat}>
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+    </View>
 );
 
+/**
+ * Progress ring. Same strokeDasharray/strokeDashoffset technique DonutChart
+ * uses, via react-native-svg. The label sits in a centred overlay rather than
+ * an SVG <text>, which keeps it on the app font across platforms.
+ */
 const Ring = ({ pct, children, stroke }) => {
     const R = 52;
     const C = 2 * Math.PI * R;
     const clamped = Math.max(0, Math.min(100, pct));
     return (
-        <svg className="sp-ring" viewBox="0 0 128 128" role="img"
-             aria-label={`${Math.round(clamped)} percent`}>
-            <circle className="sp-ring__track" cx="64" cy="64" r={R} />
-            <circle
-                className="sp-ring__fill"
-                cx="64" cy="64" r={R}
-                style={stroke ? { stroke } : undefined}
-                strokeDasharray={C}
-                strokeDashoffset={C - (C * clamped) / 100}
-            />
-            <text className="sp-ring__text" x="64" y="70">
-                {children}
-            </text>
-        </svg>
+        <View style={styles.ringWrap} accessibilityLabel={`${Math.round(clamped)} percent`}>
+            <Svg width={128} height={128} viewBox="0 0 128 128">
+                <Circle cx="64" cy="64" r={R} stroke={colors.rowTint} strokeWidth={12} fill="none" />
+                <Circle
+                    cx="64"
+                    cy="64"
+                    r={R}
+                    stroke={stroke || colors.blPrimary}
+                    strokeWidth={12}
+                    strokeLinecap="round"
+                    fill="none"
+                    strokeDasharray={C}
+                    strokeDashoffset={C - (C * clamped) / 100}
+                    transform="rotate(-90 64 64)"
+                />
+            </Svg>
+            <View style={styles.ringLabel} pointerEvents="none">
+                <Text style={styles.ringText}>{children}</Text>
+            </View>
+        </View>
     );
 };
 
@@ -156,7 +170,7 @@ export const TEMPLATES = [
         title: () => "A thought from today",
         render: (p, ctx) => (
             <Card username={ctx.username} tint={moodOf(p.moodId)}>
-                <p className="sp-quote">“{p.journalText}”</p>
+                <Text style={styles.quote}>“{p.journalText}”</Text>
             </Card>
         ),
     },
@@ -171,21 +185,24 @@ export const TEMPLATES = [
             const m = moodOrFallback(p?.moodId);
             return (
                 <Card username={ctx.username} tint={m}>
-                    <div className="sp-card__caption">Today I'm feeling</div>
+                    <Text style={styles.caption}>Today I'm feeling</Text>
                     <MoodFace moodId={p.moodId} size={84} selected />
-                    <div className="sp-mood__label">{m.label}</div>
+                    <Text style={styles.moodLabel}>{m.label}</Text>
                     {p.emotions?.length > 0 && (
-                        <div className="sp-tags">
+                        <View style={styles.tags}>
                             {p.emotions.slice(0, 4).map((tag) => (
-                                <span
-                                    className="sp-tag"
+                                <Text
                                     key={tag}
-                                    style={{ border: `1px solid ${m.color}44`, color: m.textColor }}
+                                    style={[
+                                        styles.tag,
+                                        { borderColor: `${m.color}44` },
+                                        m.textColor && { color: m.textColor },
+                                    ]}
                                 >
-                  {tag}
-                </span>
+                                    {tag}
+                                </Text>
                             ))}
-                        </div>
+                        </View>
                     )}
                 </Card>
             );
@@ -202,13 +219,13 @@ export const TEMPLATES = [
         title: (p) => p.text || "Cardio session",
         render: (p, ctx) => (
             <Card username={ctx.username}>
-                <div className="sp-card__caption sp-card__caption--strong">{p.text}</div>
-                <div className="sp-stat-grid">
+                <Text style={styles.captionStrong}>{p.text}</Text>
+                <View style={styles.statGrid}>
                     {num(p.distance) > 0 && (
                         <Stat value={`${num(p.distance)} km`} label="distance" />
                     )}
-                    {p.duration && <Stat value={p.duration} label="time" />}
-                </div>
+                    {p.duration ? <Stat value={p.duration} label="time" /> : null}
+                </View>
             </Card>
         ),
     },
@@ -224,17 +241,15 @@ export const TEMPLATES = [
             const s = workoutStats(p);
             return (
                 <Card username={ctx.username}>
-                    <div className="sp-card__caption sp-card__caption--strong">
-                        {p.text}
-                    </div>
-                    <div className="sp-stat-grid">
+                    <Text style={styles.captionStrong}>{p.text}</Text>
+                    <View style={styles.statGrid}>
                         <Stat value={s.exerciseCount} label="# of exercises" />
                         <Stat value={s.setCount} label="# of all sets" />
                         <Stat value={`${s.volumeKg} kg`} label="total kg lifted" />
                         {p.activityDate && p.activityDate !== "9999-12-31" && (
                             <Stat value={p.activityDate.slice(5)} label="date" />
                         )}
-                    </div>
+                    </View>
                 </Card>
             );
         },
@@ -247,24 +262,24 @@ export const TEMPLATES = [
         title: (p) => p.text || "Workout complete",
         render: (p, ctx) => (
             <Card username={ctx.username}>
-                <div className="sp-card__caption sp-card__caption--strong">{p.text}</div>
-                <ul className="sp-exercise-list">
+                <Text style={styles.captionStrong}>{p.text}</Text>
+                <View style={styles.exerciseList}>
                     {p.exercises.slice(0, 5).map((ex, i) => {
                         const sets = ex.sets ?? [];
                         const top = topWeight(ex);
                         return (
-                            <li key={`${ex.name}-${i}`}>
-                                <span className="sp-dash">–</span> {ex.name || "Exercise"}{" "}
-                                <span className="sp-muted">
-                  ({plural(sets.length, "set", "sets")}
+                            <Text key={`${ex.name}-${i}`} style={styles.exerciseRow}>
+                                – {ex.name || "Exercise"}{" "}
+                                <Text style={styles.muted}>
+                                    ({plural(sets.length, "set", "sets")}
                                     {top > 0 ? ` · ${top} kg` : ""})
-                </span>
-                            </li>
+                                </Text>
+                            </Text>
                         );
                     })}
-                </ul>
+                </View>
                 {p.exercises.length > 5 && (
-                    <div className="sp-more">+{p.exercises.length - 5} more</div>
+                    <Text style={styles.more}>+{p.exercises.length - 5} more</Text>
                 )}
             </Card>
         ),
@@ -279,10 +294,10 @@ export const TEMPLATES = [
         title: () => "I completed all my tasks for the day!",
         render: (p, ctx) => (
             <Card username={ctx.username}>
-                <div className="sp-card__caption">Today I completed</div>
-                <div className="sp-headline">
+                <Text style={styles.caption}>Today I completed</Text>
+                <Text style={styles.headline}>
                     {plural(p.completedCount, "task", "tasks")}!
-                </div>
+                </Text>
             </Card>
         ),
     },
@@ -294,11 +309,11 @@ export const TEMPLATES = [
         title: () => "Cleared my whole to-do list today",
         render: (p, ctx) => (
             <Card username={ctx.username}>
-                <div className="sp-headline sp-headline--sm">To-do list</div>
-                <div className="sp-headline">cleared!</div>
-                <div className="sp-card__caption">
+                <Text style={styles.headlineSm}>To-do list</Text>
+                <Text style={styles.headline}>cleared!</Text>
+                <Text style={styles.caption}>
                     {plural(p.completedCount, "task", "tasks")} done
-                </div>
+                </Text>
             </Card>
         ),
     },
@@ -317,13 +332,11 @@ export const TEMPLATES = [
             const used = (num(p.totalSpent) / num(p.totalBudget)) * 100;
             return (
                 <Card username={ctx.username}>
-                    <div className="sp-card__caption sp-card__caption--strong">
-                        {p.monthLabel}
-                    </div>
+                    <Text style={styles.captionStrong}>{p.monthLabel}</Text>
                     <Ring pct={used}>{Math.round(used)}%</Ring>
-                    <div className="sp-card__caption">
+                    <Text style={styles.caption}>
                         {money(p.totalSpent)} of {money(p.totalBudget)} spent
-                    </div>
+                    </Text>
                 </Card>
             );
         },
@@ -337,21 +350,21 @@ export const TEMPLATES = [
         render: (p, ctx) => {
             const used = (num(p.spent) / num(p.cap)) * 100;
             const tint = p.categoryColor
-                ? { bg: p.categoryColor + "22", color: p.categoryColor }
+                ? { bg: `${p.categoryColor}22`, color: p.categoryColor }
                 : null;
             return (
                 <Card username={ctx.username} tint={tint}>
-                    <div className="sp-card__caption">Under budget</div>
-                    <div className="sp-headline sp-headline--sm">
+                    <Text style={styles.caption}>Under budget</Text>
+                    <Text style={styles.headlineSm}>
                         {p.categoryIcon ? `${p.categoryIcon} ` : ""}
                         {p.categoryLabel}
-                    </div>
+                    </Text>
                     <Ring pct={used} stroke={p.categoryColor}>
                         {Math.round(used)}%
                     </Ring>
-                    <div className="sp-card__caption">
+                    <Text style={styles.caption}>
                         {money(p.spent)} of {money(p.cap)}
-                    </div>
+                    </Text>
                 </Card>
             );
         },
@@ -415,3 +428,61 @@ export const serialisePayload = (domain, payload) => {
     if (!fn) throw new Error(`No payload serialiser for domain "${domain}"`);
     return fn(payload ?? {});
 };
+
+const styles = StyleSheet.create({
+    card: {
+        aspectRatio: 1,
+        backgroundColor: colors.accentSoft,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        justifyContent: "space-between",
+    },
+    cardBody: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm },
+    handle: { ...type.caption, color: colors.textMuted, textAlign: "right" },
+
+    caption: { ...type.small, color: colors.textMuted, textAlign: "center" },
+    captionStrong: {
+        ...type.title,
+        fontFamily: fonts.bold,
+        color: colors.text,
+        textAlign: "center",
+    },
+    quote: { ...type.body, fontFamily: fonts.medium, color: colors.text, textAlign: "center" },
+
+    moodLabel: { ...type.h3, color: colors.text, textAlign: "center" },
+    tags: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, justifyContent: "center" },
+    tag: {
+        ...type.caption,
+        color: colors.text,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.pill,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 2,
+        overflow: "hidden",
+    },
+
+    statGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        gap: spacing.md,
+    },
+    stat: { alignItems: "center", minWidth: 72 },
+    statValue: { ...type.h3, color: colors.text },
+    statLabel: { ...type.caption, color: colors.textMuted, textAlign: "center" },
+
+    exerciseList: { alignSelf: "stretch", gap: 2 },
+    exerciseRow: { ...type.small, color: colors.text },
+    muted: { color: colors.textMuted },
+    more: { ...type.caption, color: colors.textMuted },
+
+    headline: { ...type.h2, color: colors.text, textAlign: "center" },
+    headlineSm: { ...type.h3, color: colors.text, textAlign: "center" },
+
+    ringWrap: { width: 128, height: 128, alignItems: "center", justifyContent: "center" },
+    ringLabel: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+    ringText: { ...type.h3, color: colors.text },
+});

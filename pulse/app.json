@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Pulse",
+    "slug": "pulse",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "pulse",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fff5f7"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pulse.balancedlife",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Pulse needs access to your photo library so you can attach a photo to a post.",
+        "NSCameraUsageDescription": "Pulse needs access to your camera so you can take a photo for a post."
+      }
+    },
+    "android": {
+      "package": "com.pulse.balancedlife",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#fff5f7"
+      },
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pulse needs access to your photo library so you can attach a photo to a post.",
+          "cameraPermission": "Pulse needs access to your camera so you can take a photo for a post."
+        }
+      ],
+      "expo-asset"
+    ]
+  }
+}

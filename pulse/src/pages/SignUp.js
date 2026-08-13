@@ -1,11 +1,25 @@
 import React, { useState } from "react";
-import "./auth.css";
+import { Pressable, Text, View } from "react-native";
+
+import GoogleIcon from "../components/GoogleIcon";
+import Icon from "../components/Icon";
+import {
+  Alert,
+  Card,
+  Divider,
+  LinkButton,
+  PrimaryButton,
+  Screen,
+  TextField,
+} from "../components/ui";
+import { colors } from "../theme";
+import { notify } from "../utils/dialogs";
+import styles from "./authStyles";
 
 function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -26,8 +40,7 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
     return next;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setServerError("");
     const nextErrors = validate();
     setErrors(nextErrors);
@@ -36,17 +49,11 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
     setSubmitting(true);
     try {
       const result = onSubmit
-        ? await onSubmit({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-          })
+        ? await onSubmit({ name: name.trim(), email: email.trim(), password })
         : { ok: false, error: "Sign up is not connected to Firebase yet." };
 
       if (!result?.ok) {
-        setServerError(
-          result?.error || "Could not complete registration. Please try again."
-        );
+        setServerError(result?.error || "Could not complete registration. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -54,181 +61,110 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
   };
 
   return (
-    <div className="auth-redesign auth-redesign--signup">
-      {/* Decorative blurs */}
-      <div className="auth-redesign-decor auth-redesign-decor--1" />
-      <div className="auth-redesign-decor auth-redesign-decor--2" />
-
-      <main className="auth-redesign-main">
+    <Screen center>
+      <View style={styles.main}>
         {/* Header */}
-        <header className="auth-redesign-header">
-          <div className="auth-redesign-icon-box">
-            <span className="material-symbols-outlined">potted_plant</span>
-          </div>
-          <h1 className="auth-redesign-title">Create Account</h1>
-          <p className="auth-redesign-sub">Start your journey to a Balanced Life</p>
-        </header>
+        <View style={styles.header}>
+          <View style={styles.iconBox}>
+            <Icon name="potted_plant" size={40} color={colors.blPrimary} />
+          </View>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Start your journey to a Balanced Life</Text>
+        </View>
 
         {/* Form card */}
-        <section className="auth-glass-card">
-          {serverError && (
-            <div className="auth-glass-alert" role="alert">
-              {serverError}
-            </div>
-          )}
+        <Card>
+          <Alert message={serverError} />
 
-          <form className="auth-glass-form" onSubmit={handleSubmit} noValidate>
-            {/* Full Name */}
-            <div className="auth-glass-field">
-              <label className="auth-glass-label" htmlFor="signup-name">
-                Full Name
-              </label>
-              <div className="auth-glass-input-wrap">
-                <span className="material-symbols-outlined auth-glass-input-icon">
-                  person
-                </span>
-                <input
-                  id="signup-name"
-                  type="text"
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className={`auth-glass-input${errors.name ? " invalid" : ""}`}
-                  placeholder="John Doe"
-                />
-              </div>
-              {errors.name && (
-                <span className="auth-glass-field-error">{errors.name}</span>
-              )}
-            </div>
+          <View style={styles.form}>
+            <TextField
+              label="Full Name"
+              icon="person"
+              value={name}
+              onChangeText={setName}
+              error={errors.name}
+              placeholder="John Doe"
+              autoComplete="name"
+              textContentType="name"
+              returnKeyType="next"
+            />
 
-            {/* Email */}
-            <div className="auth-glass-field">
-              <label className="auth-glass-label" htmlFor="signup-email">
-                Email Address
-              </label>
-              <div className="auth-glass-input-wrap">
-                <span className="material-symbols-outlined auth-glass-input-icon">
-                  mail
-                </span>
-                <input
-                  id="signup-email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`auth-glass-input${errors.email ? " invalid" : ""}`}
-                  placeholder="name@example.com"
-                />
-              </div>
-              {errors.email && (
-                <span className="auth-glass-field-error">{errors.email}</span>
-              )}
-            </div>
+            <TextField
+              label="Email Address"
+              icon="mail"
+              value={email}
+              onChangeText={setEmail}
+              error={errors.email}
+              placeholder="name@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+            />
 
-            {/* Password */}
-            <div className="auth-glass-field">
-              <label className="auth-glass-label" htmlFor="signup-password">
-                Password
-              </label>
-              <div className="auth-glass-input-wrap">
-                <span className="material-symbols-outlined auth-glass-input-icon">
-                  lock
-                </span>
-                <input
-                  id="signup-password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`auth-glass-input auth-glass-input--has-toggle${errors.password ? " invalid" : ""}`}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="auth-glass-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  <span className="material-symbols-outlined">
-                    {showPassword ? "visibility_off" : "visibility"}
-                  </span>
-                </button>
-              </div>
-              {errors.password ? (
-                <span className="auth-glass-field-error">{errors.password}</span>
-              ) : (
-                <span className="auth-glass-field-hint">Use 6+ characters.</span>
-              )}
-            </div>
+            <TextField
+              label="Password"
+              icon="lock"
+              value={password}
+              onChangeText={setPassword}
+              error={errors.password}
+              hint="Use 6+ characters."
+              placeholder="••••••••"
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="go"
+              onSubmitEditing={handleSubmit}
+            />
 
-            {/* Submit */}
-            <button
-              type="submit"
-              className="auth-glass-cta"
-              disabled={submitting}
+            <PrimaryButton
+              label={submitting ? "Creating account…" : "Create Free Account"}
+              icon="arrow_forward"
+              onPress={handleSubmit}
+              loading={submitting}
+            />
+          </View>
+
+          <Divider label="Or continue with" />
+
+          {/* Social sign-up is stubbed, exactly as it was on the web. */}
+          <View style={styles.socialRow}>
+            <Pressable
+              style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+              onPress={() => notify("Google sign-in coming soon")}
+              accessibilityRole="button"
             >
-              <span>{submitting ? "Creating account…" : "Create Free Account"}</span>
-              {!submitting && (
-                <span className="material-symbols-outlined">arrow_forward</span>
-              )}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="auth-glass-divider">
-            <div className="auth-glass-divider-line" />
-            <span className="auth-glass-divider-text">Or continue with</span>
-            <div className="auth-glass-divider-line" />
-          </div>
-
-          {/* Social login */}
-          <div className="auth-glass-socials">
-            <button
-              type="button"
-              className="auth-glass-social-btn"
-              onClick={() => alert("Google sign-in coming soon")}
+              <GoogleIcon size={20} />
+              <Text style={styles.socialBtnText}>Google</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+              onPress={() => notify("Apple sign-in coming soon")}
+              accessibilityRole="button"
             >
-              <svg className="google-icon" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              <span>Google</span>
-            </button>
-            <button
-              type="button"
-              className="auth-glass-social-btn"
-              onClick={() => alert("Apple sign-in coming soon")}
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-                smartphone
-              </span>
-              <span>Apple</span>
-            </button>
-          </div>
-        </section>
+              <Icon name="smartphone" size={20} color={colors.blOnSurfaceVariant} />
+              <Text style={styles.socialBtnText}>Apple</Text>
+            </Pressable>
+          </View>
+        </Card>
 
         {/* Footer */}
-        <footer className="auth-redesign-footer">
-          Already have an account?
-          <button
-            type="button"
-            className="auth-redesign-footer-link"
-            onClick={onSwitchToLogin}
-          >
-            Sign In
-          </button>
-        </footer>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account?</Text>
+          <LinkButton label="Sign In" onPress={onSwitchToLogin} />
+        </View>
 
         {/* Badge */}
-        <div className="auth-redesign-badge">
-          <span className="material-symbols-outlined">verified_user</span>
-          <span>Join 20,000+ mindful members</span>
-        </div>
-      </main>
-    </div>
+        <View style={styles.badge}>
+          <Icon name="verified_user" size={16} color={colors.blOnSurfaceVariant} />
+          <Text style={styles.badgeText}>Join 20,000+ mindful members</Text>
+        </View>
+
+        {onExit ? <LinkButton label="Back" onPress={onExit} /> : null}
+      </View>
+    </Screen>
   );
 }
 

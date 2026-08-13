@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -51,18 +53,21 @@ function storageKey(uid) {
     return `pulse_mood_${uid || "guest"}`;
 }
 
-export function loadMoodData(uid) {
+// React Native has no localStorage, so mood entries are cached in AsyncStorage
+// instead. The API is promise-based where the web one was synchronous, which
+// is why callers have to await these (see SpiritualityPage).
+export async function loadMoodData(uid) {
     try {
-        const raw = localStorage.getItem(storageKey(uid));
+        const raw = await AsyncStorage.getItem(storageKey(uid));
         return raw ? JSON.parse(raw) : {};
     } catch {
         return {};
     }
 }
 
-export function saveMoodData(uid, data) {
+export async function saveMoodData(uid, data) {
     try {
-        localStorage.setItem(storageKey(uid), JSON.stringify(data));
+        await AsyncStorage.setItem(storageKey(uid), JSON.stringify(data));
     } catch {}
 }
 

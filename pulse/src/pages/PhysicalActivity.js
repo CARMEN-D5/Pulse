@@ -1,19 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import './Physical.css';
 import {
-    collection,
     addDoc,
-    query,
-    onSnapshot,
-    updateDoc,
+    collection,
     deleteDoc,
     doc,
+    onSnapshot,
     orderBy,
-    serverTimestamp
+    query,
+    serverTimestamp,
+    updateDoc,
 } from 'firebase/firestore';
-import { useSharePrompt, ShareButton } from '../components/share';
+import React, { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import DateField from '../components/DateField';
+import SegmentedField from '../components/SegmentedField';
+import { Alert, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
+import { db } from '../firebase';
+import { logAction } from '../firestore/scoring';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { confirm } from '../utils/dialogs';
+import { useSharePrompt, ShareButton } from '../components/share';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -37,6 +43,11 @@ function formatDueDate(dateStr) {
     return `${dateStr} (${day})`;
 }
 
+const TYPE_OPTIONS = [
+    { value: 'cardio', label: 'Cardio' },
+    { value: 'strength', label: 'Strength' },
+];
+
 /**
  * Helper to determine if a workout is worth sharing to social.
  *
@@ -55,25 +66,24 @@ function isWorthSharing(activity) {
     );
 }
 
-const emptyExercises = () => [
-    {
-        name: '',
-        sets: [{ weight: '', reps: '' }]
-    }
+const PAGE_OPTIONS = [
+    { value: 'new', label: 'New Activity' },
+    { value: 'templates', label: 'Templates' },
 ];
 
+const EMPTY_EXERCISES = [{ name: '', sets: [{ weight: '', reps: '' }] }];
 
-function PhysicalActivity({ user, onBack }) {
-    // ---------------------------------------------------------------- state
+function PhysicalActivity({ user, onBack, onActivityLogged }) {
+//     State
     const [activities, setActivities] = useState([]);
+    const [input, setInput] = useState('');
     const [descInput, setDescInput] = useState('');
     const [activityDate, setActivityDate] = useState('');
-    const [activityTab, setActivityTab] = useState('pending');
-    const [pageTab, setPageTab] = useState('pending');
+    const [tab, setTab] = useState('cardio');
+    const [pageTab, setPageTab] = useState('new');
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [editDesc, setEditDesc] = useState('');
-    const [menuPos, setMenuPos] = useState(null);
     const [error, setError] = useState(null);
 
     const [distance, setDistance] = useState('');
@@ -81,8 +91,8 @@ function PhysicalActivity({ user, onBack }) {
     const [time, setTime] = useState('');
     const [editTime, setEditTime] = useState('');
 
-    const [exercises, setExercises] = useState(emptyExercises);
-    const [editExercises, setEditExercises] = useState(emptyExercises);
+    const [exercises, setExercises] = useState(EMPTY_EXERCISES);
+    const [editExercises, setEditExercises] = useState(EMPTY_EXERCISES);
 
     const { openSharePrompt } = useSharePrompt();
 
@@ -90,8 +100,7 @@ function PhysicalActivity({ user, onBack }) {
     // The query orders by createdAt DESCENDING, so the newest is index 0.
     const latestActivity = activities[0];
 
-
-    // ------------------------------------------------------------- effects
+    // Load Activities from firebase
     useEffect(() => {
         if (!user) return;
 
@@ -105,38 +114,20 @@ function PhysicalActivity({ user, onBack }) {
         return () => unsubscribe();
     }, [user]);
 
-    useEffect(() => {
-        const handleGlobalClick = () => {
-            setMenuPos(null);
-        };
-        window.addEventListener('click', handleGlobalClick);
-
-        return () => {
-            window.removeEventListener('click', handleGlobalClick);
-        };
-    }, []);
-
-
-    // --------------------------------------------------------------- edit
     const startEdit = (activity) => {
-        setMenuPos(null);
         setEditingId(activity.id);
-        setEditText(activity.text || '');
+        setEditText(activity.text);
         setEditDesc(activity.description || '');
-        setEditDistance(activity.distance ?? '');
-        setEditTime(activity.duration ?? '');
-        setEditExercises(
-            activity.exercises && activity.exercises.length
-                ? activity.exercises
-                : emptyExercises()
-        );
+        setEditDistance(String(activity.distance ?? ''));
+        setEditTime(String(activity.duration ?? ''));
+        setEditExercises(activity.exercises?.length ? activity.exercises : EMPTY_EXERCISES);
     };
 
     const saveEdit = async (id, updateFields = {}) => {
         const activity = activities.find(a => a.id === id);
         if (!activity) return;
 
-        const finalFields = {
+        let finalFields = {
             text: editText,
             description: editDesc,
             distance: editDistance,
@@ -144,19 +135,17 @@ function PhysicalActivity({ user, onBack }) {
             exercises: editExercises,
             ...updateFields
         };
-
-        if (activity.type === 'cardio') {
+        if (activity.type === "cardio") {
             finalFields.exercises = [];
         } else {
             finalFields.distance = 0;
             finalFields.duration = 0;
         }
 
-        if (finalFields.text && finalFields.text.trim() === '') {
+        if (finalFields.text && finalFields.text.trim() === "") {
             setEditingId(null);
             return;
         }
-
         try {
             setError(null);
             const activityRef = doc(db, 'users', user.uid, 'physicalActivities', id);
@@ -165,46 +154,29 @@ function PhysicalActivity({ user, onBack }) {
                 setEditingId(null);
             }
         } catch (err) {
-            console.error('Save error', err);
-            setError('Could not update Activity. Please try again');
+            console.error("Save error", err);
+            setError("Could not update Activity. Please try again");
         }
     };
 
-    const handleKeyDown = (e, id) => {
-        if (e.key === 'Enter') {
-            saveEdit(id);
-        } else if (e.key === 'Escape') {
-            setEditingId(null);
-        }
-    };
-
-    const handleContextMenu = (e, id) => {
-        e.preventDefault();
-        setMenuPos({ x: e.pageX, y: e.pageY, id: id });
-    };
-
-
-    // -------------------------------------------------------------- create
-    const addActivity = async (e) => {
-        e.preventDefault();
-
-        if (activityTab !== 'cardio' && activityTab !== 'strength') return;
-
-        const isCardio = activityTab === 'cardio';
-
-        const activityDoc = {
-            text: activityTab,
-            description: descInput,
-            type: activityTab,
-            distance: isCardio ? distance : 0,
-            duration: isCardio ? time : 0,
-            exercises: isCardio ? [] : exercises,
-            activityDate: activityDate,
-            isTemplate: false,
-        };
+    // Create Activity
+    const addActivity = async () => {
+        if (!input.trim()) return;
 
         try {
             setError(null);
+            const isCardio = tab === 'cardio';
+            const activityDoc = {
+                text: input,
+                description: descInput,
+                type: tab,
+                distance: isCardio ? distance : 0,
+                duration: isCardio ? time : 0,
+                exercises: isCardio ? [] : exercises,
+                activityDate: activityDate,
+                isTemplate: false,
+            };
+
             await addDoc(collection(db, 'users', user.uid, 'physicalActivities'), {
                 ...activityDoc,
                 createdAt: serverTimestamp(),
@@ -218,73 +190,86 @@ function PhysicalActivity({ user, onBack }) {
             }
 
             // Reset runs either way, shared or not.
+            setInput('');
             setDescInput('');
             setActivityDate('');
-            setActivityTab('');
-            setPageTab('');
+            setTab('cardio');
             setDistance('');
             setTime('');
-            setExercises(emptyExercises());
+            setExercises(EMPTY_EXERCISES);
+
+            // Score: log exercise action for the health domain
+            logAction(user.uid, 'health', 'exercise');
+            if (onActivityLogged) onActivityLogged();
         } catch (err) {
-            console.error('Add error', err);
-            setError('Failed to add task. Please try again.');
+            console.error("Add error", err);
+            setError("Failed to add task. Please try again.");
         }
     };
 
+//    delete
+//
+//    The web build hung this off a right-click context menu. Touch devices have
+//    no right-click, so a long press on the row opens the same destructive
+//    action as a confirmation dialog.
+    const deleteActivity = async (activity) => {
+        const ok = await confirm(`"${activity.text}" will be removed permanently.`, {
+            title: 'Delete activity?',
+            confirmLabel: 'Delete',
+            destructive: true,
+        });
+        if (!ok) return;
 
-    // -------------------------------------------------------------- delete
-    const deleteActivity = async (id) => {
         try {
             setError(null);
-            await deleteDoc(doc(db, 'users', user.uid, 'physicalActivities', id));
+            await deleteDoc(doc(db, 'users', user.uid, 'physicalActivities', activity.id));
         } catch (err) {
-            console.error('Delete error:', err);
-            setError('Could not delete task.');
+            console.error("Delete error:", err);
+            setError("Could not delete task.");
         }
     };
 
-
-    // ----------------------------------------------------------- exercises
     const addExercise = () => {
-        setExercises(prev => [
-            ...prev,
-            {
-                name: '',
-                sets: [{ weight: '', reps: '' }]
-            }
-        ]);
+        setExercises([...exercises, { name: '', sets: [{ weight: '', reps: '' }] }]);
     };
 
     const addSet = (exerciseIndex) => {
-        setExercises(prev => prev.map((ex, i) =>
-            i === exerciseIndex
-                ? { ...ex, sets: [...(ex.sets || []), { weight: '', reps: '' }] }
-                : ex
-        ));
+        const updated = [...exercises];
+
+        if (!updated[exerciseIndex]) return;
+
+        updated[exerciseIndex] = {
+            ...updated[exerciseIndex],
+            sets: [...updated[exerciseIndex].sets, { weight: '', reps: '' }],
+        };
+
+        setExercises(updated);
     };
 
     const removeSet = (exerciseIndex) => {
-        setExercises(prev => prev.map((ex, i) => {
-            if (i !== exerciseIndex) return ex;
-            const sets = ex.sets || [];
-            if (sets.length === 0) return ex;
-            return { ...ex, sets: sets.slice(0, -1) };
-        }));
+        const updated = [...exercises];
+        const sets = updated[exerciseIndex].sets;
+
+        if (!sets || sets.length === 0) return;
+
+        updated[exerciseIndex] = {
+            ...updated[exerciseIndex],
+            sets: sets.slice(0, -1)
+        };
+
+        setExercises(updated);
     };
 
-
-    // ----------------------------------------------------------- templates
+    // Templates: a saved activity can be starred and later replayed as the
+    // starting point for a new one.
     const applyTemplate = (template) => {
-        setPageTab('New Activity');
-        setActivityTab(template.type);
-        setDescInput(template.description || '');
-        setDistance(template.distance ?? '');
-        setTime(template.duration ?? '');
-        setExercises(
-            template.exercises && template.exercises.length
-                ? template.exercises
-                : emptyExercises()
-        );
+        setPageTab('new');
+        setInput(template.text ?? '');
+        setTab(template.type);
+        setDescInput(template.description ?? '');
+        setDistance(String(template.distance ?? ''));
+        setTime(String(template.duration ?? ''));
+        setExercises(template.exercises?.length ? template.exercises : EMPTY_EXERCISES);
     };
 
     const changeTemplate = async (id, val) => {
@@ -293,478 +278,467 @@ function PhysicalActivity({ user, onBack }) {
             const activityRef = doc(db, 'users', user.uid, 'physicalActivities', id);
             await updateDoc(activityRef, { isTemplate: val });
         } catch (err) {
-            console.error('Save error', err);
-            setError('Could not update Activity. Please try again');
+            console.error("Save error", err);
+            setError("Could not update Activity. Please try again");
         }
     };
 
     const templateActivities = activities.filter(activity => activity.isTemplate === true);
 
-
-    // ---------------------------------------------------------------- view
     return (
-        <div className="activity-shell">
-            {error && (
-                <div className="error-banner" onClick={() => setError(null)}>
-                    ⚠️ {error} <span className="close-error">×</span>
-                </div>
-            )}
-            <div className="activity-container">
-                <div className="activity-header">
-                    <button onClick={onBack} className="btn-back" type="button">
-                        Back
-                    </button>
-                    <h2 className="activity-title">My Physical Activities</h2>
-                    {/* Manual share of the most recent activity. Hides itself
-                        when there's nothing shareable yet. */}
-                    <ShareButton domain="fitness" payload={latestActivity} />
-                </div>
+        <Screen contentContainerStyle={styles.screen}>
+            <ScreenHeader
+                title="My Physical Activities"
+                onBack={onBack}
+                right={<ShareButton domain="fitness" payload={latestActivity} />}
+            />
 
-                <div className="activity-form-card">
-                    <div className="activity-tabs-card">
-                        {['New Activity', 'Templates'].map(t => (
-                            <button
-                                key={t}
-                                className={`tab-btn ${pageTab === t ? 'active' : ''}`}
-                                onClick={() => setPageTab(t)}
-                                type="button"
-                            >
-                                {t.charAt(0).toUpperCase() + t.slice(1)}
-                            </button>
+            {error ? (
+                <Pressable onPress={() => setError(null)} accessibilityRole="button">
+                    <Alert message={`⚠️ ${error}`} />
+                </Pressable>
+            ) : null}
+
+            <SegmentedField options={PAGE_OPTIONS} value={pageTab} onChange={setPageTab} />
+
+            {/* Add-activity form */}
+            {pageTab === 'new' ? (
+            <View style={[styles.card, shadow('sm')]}>
+                <TextInput
+                    style={styles.input}
+                    value={input}
+                    onChangeText={setInput}
+                    placeholder="New Activity..."
+                    placeholderTextColor={colors.textMuted}
+                />
+                <TextInput
+                    style={[styles.input, styles.textarea]}
+                    value={descInput}
+                    onChangeText={setDescInput}
+                    placeholder="Add a description (optional)..."
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    textAlignVertical="top"
+                />
+
+                <DateField
+                    value={activityDate}
+                    onChange={setActivityDate}
+                    placeholder="Activity date"
+                />
+
+                <SegmentedField options={TYPE_OPTIONS} value={tab} onChange={setTab} />
+
+                {tab === 'cardio' ? (
+                    <View style={styles.row}>
+                        <TextInput
+                            style={[styles.input, styles.flex]}
+                            value={distance}
+                            onChangeText={setDistance}
+                            placeholder="Distance (km)"
+                            placeholderTextColor={colors.textMuted}
+                            keyboardType="decimal-pad"
+                        />
+                        <TextInput
+                            style={[styles.input, styles.flex]}
+                            value={time}
+                            onChangeText={setTime}
+                            placeholder="Duration (HH:MM)"
+                            placeholderTextColor={colors.textMuted}
+                        />
+                    </View>
+                ) : null}
+
+                {tab === 'strength' ? (
+                    <View style={styles.exerciseList}>
+                        {exercises.map((exercise, index) => (
+                            <View key={index} style={styles.exerciseCard}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Exercise"
+                                    placeholderTextColor={colors.textMuted}
+                                    value={exercise.name}
+                                    onChangeText={(v) => {
+                                        const updated = [...exercises];
+                                        updated[index] = { ...updated[index], name: v };
+                                        setExercises(updated);
+                                    }}
+                                />
+
+                                {exercise.sets.map((set, index2) => (
+                                    <View key={index2} style={styles.setRow}>
+                                        <TextInput
+                                            style={[styles.input, styles.flex]}
+                                            placeholder="weight"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="decimal-pad"
+                                            value={set.weight}
+                                            onChangeText={(v) => {
+                                                const updated = [...exercises];
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    sets: updated[index].sets.map((s, i) =>
+                                                        i === index2 ? { ...s, weight: v } : s
+                                                    ),
+                                                };
+                                                setExercises(updated);
+                                            }}
+                                        />
+                                        <Text style={styles.unit}>kg</Text>
+
+                                        <TextInput
+                                            style={[styles.input, styles.flex]}
+                                            placeholder="reps"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="number-pad"
+                                            value={set.reps}
+                                            onChangeText={(v) => {
+                                                const updated = [...exercises];
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    sets: updated[index].sets.map((s, i) =>
+                                                        i === index2 ? { ...s, reps: v } : s
+                                                    ),
+                                                };
+                                                setExercises(updated);
+                                            }}
+                                        />
+                                        <Text style={styles.unit}>reps</Text>
+                                    </View>
+                                ))}
+
+                                <View style={styles.row}>
+                                    <SmallButton label="+ Add Set" onPress={() => addSet(index)} />
+                                    <SmallButton label="- Remove Set" onPress={() => removeSet(index)} />
+                                </View>
+                            </View>
                         ))}
-                    </div>
-                    <div className="activity-form">
-                        {pageTab === 'New Activity' && (
-                            <div>
-                                <div className="activity-tabs-card">
-                                    {['cardio', 'strength'].map(t => (
-                                        <button
-                                            key={t}
-                                            className={`tab-btn ${activityTab === t ? 'active' : ''}`}
-                                            onClick={() => setActivityTab(t)}
-                                            type="button"
-                                        >
-                                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
-                                <form onSubmit={addActivity} className="activity-input-group">
-                                    <textarea
-                                        className="input-field-styled"
-                                        value={descInput}
-                                        onChange={(e) => setDescInput(e.target.value)}
-                                        placeholder="Add a description (optional)..."
+
+                        <SmallButton label="+ Add Exercise" onPress={addExercise} />
+                    </View>
+                ) : null}
+
+                <PrimaryButton label="Add" onPress={addActivity} disabled={!input.trim()} />
+            </View>
+            ) : null}
+
+            {/* Saved templates */}
+            {pageTab === 'templates' ? (
+                <View style={styles.list}>
+                    {templateActivities.length === 0 ? (
+                        <Text style={styles.metaText}>
+                            No templates yet. Tap 🤍 on an activity to save it as one.
+                        </Text>
+                    ) : null}
+
+                    {templateActivities.map(activity => (
+                        <View key={activity.id} style={[styles.item, shadow('sm')]}>
+                            <Text style={styles.itemText}>{activity.text}</Text>
+
+                            {activity.description ? (
+                                <Text style={styles.itemDescription}>{activity.description}</Text>
+                            ) : null}
+
+                            <View style={styles.activityData}>
+                                {activity.type === 'cardio' ? (
+                                    <>
+                                        <Text style={styles.metaLabel}>Type: Cardio</Text>
+                                        <Text style={styles.metaText}>Distance: {activity.distance}km</Text>
+                                        <Text style={styles.metaText}>Time: {activity.duration}</Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Text style={styles.metaLabel}>Type: GYM</Text>
+                                        {(activity.exercises ?? []).map((exercise, index) => (
+                                            <View key={index} style={styles.exerciseSummary}>
+                                                <Text style={styles.metaText}>
+                                                    Exercise: {exercise.name}
+                                                </Text>
+                                                {(exercise.sets ?? []).map((set, index2) => (
+                                                    <Text key={index2} style={styles.setText}>
+                                                        {set.weight} x{set.reps}
+                                                    </Text>
+                                                ))}
+                                            </View>
+                                        ))}
+                                    </>
+                                )}
+                            </View>
+
+                            <SmallButton label="Use Template" onPress={() => applyTemplate(activity)} />
+                        </View>
+                    ))}
+                </View>
+            ) : null}
+
+            {/* Activity list */}
+            {pageTab !== 'templates' ? (
+            <View style={styles.list}>
+                {activities.map(activity => {
+                    const editing = editingId === activity.id;
+
+                    return (
+                        <View key={activity.id} style={[styles.item, shadow('sm')]}>
+                            {editing ? (
+                                <View style={styles.editBox}>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={editText}
+                                        onChangeText={setEditText}
+                                        autoFocus
+                                    />
+                                    <TextInput
+                                        style={[styles.input, styles.textarea]}
+                                        placeholder="Add a description..."
+                                        placeholderTextColor={colors.textMuted}
+                                        value={editDesc}
+                                        onChangeText={setEditDesc}
+                                        multiline
+                                        textAlignVertical="top"
                                     />
 
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <input
-                                            type="date"
-                                            className="input-field-styled"
-                                            style={{ flex: 1 }}
-                                            value={activityDate}
-                                            onChange={(e) => setActivityDate(e.target.value)}
-                                        />
-                                    </div>
+                                    <DateField
+                                        value={activity.activityDate === '9999-12-31' ? '' : activity.activityDate}
+                                        onChange={(v) => saveEdit(activity.id, { activityDate: v || '9999-12-31' })}
+                                        placeholder="Activity date"
+                                    />
 
-                                    <div className="activity-form">
-                                        {activityTab === 'cardio' && (
-                                            <div>
-                                                <input
-                                                    className="input-field-styled"
-                                                    value={distance}
-                                                    onChange={(e) => setDistance(e.target.value)}
-                                                    placeholder="Distance (km)"
-                                                    style={{ flex: 1, padding: '8px' }}
-                                                />
-                                                <input
-                                                    className="input-field-styled"
-                                                    value={time}
-                                                    onChange={(e) => setTime(e.target.value)}
-                                                    placeholder="Duration (HH:MM)"
-                                                    style={{ flex: 1, padding: '8px' }}
-                                                />
-                                            </div>
-                                        )}
-
-                                        {activityTab === 'strength' && (
-                                            <div>
-                                                {exercises.map((exercise, index) => (
-                                                    <div key={index} className="exercise-card">
-                                                        {/* TODO: make this a dropdown */}
-                                                        <input
-                                                            className="input-field-styled"
-                                                            placeholder="Exercise"
-                                                            style={{ flex: 1, padding: '8px' }}
-                                                            value={exercise.name}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                setExercises(prev => prev.map((ex, i) =>
-                                                                    i === index ? { ...ex, name: val } : ex
-                                                                ));
-                                                            }}
-                                                        />
-
-                                                        {(exercise.sets || []).map((set, index2) => (
-                                                            <div key={index2} className="set-card">
-                                                                <input
-                                                                    className="input-field-styled"
-                                                                    placeholder="weight"
-                                                                    style={{ flex: 1, padding: '8px' }}
-                                                                    value={set.weight}
-                                                                    onChange={(e) => {
-                                                                        const val = e.target.value;
-                                                                        setExercises(prev => prev.map((ex, i) =>
-                                                                            i !== index ? ex : {
-                                                                                ...ex,
-                                                                                sets: ex.sets.map((s, j) =>
-                                                                                    j === index2 ? { ...s, weight: val } : s
-                                                                                )
-                                                                            }
-                                                                        ));
-                                                                    }}
-                                                                /> kg
-                                                                <input
-                                                                    className="input-field-styled"
-                                                                    placeholder="reps"
-                                                                    style={{ flex: 1, padding: '8px' }}
-                                                                    value={set.reps}
-                                                                    onChange={(e) => {
-                                                                        const val = e.target.value;
-                                                                        setExercises(prev => prev.map((ex, i) =>
-                                                                            i !== index ? ex : {
-                                                                                ...ex,
-                                                                                sets: ex.sets.map((s, j) =>
-                                                                                    j === index2 ? { ...s, reps: val } : s
-                                                                                )
-                                                                            }
-                                                                        ));
-                                                                    }}
-                                                                /> reps
-                                                            </div>
-                                                        ))}
-
-                                                        <button type="button" className="btn-back" onClick={() => addSet(index)}>
-                                                            + Add Set
-                                                        </button>
-
-                                                        <button type="button" className="btn-back" onClick={() => removeSet(index)}>
-                                                            - Remove Set
-                                                        </button>
-                                                    </div>
-                                                ))}
-
-                                                <button type="button" className="btn-back" onClick={addExercise}>
-                                                    + Add Exercise
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button type="submit" className="btn-teal">Add</button>
-                                </form>
-                            </div>
-                        )}
-
-                        {pageTab === 'Templates' && (
-                            <div>
-                                <ul className="activity-list-styled">
-                                    {templateActivities.map(activity => (
-                                        <li
-                                            key={activity.id}
-                                            className="activity-item-card"
-                                            onContextMenu={(e) => {
-                                                e.stopPropagation();
-                                                handleContextMenu(e, activity.id);
-                                            }}
-                                        >
-                                            <div className="item-content">
-                                                <div className="item-title-row">
-                                                    <span className="item-text">{activity.text}</span>
-                                                </div>
-                                                {activity.description && (
-                                                    <span
-                                                        className="item-description"
-                                                        style={{
-                                                            fontSize: '0.85rem',
-                                                            color: '#666',
-                                                            margin: '4px 0',
-                                                            lineHeight: '1.4'
+                                    {activity.type === 'cardio' ? (
+                                        <View style={styles.editSection}>
+                                            <Text style={styles.metaLabel}>Type: Cardio</Text>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editDistance}
+                                                onChangeText={setEditDistance}
+                                                placeholder="Distance (km)"
+                                                placeholderTextColor={colors.textMuted}
+                                                keyboardType="decimal-pad"
+                                            />
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editTime}
+                                                onChangeText={setEditTime}
+                                                placeholder="Duration (HH:MM)"
+                                                placeholderTextColor={colors.textMuted}
+                                            />
+                                        </View>
+                                    ) : (
+                                        <View style={styles.editSection}>
+                                            <Text style={styles.metaLabel}>Type: Gym</Text>
+                                            {editExercises.map((exercise, index) => (
+                                                <View key={index} style={styles.exerciseCard}>
+                                                    <TextInput
+                                                        style={styles.input}
+                                                        value={exercise.name}
+                                                        placeholder="Exercise"
+                                                        placeholderTextColor={colors.textMuted}
+                                                        onChangeText={(v) => {
+                                                            const updated = [...editExercises];
+                                                            updated[index] = { ...updated[index], name: v };
+                                                            setEditExercises(updated);
                                                         }}
-                                                    >
-                                                        {activity.description}
-                                                    </span>
-                                                )}
-                                                <div className="item-meta">
-                                                    {activity.activityDate !== '9999-12-31' && (
-                                                        <span>
-                                                            📅 Date: {formatDueDate(activity.activityDate)}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="activity-data">
-                                                    {activity.type === 'cardio' ? (
-                                                        <div>
-                                                            <div><span>Type: Cardio</span></div>
-                                                            <div><span>Distance: {activity.distance}km</span></div>
-                                                            <div><span>Time: {activity.duration}</span></div>
-                                                        </div>
-                                                    ) : (
-                                                        <div>
-                                                            <div><span>Type: GYM </span></div>
-                                                            {(activity.exercises || []).map((exercise, index) => (
-                                                                <div key={index}>
-                                                                    <div><span>Exercise: {exercise.name}</span></div>
-                                                                    {(exercise.sets || []).map((set, index2) => (
-                                                                        <div key={index2}>
-                                                                            <span>{set.weight} x{set.reps}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className="btn-back"
-                                                    onClick={() => applyTemplate(activity)}
-                                                >
-                                                    Use Template
-                                                </button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="activity-form">
-                    {pageTab !== 'Templates' && (
-                        <div>
-                            <ul className="activity-list-styled">
-                                {activities.map(activity => (
-                                    <li
-                                        key={activity.id}
-                                        className="activity-item-card"
-                                        onContextMenu={(e) => {
-                                            e.stopPropagation();
-                                            handleContextMenu(e, activity.id);
-                                        }}
-                                    >
-                                        <div className="item-content">
-                                            {editingId === activity.id ? (
-                                                <div className="edit-mode-container">
-                                                    <input
-                                                        className="edit-input-styled"
-                                                        value={editText}
-                                                        autoFocus
-                                                        onChange={(e) => setEditText(e.target.value)}
-                                                        onKeyDown={(e) => handleKeyDown(e, activity.id)}
                                                     />
-                                                    <textarea
-                                                        className="edit-desc-textarea"
-                                                        placeholder="Add a description..."
-                                                        value={editDesc}
-                                                        onChange={(e) => setEditDesc(e.target.value)}
-                                                    />
+                                                    {exercise.sets.map((set, index2) => (
+                                                        <View key={index2} style={styles.setRow}>
+                                                            <TextInput
+                                                                style={[styles.input, styles.flex]}
+                                                                value={set.weight}
+                                                                placeholder="weight"
+                                                                placeholderTextColor={colors.textMuted}
+                                                                keyboardType="decimal-pad"
+                                                                onChangeText={(v) => {
+                                                                    const updated = [...editExercises];
+                                                                    updated[index] = {
+                                                                        ...updated[index],
+                                                                        sets: updated[index].sets.map((s, i) =>
+                                                                            i === index2 ? { ...s, weight: v } : s
+                                                                        )
+                                                                    };
+                                                                    setEditExercises(updated);
+                                                                }}
+                                                            />
+                                                            <TextInput
+                                                                style={[styles.input, styles.flex]}
+                                                                value={set.reps}
+                                                                placeholder="reps"
+                                                                placeholderTextColor={colors.textMuted}
+                                                                keyboardType="number-pad"
+                                                                onChangeText={(v) => {
+                                                                    const updated = [...editExercises];
+                                                                    updated[index] = {
+                                                                        ...updated[index],
+                                                                        sets: updated[index].sets.map((s, i) =>
+                                                                            i === index2 ? { ...s, reps: v } : s
+                                                                        )
+                                                                    };
+                                                                    setEditExercises(updated);
+                                                                }}
+                                                            />
+                                                        </View>
+                                                    ))}
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
 
-                                                    <div className="item-meta-edit">
-                                                        <input
-                                                            type="date"
-                                                            className="edit-date-mini"
-                                                            defaultValue={
-                                                                activity.activityDate === '9999-12-31'
-                                                                    ? ''
-                                                                    : activity.activityDate
-                                                            }
-                                                            onChange={(e) => saveEdit(activity.id, {
-                                                                activityDate: e.target.value || '9999-12-31'
-                                                            })}
-                                                        />
-                                                    </div>
+                                    <PrimaryButton label="Done" onPress={() => saveEdit(activity.id)} />
+                                </View>
+                            ) : (
+                                // Tap to edit, long-press to delete — the touch
+                                // equivalents of double-click and right-click.
+                                <Pressable
+                                    onPress={() => startEdit(activity)}
+                                    onLongPress={() => deleteActivity(activity)}
+                                    accessibilityRole="button"
+                                    accessibilityHint="Tap to edit, long press to delete"
+                                >
+                                    <Text style={styles.itemText}>{activity.text}</Text>
 
-                                                    <div className="activity-data">
-                                                        {activity.type === 'cardio' ? (
-                                                            <div>
-                                                                <span>Type: Cardio</span>
-                                                                <input
-                                                                    className="input-field-styled"
-                                                                    value={editDistance}
-                                                                    onChange={(e) => setEditDistance(e.target.value)}
-                                                                    onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                />
-                                                                <input
-                                                                    className="input-field-styled"
-                                                                    value={editTime}
-                                                                    onChange={(e) => setEditTime(e.target.value)}
-                                                                    onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            <div>
-                                                                <span>Type: Gym </span>
-                                                                {editExercises.map((exercise, index) => (
-                                                                    <div key={index}>
-                                                                        <input
-                                                                            className="input-field-styled"
-                                                                            value={exercise.name}
-                                                                            onChange={(e) => {
-                                                                                const val = e.target.value;
-                                                                                setEditExercises(prev => prev.map((ex, i) =>
-                                                                                    i === index ? { ...ex, name: val } : ex
-                                                                                ));
-                                                                            }}
-                                                                            onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                        />
-                                                                        {(exercise.sets || []).map((set, index2) => (
-                                                                            <div key={index2}>
-                                                                                <input
-                                                                                    className="input-field-styled"
-                                                                                    value={set.weight}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value;
-                                                                                        setEditExercises(prev => prev.map((ex, i) =>
-                                                                                            i !== index ? ex : {
-                                                                                                ...ex,
-                                                                                                sets: ex.sets.map((s, j) =>
-                                                                                                    j === index2 ? { ...s, weight: val } : s
-                                                                                                )
-                                                                                            }
-                                                                                        ));
-                                                                                    }}
-                                                                                    onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                                />
-                                                                                <input
-                                                                                    className="input-field-styled"
-                                                                                    value={set.reps}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value;
-                                                                                        setEditExercises(prev => prev.map((ex, i) =>
-                                                                                            i !== index ? ex : {
-                                                                                                ...ex,
-                                                                                                sets: ex.sets.map((s, j) =>
-                                                                                                    j === index2 ? { ...s, reps: val } : s
-                                                                                                )
-                                                                                            }
-                                                                                        ));
-                                                                                    }}
-                                                                                    onKeyDown={(e) => handleKeyDown(e, activity.id)}
-                                                                                />
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
+                                    {activity.description ? (
+                                        <Text style={styles.itemDescription}>{activity.description}</Text>
+                                    ) : null}
 
-                                                        <span
-                                                            className="done-text"
-                                                            onClick={() => saveEdit(activity.id)}
-                                                        >
-                                                            Done
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    onDoubleClick={() => startEdit(activity)}
-                                                    title="Double click to edit"
-                                                >
-                                                    <div className="item-title-row">
-                                                        <span className="item-text">{activity.text} </span>
-                                                        {activity.isTemplate === true ? (
-                                                            <button
-                                                                type="button"
-                                                                className="btn-heart"
-                                                                onClick={() => changeTemplate(activity.id, false)}
-                                                            >
-                                                                ❤️
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                className="btn-heart"
-                                                                onClick={() => changeTemplate(activity.id, true)}
-                                                            >
-                                                                🤍
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {activity.description && (
-                                                        <span
-                                                            className="item-description"
-                                                            style={{
-                                                                fontSize: '0.85rem',
-                                                                color: '#666',
-                                                                margin: '4px 0',
-                                                                lineHeight: '1.4'
-                                                            }}
-                                                        >
-                                                            {activity.description}
-                                                        </span>
-                                                    )}
-                                                    <div className="item-meta">
-                                                        {activity.activityDate !== '9999-12-31' && (
-                                                            <span>
-                                                                📅 Date: {formatDueDate(activity.activityDate)}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="activity-data">
-                                                        {activity.type === 'cardio' ? (
-                                                            <div>
-                                                                <div><span>Type: Cardio</span></div>
-                                                                <div><span>Distance: {activity.distance}km</span></div>
-                                                                <div><span>Time: {activity.duration}</span></div>
-                                                            </div>
-                                                        ) : (
-                                                            <div>
-                                                                <div><span>Type: GYM </span></div>
-                                                                {(activity.exercises || []).map((exercise, index) => (
-                                                                    <div key={index}>
-                                                                        <div><span>Exercise: {exercise.name}</span></div>
-                                                                        {(exercise.sets || []).map((set, index2) => (
-                                                                            <div key={index2}>
-                                                                                <span>{set.weight} x{set.reps}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </div>
-            </div>
+                                    {activity.activityDate && activity.activityDate !== '9999-12-31' ? (
+                                        <Text style={styles.metaText}>
+                                            📅 Date: {formatDueDate(activity.activityDate)}
+                                        </Text>
+                                    ) : null}
 
-            {menuPos && (
-                <div
-                    className="custom-context-menu"
-                    style={{ top: menuPos.y, left: menuPos.x }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div
-                        className="menu-item delete"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            deleteActivity(menuPos.id);
-                            setMenuPos(null);
-                        }}
-                    >
-                        🗑️ Delete Activity
-                    </div>
-                </div>
-            )}
-        </div>
+                                    <View style={styles.activityData}>
+                                        {activity.type === 'cardio' ? (
+                                            <>
+                                                <Text style={styles.metaLabel}>Type: Cardio</Text>
+                                                <Text style={styles.metaText}>Distance: {activity.distance}km</Text>
+                                                <Text style={styles.metaText}>Time: {activity.duration}</Text>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Text style={styles.metaLabel}>Type: GYM</Text>
+                                                {(activity.exercises ?? []).map((exercise, index) => (
+                                                    <View key={index} style={styles.exerciseSummary}>
+                                                        <Text style={styles.metaText}>
+                                                            Exercise: {exercise.name}
+                                                        </Text>
+                                                        {(exercise.sets ?? []).map((set, index2) => (
+                                                            <Text key={index2} style={styles.setText}>
+                                                                {set.weight} x{set.reps}
+                                                            </Text>
+                                                        ))}
+                                                    </View>
+                                                ))}
+                                            </>
+                                        )}
+                                    </View>
+                                </Pressable>
+                            )}
+
+                            {editing ? null : (
+                                <Pressable
+                                    onPress={() => changeTemplate(activity.id, !activity.isTemplate)}
+                                    hitSlop={8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={
+                                        activity.isTemplate
+                                            ? 'Remove from templates'
+                                            : 'Save as template'
+                                    }
+                                    style={({ pressed }) => [styles.heartBtn, pressed && { opacity: 0.7 }]}
+                                >
+                                    <Text style={styles.heartText}>
+                                        {activity.isTemplate ? '❤️' : '🤍'}
+                                    </Text>
+                                </Pressable>
+                            )}
+                        </View>
+                    );
+                })}
+            </View>
+            ) : null}
+        </Screen>
     );
 }
+
+function SmallButton({ label, onPress }) {
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.smallBtn, pressed && styles.pressed]}
+        >
+            <Text style={styles.smallBtnText}>{label}</Text>
+        </Pressable>
+    );
+}
+
+const styles = StyleSheet.create({
+    screen: { gap: spacing.md, paddingBottom: 40 },
+    flex: { flex: 1 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    pressed: { opacity: 0.7 },
+
+    card: {
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        gap: spacing.md,
+    },
+
+    input: {
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        ...type.body,
+        color: colors.text,
+        backgroundColor: 'rgba(255,255,255,0.7)',
+    },
+    textarea: { minHeight: 72 },
+    unit: { ...type.small, color: colors.textMuted },
+
+    exerciseList: { gap: spacing.md },
+    exerciseCard: {
+        gap: spacing.sm,
+        padding: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.pulseBg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    setRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+    smallBtn: {
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.blPrimary,
+    },
+    smallBtnText: { ...type.small, color: colors.blPrimary },
+
+    list: { gap: spacing.sm },
+    item: {
+        padding: spacing.lg,
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    editBox: { gap: spacing.sm },
+    editSection: { gap: spacing.sm },
+
+    heartBtn: { alignSelf: 'flex-end', paddingTop: spacing.sm },
+    heartText: { fontSize: 20 },
+
+    itemText: { ...type.title, fontFamily: fonts.semibold, color: colors.text },
+    itemDescription: { ...type.small, color: '#666', marginVertical: 4 },
+    metaText: { ...type.small, color: colors.textMuted },
+    metaLabel: { ...type.label, fontSize: 12, color: colors.text, marginTop: 4 },
+    activityData: { marginTop: spacing.sm, gap: 2 },
+    exerciseSummary: { marginTop: 4, gap: 2 },
+    setText: { ...type.caption, fontSize: 12, color: colors.textMuted, paddingLeft: spacing.md },
+});
 
 export default PhysicalActivity;

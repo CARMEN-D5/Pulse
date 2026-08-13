@@ -1,70 +1,105 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { DOMAINS, DOMAIN_KEYS } from '../scoring/scoringEngine';
-import { computeCurrentScores } from '../firestore/scoring';
-import DailyMissions from './DailyMissions';
-import './auth.css';
-import './social.css';
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, {
+  Circle,
+  Defs,
+  G,
+  Line,
+  LinearGradient as SvgLinearGradient,
+  Polygon,
+  RadialGradient,
+  Stop,
+  Text as SvgText,
+} from "react-native-svg";
 
-/* ── Domain visual config ──────────────────────────────────── */
+import Icon from "../components/Icon";
+import { Screen } from "../components/ui";
+import { computeCurrentScores } from "../firestore/scoring";
+import { DOMAINS, DOMAIN_KEYS } from "../scoring/scoringEngine";
+import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import DailyMissions from "./DailyMissions";
+
+/* ── Domain visual config ──────────────────────────────────────
+   The web build stored `gradient` as a CSS string. React Native takes the
+   stops as an array instead, which expo-linear-gradient renders natively. */
 const DOMAIN_META = {
-  spirituality:  { icon: 'auto_awesome',    gradient: 'linear-gradient(135deg, #086a69 0%, #0a9e9c 100%)', light: '#e6f7f6', text: '#086a69', accent: '#0a9e9c' },
-  relationships: { icon: 'groups',           gradient: 'linear-gradient(135deg, #4e607f 0%, #7889a8 100%)', light: '#ebeef4', text: '#4e607f', accent: '#7889a8' },
-  productivity:  { icon: 'business_center',  gradient: 'linear-gradient(135deg, #5a6550 0%, #7d8a72 100%)', light: '#eef0eb', text: '#5a6550', accent: '#7d8a72' },
-  health:        { icon: 'favorite',         gradient: 'linear-gradient(135deg, #c9184a 0%, #ff4d6d 100%)', light: '#fde8ee', text: '#c9184a', accent: '#ff4d6d' },
-  finance:       { icon: 'payments',         gradient: 'linear-gradient(135deg, #983f72 0%, #c06098 100%)', light: '#f5e6ef', text: '#983f72', accent: '#c06098' },
+  spirituality:  { icon: "auto_awesome",   gradient: ["#086a69", "#0a9e9c"], light: "#e6f7f6", text: "#086a69", accent: "#0a9e9c" },
+  relationships: { icon: "groups",          gradient: ["#4e607f", "#7889a8"], light: "#ebeef4", text: "#4e607f", accent: "#7889a8" },
+  productivity:  { icon: "business_center", gradient: ["#5a6550", "#7d8a72"], light: "#eef0eb", text: "#5a6550", accent: "#7d8a72" },
+  health:        { icon: "favorite",        gradient: ["#c9184a", "#ff4d6d"], light: "#fde8ee", text: "#c9184a", accent: "#ff4d6d" },
+  finance:       { icon: "payments",        gradient: ["#983f72", "#c06098"], light: "#f5e6ef", text: "#983f72", accent: "#c06098" },
 };
 
-const GRID_ORDER = ['spirituality', 'health', 'relationships', 'finance', 'productivity'];
+const GRID_ORDER = ["spirituality", "health", "relationships", "finance", "productivity"];
 
-const RADAR_ORDER = ['spirituality', 'relationships', 'finance', 'health', 'productivity'];
+const RADAR_ORDER = ["spirituality", "relationships", "finance", "health", "productivity"];
 const RADAR_LABELS = {
-  spirituality:  'Spirit',
-  relationships: 'Family',
-  finance:       'Finance',
-  health:        'Health',
-  productivity:  'Work',
+  spirituality:  "Spirit",
+  relationships: "Family",
+  finance:       "Finance",
+  health:        "Health",
+  productivity:  "Work",
 };
+
+/* One short line of encouragement above the missions card. The index is
+   derived from the date so the banner is stable for a whole day and rotates
+   on its own the next morning. */
+const DAILY_QUOTES = [
+  "Three small wins beat one perfect day.",
+  "Progress counts even when it is quiet.",
+  "Balance is built, not found.",
+  "Do the small thing you keep postponing.",
+  "Rest is part of the work.",
+  "One honest check-in changes the day.",
+  "Consistency outlasts motivation.",
+];
+
+function quoteOfTheDay(date = new Date()) {
+  const dayNumber = Math.floor(date.getTime() / 86400000);
+  return DAILY_QUOTES[dayNumber % DAILY_QUOTES.length];
+}
 
 const FOCUS_SUGGESTIONS = {
-  spirituality:  { title: 'Focus on Mindfulness',    text: 'Boost mental clarity with a 10-minute meditation session.',     icon: 'self_improvement' },
-  relationships: { title: 'Strengthen Connections',   text: 'Reach out to someone you care about today.',                   icon: 'diversity_1' },
-  productivity:  { title: 'Boost Productivity',       text: 'Complete one important task to build momentum.',               icon: 'target' },
-  health:        { title: 'Prioritize Health',        text: 'Take a short walk or stretch session to energize.',            icon: 'directions_walk' },
-  finance:       { title: 'Review Finances',          text: 'Log your expenses and review your budget today.',              icon: 'account_balance' },
+  spirituality:  { title: "Focus on Mindfulness",  text: "Boost mental clarity with a 10-minute meditation session.", icon: "self_improvement" },
+  relationships: { title: "Strengthen Connections", text: "Reach out to someone you care about today.",               icon: "diversity_1" },
+  productivity:  { title: "Boost Productivity",     text: "Complete one important task to build momentum.",           icon: "target" },
+  health:        { title: "Prioritize Health",      text: "Take a short walk or stretch session to energize.",        icon: "directions_walk" },
+  finance:       { title: "Review Finances",        text: "Log your expenses and review your budget today.",          icon: "account_balance" },
 };
 
 function getStatusLabel(score) {
-  if (score >= 80) return 'Excellent';
-  if (score >= 60) return 'Good';
-  if (score >= 40) return 'Developing';
-  return 'Needs Focus';
+  if (score >= 80) return "Excellent";
+  if (score >= 60) return "Good";
+  if (score >= 40) return "Developing";
+  return "Needs Focus";
 }
 
 function getScoreLabel(score) {
-  if (score >= 85) return 'Thriving';
-  if (score >= 70) return 'Good';
-  if (score >= 50) return 'Building';
-  return 'Focus';
+  if (score >= 85) return "Thriving";
+  if (score >= 70) return "Good";
+  if (score >= 50) return "Building";
+  return "Focus";
 }
 
 function getStatusColor(score) {
-  if (score >= 80) return '#2f9e7a';
-  if (score >= 60) return '#086a69';
-  if (score >= 40) return '#d4a017';
-  return '#c9184a';
+  if (score >= 80) return "#2f9e7a";
+  if (score >= 60) return "#086a69";
+  if (score >= 40) return "#d4a017";
+  return "#c9184a";
 }
 
 /* ── Radar geometry ────────────────────────────────────────── */
 const CX = 60, CY = 56, MAX_R = 38;
 
 function radarPt(i, pct) {
-  const a = (2 * Math.PI * i / 5) - Math.PI / 2;
-  const r = MAX_R * pct / 100;
+  const a = (2 * Math.PI * i) / 5 - Math.PI / 2;
+  const r = (MAX_R * pct) / 100;
   return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
 }
 
 function labelPt(i) {
-  const a = (2 * Math.PI * i / 5) - Math.PI / 2;
+  const a = (2 * Math.PI * i) / 5 - Math.PI / 2;
   const r = MAX_R + 12;
   return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
 }
@@ -72,79 +107,170 @@ function labelPt(i) {
 /* ── Radar Chart ───────────────────────────────────────────── */
 function RadarChart({ domainScores }) {
   const pts = RADAR_ORDER.map((k, i) => radarPt(i, domainScores[k] ?? 0));
-  const poly = pts.map(p => p.join(',')).join(' ');
-
-  /* Grid rings at 25/50/75/100 */
+  const poly = pts.map((p) => p.join(",")).join(" ");
   const gridRings = [25, 50, 75, 100];
 
   return (
-    <svg className="dash-radar-svg" viewBox="0 0 120 112">
-      <defs>
-        <radialGradient id="radarFill" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ff4d6d" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#c9184a" stopOpacity="0.08" />
-        </radialGradient>
-      </defs>
+    <Svg width="100%" height={200} viewBox="0 0 120 112">
+      <Defs>
+        <RadialGradient id="radarFill" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#ff4d6d" stopOpacity="0.25" />
+          <Stop offset="100%" stopColor="#c9184a" stopOpacity="0.08" />
+        </RadialGradient>
+      </Defs>
 
       {/* Grid rings */}
-      {gridRings.map(pct => {
-        const ringPts = RADAR_ORDER.map((_, i) => radarPt(i, pct));
-        return (
-          <polygon key={pct}
-            points={ringPts.map(p => p.join(',')).join(' ')}
-            fill="none" stroke="#eadfe3" strokeWidth="0.3" />
-        );
-      })}
+      {gridRings.map((pct) => (
+        <Polygon
+          key={pct}
+          points={RADAR_ORDER.map((_, i) => radarPt(i, pct).join(",")).join(" ")}
+          fill="none"
+          stroke="#eadfe3"
+          strokeWidth="0.3"
+        />
+      ))}
 
       {/* Axis lines */}
       {RADAR_ORDER.map((_, i) => {
         const [x, y] = radarPt(i, 100);
-        return <line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="#eadfe3" strokeWidth="0.3" />;
+        return <Line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="#eadfe3" strokeWidth="0.3" />;
       })}
 
       {/* Data polygon */}
-      <polygon points={poly}
-        fill="url(#radarFill)" stroke="#c9184a" strokeWidth="0.8"
-        strokeLinejoin="round" className="dash-radar-polygon" />
+      <Polygon
+        points={poly}
+        fill="url(#radarFill)"
+        stroke="#c9184a"
+        strokeWidth="0.8"
+        strokeLinejoin="round"
+      />
 
       {/* Data dots */}
       {pts.map(([x, y], i) => (
-        <g key={i}>
-          <circle cx={x} cy={y} r="2.2" fill="#fff" stroke="#c9184a" strokeWidth="0.8" />
-          <circle cx={x} cy={y} r="1" fill="#c9184a" />
-        </g>
+        <G key={i}>
+          <Circle cx={x} cy={y} r="2.2" fill="#fff" stroke="#c9184a" strokeWidth="0.8" />
+          <Circle cx={x} cy={y} r="1" fill="#c9184a" />
+        </G>
       ))}
 
       {/* Labels + scores */}
       {RADAR_ORDER.map((key, i) => {
         const [x, y] = labelPt(i);
-        const anchor = x < 50 ? 'end' : x > 70 ? 'start' : 'middle';
+        const anchor = x < 50 ? "end" : x > 70 ? "start" : "middle";
         const score = Math.round(domainScores[key] ?? 0);
         return (
-          <g key={key}>
-            <text x={x} y={y - 1.5} textAnchor={anchor}
-              fill="#1f1f2e" fontSize="3.8" fontWeight="700"
-              fontFamily="'Manrope', sans-serif">
+          <G key={key}>
+            <SvgText
+              x={x}
+              y={y - 1.5}
+              textAnchor={anchor}
+              fill="#1f1f2e"
+              fontSize="3.8"
+              fontFamily={fonts.bold}
+            >
               {RADAR_LABELS[key]}
-            </text>
-            <text x={x} y={y + 3.2} textAnchor={anchor}
-              fill="#6b6b7a" fontSize="3.2" fontWeight="600"
-              fontFamily="'Manrope', sans-serif">
-              {score}%
-            </text>
-          </g>
+            </SvgText>
+            <SvgText
+              x={x}
+              y={y + 3.2}
+              textAnchor={anchor}
+              fill="#6b6b7a"
+              fontSize="3.2"
+              fontFamily={fonts.semibold}
+            >
+              {`${score}%`}
+            </SvgText>
+          </G>
         );
       })}
-    </svg>
+    </Svg>
+  );
+}
+
+/* ── Hero score ring ───────────────────────────────────────────
+   The web version animated `stroke-dashoffset` with a CSS transition.
+   Animated.Value drives the same property here; the SVG stroke is not a
+   layout prop, so it cannot use the native driver. */
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const RING_R = 78;
+const RING_CIRC = 2 * Math.PI * RING_R;
+
+function ScoreRing({ score }) {
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: score / 100,
+      duration: 1200,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  }, [score, progress]);
+
+  const dashOffset = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [RING_CIRC, 0],
+  });
+
+  return (
+    <View style={styles.ringWrap}>
+      <Svg width="100%" height="100%" viewBox="0 0 180 180">
+        <Defs>
+          <SvgLinearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#c9184a" />
+            <Stop offset="50%" stopColor="#ff4d6d" />
+            <Stop offset="100%" stopColor="#ff8fa3" />
+          </SvgLinearGradient>
+        </Defs>
+
+        {/* Track */}
+        <Circle cx="90" cy="90" r={RING_R} fill="none" stroke="#f0e0e5" strokeWidth="7" />
+
+        {/* Progress */}
+        <AnimatedCircle
+          cx="90"
+          cy="90"
+          r={RING_R}
+          fill="none"
+          stroke="url(#scoreGrad)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={RING_CIRC}
+          strokeDashoffset={dashOffset}
+          transform="rotate(-90 90 90)"
+        />
+      </Svg>
+
+      <View style={styles.ringCenter} pointerEvents="none">
+        <Text style={styles.ringNum}>{score}</Text>
+        <Text style={styles.ringLabel}>LIFE BALANCE</Text>
+      </View>
+    </View>
   );
 }
 
 /* ── Mini progress bar ─────────────────────────────────────── */
 function MiniBar({ value, color }) {
   return (
-    <div className="dash-minibar">
-      <div className="dash-minibar-fill" style={{ width: `${value}%`, background: color }} />
-    </div>
+    <View style={styles.minibar}>
+      <View style={[styles.minibarFill, { width: `${value}%`, backgroundColor: color }]} />
+    </View>
+  );
+}
+
+/* ── Details / Diagram switch on the overview card ─────────── */
+function OverviewTab({ id, label, icon, active, onPress }) {
+  return (
+    <Pressable
+      onPress={() => onPress(id)}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      style={({ pressed }) => [styles.overviewTab, active && styles.overviewTabActive, pressed && styles.pressed]}
+    >
+      <Icon name={icon} size={18} color={active ? colors.pulsePrimaryDark : colors.textMuted} />
+      <Text style={[styles.overviewTabText, active && styles.overviewTabTextActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -152,214 +278,337 @@ function MiniBar({ value, color }) {
 function Home({
   user, userDoc, scoreVersion,
   onDomainSelect, onOpenDomain, onNevigate,
-  onOpenSocial, onLogout, onOpenProgress,
 }) {
   const [scores, setScores] = useState(null);
   const [scoresLoading, setScoresLoading] = useState(true);
-  const [animate, setAnimate] = useState(false);
-  const heroRef = useRef(null);
+  const [overviewTab, setOverviewTab] = useState("details");
 
   const openDomain = onDomainSelect || onOpenDomain || onNevigate || (() => {});
 
-  const displayName =
-    user?.displayName ||
-    user?.name ||
-    (user?.email ? user.email.split('@')[0] : null) ||
-    'there';
-
-  const firstName = displayName.split(' ')[0];
-  const initials = (displayName.charAt(0) || '?').toUpperCase();
-
   useEffect(() => {
     if (!user?.uid || !userDoc) return;
+    let cancelled = false;
     setScoresLoading(true);
     computeCurrentScores(user.uid, userDoc)
-      .then(result => {
-        setScores(result);
-        setTimeout(() => setAnimate(true), 100);
+      .then((result) => {
+        if (!cancelled) setScores(result);
       })
-      .finally(() => setScoresLoading(false));
+      .finally(() => {
+        if (!cancelled) setScoresLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user?.uid, userDoc, scoreVersion]);
 
   const balanceScore = scores ? Math.round(scores.balancedLifeScore) : 0;
 
   const focusDomainKey = scores
     ? DOMAIN_KEYS.reduce((low, key) =>
-        (scores.domainScores[key] < scores.domainScores[low]) ? key : low)
-    : 'spirituality';
+        scores.domainScores[key] < scores.domainScores[low] ? key : low
+      )
+    : "spirituality";
   const focusSuggestion = FOCUS_SUGGESTIONS[focusDomainKey];
   const focusMeta = DOMAIN_META[focusDomainKey];
 
-  const ringR = 78;
-  const ringCirc = 2 * Math.PI * ringR;
-  const ringOffset = animate ? ringCirc * (1 - balanceScore / 100) : ringCirc;
-
-  /* Time-aware greeting */
-  const hour = new Date().getHours();
-  const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-
   return (
-    <div className="dash-shell">
+    <Screen
+      contentContainerStyle={styles.screen}
+      keyboardAvoiding={false}
+      gradient={false}
+      safeArea={false}
+    >
+      <View style={styles.main}>
+        {/* ── Quote of the day ─────────────────────── */}
+        <View style={styles.quote}>
+          <Text style={styles.quoteText}>{quoteOfTheDay()}</Text>
+        </View>
 
-      {/* ── Header ──────────────────────────────────── */}
-      <header className="dash-header">
-        <div className="dash-header-left">
-          <div className="dash-avatar">{initials}</div>
-          <div className="dash-greeting-block">
-            <span className="dash-greeting-sub">{timeGreeting}</span>
-            <span className="dash-greeting-name">{firstName}</span>
-          </div>
-        </div>
-        <button type="button" className="dash-header-btn" onClick={onLogout} aria-label="Log out">
-          <span className="material-symbols-outlined">logout</span>
-        </button>
-      </header>
-
-      <main className="dash-main">
         {scoresLoading ? (
-          <section className="dash-hero">
-            <div className="dash-skeleton-ring" />
-            <p className="dash-loading">Calculating your balance…</p>
-          </section>
+          <View style={styles.hero}>
+            <View style={styles.skeletonRing} />
+            <Text style={styles.loadingText}>Calculating your balance…</Text>
+          </View>
         ) : scores ? (
           <>
-            {/* ── Hero Score Ring ─────────────────────── */}
-            <section className="dash-hero" ref={heroRef}>
-              <div className="dash-ring-wrap">
-                <svg className="dash-ring-svg" viewBox="0 0 180 180">
-                  <defs>
-                    <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#c9184a" />
-                      <stop offset="50%" stopColor="#ff4d6d" />
-                      <stop offset="100%" stopColor="#ff8fa3" />
-                    </linearGradient>
-                  </defs>
-                  {/* Track */}
-                  <circle cx="90" cy="90" r={ringR}
-                    fill="none" stroke="#f0e0e5" strokeWidth="7" />
-                  {/* Progress */}
-                  <circle cx="90" cy="90" r={ringR}
-                    fill="none"
-                    stroke="url(#scoreGrad)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={ringCirc}
-                    strokeDashoffset={ringOffset}
-                    transform="rotate(-90 90 90)"
-                    className="dash-ring-fill" />
-                </svg>
-                <div className="dash-ring-center">
-                  <span className="dash-ring-num">{balanceScore}</span>
-                  <span className="dash-ring-label">Life Balance</span>
-                </div>
-              </div>
-              <div className="dash-status-badge" style={{ color: getStatusColor(balanceScore) }}>
-                <span className="dash-status-dot" style={{ background: getStatusColor(balanceScore) }} />
-                {getStatusLabel(balanceScore)}
-              </div>
-            </section>
+            {/* ── Daily missions ─────────────────────── */}
+            <DailyMissions user={user} domainScores={scores.domainScores} />
 
-            {/* ── Radar Card ─────────────────────────── */}
-            <section className="dash-card">
-              <div className="dash-card-header">
-                <span className="material-symbols-outlined dash-card-icon">donut_small</span>
-                <h2 className="dash-card-title">Life Overview</h2>
-              </div>
-              <div className="dash-radar-wrap">
-                <RadarChart domainScores={scores.domainScores} />
-              </div>
-            </section>
+            {/* ── Overview: per-domain detail or radar ─ */}
+            <View style={[styles.card, shadow("md")]}>
+              <View style={styles.overviewTabs} accessibilityRole="tablist">
+                <OverviewTab
+                  id="details"
+                  label="Details"
+                  icon="format_list_bulleted"
+                  active={overviewTab === "details"}
+                  onPress={setOverviewTab}
+                />
+                <OverviewTab
+                  id="diagram"
+                  label="Diagram"
+                  icon="donut_small"
+                  active={overviewTab === "diagram"}
+                  onPress={setOverviewTab}
+                />
+              </View>
 
-            {/* ── Progress Analytics Link ────────────── */}
-            {onOpenProgress && (
-              <button type="button" className="dash-progress-btn" onClick={onOpenProgress}>
-                <span className="material-symbols-outlined dash-progress-icon">insights</span>
-                <div className="dash-progress-text">
-                  <span className="dash-progress-label">Progress Analytics</span>
-                  <span className="dash-progress-sub">View your trends &amp; insights</span>
-                </div>
-                <span className="material-symbols-outlined dash-progress-arrow">chevron_right</span>
-              </button>
-            )}
+              {overviewTab === "details" ? (
+                <View style={styles.domainList}>
+                  {GRID_ORDER.map((key) => {
+                    const score = Math.round(scores.domainScores[key] ?? 0);
+                    const meta = DOMAIN_META[key];
+                    return (
+                      <Pressable
+                        key={key}
+                        onPress={() => openDomain(key)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${DOMAINS[key].label}, score ${score}`}
+                        style={({ pressed }) => [styles.domainRow, pressed && styles.pressed]}
+                      >
+                        <LinearGradient
+                          colors={meta.gradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.domainIconTile}
+                        >
+                          <Icon name={meta.icon} size={18} color="#fff" />
+                        </LinearGradient>
 
-            {/* ── Social Link ────────────────────────── */}
-            {onOpenSocial && (
-              <button type="button" className="dash-progress-btn" onClick={onOpenSocial}>
-                <span className="material-symbols-outlined dash-progress-icon">forum</span>
-                <div className="dash-progress-text">
-                  <span className="dash-progress-label">Social</span>
-                  <span className="dash-progress-sub">Connect with your community</span>
-                </div>
-                <span className="material-symbols-outlined dash-progress-arrow">chevron_right</span>
-              </button>
-            )}
+                        <View style={styles.domainDetail}>
+                          <View style={styles.domainTopRow}>
+                            <Text style={styles.domainName}>{DOMAINS[key].label}</Text>
+                            <Text style={[styles.domainScore, { color: meta.text }]}>{score}</Text>
+                          </View>
+                          <MiniBar value={score} color={meta.accent} />
+                          <Text style={[styles.domainBadge, { color: meta.text }]}>
+                            {getScoreLabel(score)}
+                          </Text>
+                        </View>
 
-            {/* ── Domain Cards ───────────────────────── */}
-            <section className="dash-card">
-              <div className="dash-card-header">
-                <span className="material-symbols-outlined dash-card-icon">grid_view</span>
-                <h2 className="dash-card-title">Your Domains</h2>
-              </div>
-              <div className="dash-domain-list">
-                {GRID_ORDER.map((key) => {
-                  const score = Math.round(scores.domainScores[key] ?? 0);
-                  const meta = DOMAIN_META[key];
-                  return (
-                    <button key={key} type="button" className="dash-domain-row"
-                      onClick={() => openDomain(key)}>
-                      <div className="dash-domain-icon-circle" style={{ background: meta.gradient }}>
-                        <span className="material-symbols-outlined"
-                          style={{ fontVariationSettings: "'FILL' 1", fontSize: 18 }}>
-                          {meta.icon}
-                        </span>
-                      </div>
-                      <div className="dash-domain-detail">
-                        <div className="dash-domain-top-row">
-                          <span className="dash-domain-name">{DOMAINS[key].label}</span>
-                          <span className="dash-domain-score" style={{ color: meta.text }}>{score}</span>
-                        </div>
-                        <MiniBar value={score} color={meta.accent} />
-                        <span className="dash-domain-badge" style={{ color: meta.text }}>
-                          {getScoreLabel(score)}
-                        </span>
-                      </div>
-                      <span className="material-symbols-outlined dash-domain-arrow">chevron_right</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+                        <Icon name="chevron_right" size={20} color={colors.textMuted} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.diagram}>
+                  <View style={styles.hero}>
+                    <ScoreRing score={balanceScore} />
+                    <View style={[styles.statusBadge, shadow("sm")]}>
+                      <View
+                        style={[styles.statusDot, { backgroundColor: getStatusColor(balanceScore) }]}
+                      />
+                      <Text style={[styles.statusText, { color: getStatusColor(balanceScore) }]}>
+                        {getStatusLabel(balanceScore)}
+                      </Text>
+                    </View>
+                  </View>
 
-            {/* ── Daily Missions ─────────────────────── */}
-            <DailyMissions
-              user={user}
-              domainScores={scores.domainScores}
-            />
+                  <RadarChart domainScores={scores.domainScores} />
+                </View>
+              )}
+            </View>
 
-            {/* ── Focus Banner ───────────────────────── */}
-            <section className="dash-focus" onClick={() => openDomain(focusDomainKey)}>
-              <div className="dash-focus-accent" style={{ background: focusMeta.gradient }} />
-              <div className="dash-focus-body">
-                <div className="dash-focus-icon-wrap" style={{ background: focusMeta.gradient }}>
-                  <span className="material-symbols-outlined"
-                    style={{ fontVariationSettings: "'FILL' 1" }}>
-                    {focusSuggestion.icon}
-                  </span>
-                </div>
-                <div className="dash-focus-text-block">
-                  <span className="dash-focus-tag">Suggested Focus</span>
-                  <h3 className="dash-focus-title">{focusSuggestion.title}</h3>
-                  <p className="dash-focus-text">{focusSuggestion.text}</p>
-                </div>
-                <span className="material-symbols-outlined dash-focus-go">arrow_forward</span>
-              </div>
-            </section>
+            {/* ── Focus banner ───────────────────────── */}
+            <Pressable
+              onPress={() => openDomain(focusDomainKey)}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.focus, shadow("md"), pressed && styles.pressed]}
+            >
+              <LinearGradient
+                colors={focusMeta.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.focusAccent}
+              />
+              <View style={styles.focusBody}>
+                <LinearGradient
+                  colors={focusMeta.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.focusIconWrap}
+                >
+                  <Icon name={focusSuggestion.icon} size={20} color="#fff" />
+                </LinearGradient>
+
+                <View style={styles.focusTextBlock}>
+                  <Text style={styles.focusTag}>SUGGESTED FOCUS</Text>
+                  <Text style={styles.focusTitle}>{focusSuggestion.title}</Text>
+                  <Text style={styles.focusText}>{focusSuggestion.text}</Text>
+                </View>
+
+                <Icon name="arrow_forward" size={20} color={colors.textMuted} />
+              </View>
+            </Pressable>
           </>
         ) : null}
-      </main>
-    </div>
+      </View>
+    </Screen>
   );
 }
 
+const styles = StyleSheet.create({
+  screen: { padding: 0, paddingBottom: spacing.xl },
+  pressed: { opacity: 0.75 },
+
+  main: {
+    maxWidth: 480,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    gap: spacing.lg,
+  },
+
+  quote: {
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.accentSoftStrong,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  quoteText: { ...type.bodyMedium, color: colors.text },
+
+  hero: { alignItems: "center", paddingTop: spacing.sm, paddingBottom: spacing.sm },
+  skeletonRing: {
+    width: 172,
+    height: 172,
+    borderRadius: radius.pill,
+    backgroundColor: colors.pulseBgTintAlt,
+  },
+  loadingText: { ...type.label, color: colors.textMuted, textAlign: "center", paddingTop: spacing.md },
+
+  ringWrap: { width: 172, height: 172 },
+  ringCenter: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringNum: {
+    fontFamily: fonts.extrabold,
+    fontSize: 44,
+    lineHeight: 48,
+    letterSpacing: -2,
+    color: colors.pulsePrimaryDark,
+  },
+  ringLabel: {
+    ...type.caption,
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: spacing.md,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    backgroundColor: colors.card,
+    borderRadius: 20,
+  },
+  statusDot: { width: 7, height: 7, borderRadius: radius.pill },
+  statusText: { ...type.caption, fontFamily: fonts.bold, fontSize: 12 },
+
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 20,
+  },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.lg },
+  cardTitle: { ...type.label, fontFamily: fonts.bold, fontSize: 14, letterSpacing: -0.2, color: colors.text },
+
+  overviewTabs: {
+    flexDirection: "row",
+    gap: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.lg,
+  },
+  overviewTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingBottom: spacing.sm,
+    // Reserved so the active underline does not shift the row.
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+    marginBottom: -1,
+  },
+  overviewTabActive: { borderBottomColor: colors.pulsePrimary },
+  overviewTabText: { ...type.label, fontFamily: fonts.medium, fontSize: 14, color: colors.textMuted },
+  overviewTabTextActive: { fontFamily: fonts.bold, color: colors.pulsePrimaryDark },
+
+  diagram: { gap: spacing.sm },
+
+  domainList: { gap: spacing.lg },
+  domainRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  domainIconTile: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  domainDetail: { flex: 1, gap: 5 },
+  domainTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  domainName: { ...type.label, fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+  domainScore: { ...type.h3, fontFamily: fonts.extrabold, fontSize: 18, lineHeight: 22 },
+  domainBadge: {
+    ...type.caption,
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+
+  minibar: {
+    height: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.pulseBgTintAlt,
+    overflow: "hidden",
+  },
+  minibarFill: { height: "100%", borderRadius: radius.pill },
+
+  focus: {
+    flexDirection: "row",
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
+  focusAccent: { width: 4 },
+  focusBody: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  focusIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  focusTextBlock: { flex: 1, gap: 2 },
+  focusTag: { ...type.caption, fontSize: 10, letterSpacing: 1, color: colors.textMuted },
+  focusTitle: { ...type.label, fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+  focusText: { ...type.caption, fontSize: 12, color: colors.textMuted },
+});
 
 export default Home;
