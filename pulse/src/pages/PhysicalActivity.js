@@ -47,6 +47,11 @@ const TYPE_OPTIONS = [
     { value: 'strength', label: 'Strength' },
 ];
 
+const PAGE_OPTIONS = [
+    { value: 'new', label: 'New Activity' },
+    { value: 'templates', label: 'Templates' },
+];
+
 const EMPTY_EXERCISES = [{ name: '', sets: [{ weight: '', reps: '' }] }];
 
 function PhysicalActivity({ user, onBack, onActivityLogged }) {
@@ -56,6 +61,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
     const [descInput, setDescInput] = useState('');
     const [activityDate, setActivityDate] = useState('');
     const [tab, setTab] = useState('cardio');
+    const [pageTab, setPageTab] = useState('new');
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [editDesc, setEditDesc] = useState('');
@@ -74,7 +80,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
         if (!user) return;
 
         const activityRef = collection(db, 'users', user.uid, 'physicalActivities');
-        const q = query(activityRef, orderBy('createdAt', 'asc'));
+        const q = query(activityRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setActivities(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -144,6 +150,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                 exercises: isCardio ? [] : exercises,
                 activityDate: activityDate,
                 createdAt: serverTimestamp(),
+                isTemplate: false,
             });
 
             setInput('');
@@ -216,6 +223,31 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
         setExercises(updated);
     };
 
+    // Templates: a saved activity can be starred and later replayed as the
+    // starting point for a new one.
+    const applyTemplate = (template) => {
+        setPageTab('new');
+        setInput(template.text ?? '');
+        setTab(template.type);
+        setDescInput(template.description ?? '');
+        setDistance(String(template.distance ?? ''));
+        setTime(String(template.duration ?? ''));
+        setExercises(template.exercises?.length ? template.exercises : EMPTY_EXERCISES);
+    };
+
+    const changeTemplate = async (id, val) => {
+        try {
+            setError(null);
+            const activityRef = doc(db, 'users', user.uid, 'physicalActivities', id);
+            await updateDoc(activityRef, { isTemplate: val });
+        } catch (err) {
+            console.error("Save error", err);
+            setError("Could not update Activity. Please try again");
+        }
+    };
+
+    const templateActivities = activities.filter(activity => activity.isTemplate === true);
+
     return (
         <Screen contentContainerStyle={styles.screen}>
             <ScreenHeader title="My Physical Activities" onBack={onBack} />
@@ -226,7 +258,10 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                 </Pressable>
             ) : null}
 
+            <SegmentedField options={PAGE_OPTIONS} value={pageTab} onChange={setPageTab} />
+
             {/* Add-activity form */}
+            {pageTab === 'new' ? (
             <View style={[styles.card, shadow('sm')]}>
                 <TextInput
                     style={styles.input}
@@ -344,8 +379,59 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
 
                 <PrimaryButton label="Add" onPress={addActivity} disabled={!input.trim()} />
             </View>
+            ) : null}
+
+            {/* Saved templates */}
+            {pageTab === 'templates' ? (
+                <View style={styles.list}>
+                    {templateActivities.length === 0 ? (
+                        <Text style={styles.metaText}>
+                            No templates yet. Tap 🤍 on an activity to save it as one.
+                        </Text>
+                    ) : null}
+
+                    {templateActivities.map(activity => (
+                        <View key={activity.id} style={[styles.item, shadow('sm')]}>
+                            <Text style={styles.itemText}>{activity.text}</Text>
+
+                            {activity.description ? (
+                                <Text style={styles.itemDescription}>{activity.description}</Text>
+                            ) : null}
+
+                            <View style={styles.activityData}>
+                                {activity.type === 'cardio' ? (
+                                    <>
+                                        <Text style={styles.metaLabel}>Type: Cardio</Text>
+                                        <Text style={styles.metaText}>Distance: {activity.distance}km</Text>
+                                        <Text style={styles.metaText}>Time: {activity.duration}</Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Text style={styles.metaLabel}>Type: GYM</Text>
+                                        {(activity.exercises ?? []).map((exercise, index) => (
+                                            <View key={index} style={styles.exerciseSummary}>
+                                                <Text style={styles.metaText}>
+                                                    Exercise: {exercise.name}
+                                                </Text>
+                                                {(exercise.sets ?? []).map((set, index2) => (
+                                                    <Text key={index2} style={styles.setText}>
+                                                        {set.weight} x{set.reps}
+                                                    </Text>
+                                                ))}
+                                            </View>
+                                        ))}
+                                    </>
+                                )}
+                            </View>
+
+                            <SmallButton label="Use Template" onPress={() => applyTemplate(activity)} />
+                        </View>
+                    ))}
+                </View>
+            ) : null}
 
             {/* Activity list */}
+            {pageTab !== 'templates' ? (
             <View style={styles.list}>
                 {activities.map(activity => {
                     const editing = editingId === activity.id;
@@ -504,10 +590,29 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                     </View>
                                 </Pressable>
                             )}
+
+                            {editing ? null : (
+                                <Pressable
+                                    onPress={() => changeTemplate(activity.id, !activity.isTemplate)}
+                                    hitSlop={8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={
+                                        activity.isTemplate
+                                            ? 'Remove from templates'
+                                            : 'Save as template'
+                                    }
+                                    style={({ pressed }) => [styles.heartBtn, pressed && { opacity: 0.7 }]}
+                                >
+                                    <Text style={styles.heartText}>
+                                        {activity.isTemplate ? '❤️' : '🤍'}
+                                    </Text>
+                                </Pressable>
+                            )}
                         </View>
                     );
                 })}
             </View>
+            ) : null}
         </Screen>
     );
 }
@@ -582,6 +687,9 @@ const styles = StyleSheet.create({
     },
     editBox: { gap: spacing.sm },
     editSection: { gap: spacing.sm },
+
+    heartBtn: { alignSelf: 'flex-end', paddingTop: spacing.sm },
+    heartText: { fontSize: 20 },
 
     itemText: { ...type.title, fontFamily: fonts.semibold, color: colors.text },
     itemDescription: { ...type.small, color: '#666', marginVertical: 4 },

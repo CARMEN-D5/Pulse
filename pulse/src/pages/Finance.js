@@ -4,6 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import DateField from "../components/DateField";
 import Icon from "../components/Icon";
 import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
+import SavingView from "./SavingView";
 import {
   accountById,
   addExpense,
@@ -57,6 +58,7 @@ function Finance({ user, onBack, onActivityLogged }) {
   const [error, setError] = useState("");
 
   const [showSettings, setShowSettings] = useState(false);
+  const [financeTab, setFinanceTab] = useState("spending");
 
   const { monthStart, monthEnd } = useMemo(() => monthBounds(), []);
   const monthName = useMemo(() => monthLabel(), []);
@@ -191,20 +193,39 @@ function Finance({ user, onBack, onActivityLogged }) {
         subtitle={monthName}
         onBack={onBack}
         right={
-          <Pressable
-            onPress={() => setShowSettings(true)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            style={({ pressed }) => [styles.cogBtn, pressed && styles.pressed]}
-          >
-            <Icon name="settings" size={20} color={colors.text} />
-          </Pressable>
+          financeTab === "spending" ? (
+            <Pressable
+              onPress={() => setShowSettings(true)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              style={({ pressed }) => [styles.cogBtn, pressed && styles.pressed]}
+            >
+              <Icon name="settings" size={20} color={colors.text} />
+            </Pressable>
+          ) : null
         }
       />
 
       <Alert message={error} />
 
+      <View style={styles.tabs} accessibilityRole="tablist">
+        <ModalTab
+          label="Spending"
+          active={financeTab === "spending"}
+          onPress={() => setFinanceTab("spending")}
+        />
+        <ModalTab
+          label="Saving"
+          active={financeTab === "saving"}
+          onPress={() => setFinanceTab("saving")}
+        />
+      </View>
+
+      {financeTab === "saving" ? (
+        <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
+      ) : (
+        <>
       {/* ---------- Chart + legend ---------- */}
       <View style={[styles.card, shadow("sm")]}>
         <View style={styles.summary}>
@@ -332,6 +353,8 @@ function Finance({ user, onBack, onActivityLogged }) {
           </View>
         )}
       </View>
+        </>
+      )}
 
       <SettingsModal
         visible={showSettings}
