@@ -8,7 +8,14 @@
 //
 //   posts/{postId}
 //     authorUid, authorName, imageUrl, imagePath?, reflection,
-//     dayKey ("YYYY-MM-DD"), createdAt
+//     type ("checkin" | "achievement"), createdAt
+//
+//     check-in posts also carry:
+//       dayKey ("YYYY-MM-DD")   — this is what enforces one per day
+//
+//     achievement posts (created by the share prompt) instead carry:
+//       domain, templateId, payload, source
+//       and deliberately have NO dayKey — see createAchievementPost
 //
 //   posts/{postId}/likes/{uid}        — existence == liked
 //     createdAt
@@ -61,12 +68,12 @@ const postsCol = () => collection(db, "posts");
  * `imagePath` is the Storage path so the image can be cleaned up on delete.
  */
 export async function createPost({
-  authorUid,
-  authorName,
-  imageUrl,
-  imagePath,
-  reflection,
-}) {
+                                   authorUid,
+                                   authorName,
+                                   imageUrl,
+                                   imagePath,
+                                   reflection,
+                                 }) {
   if (!authorUid) return { ok: false, error: "Not signed in" };
   if (!reflection?.trim()) {
     return { ok: false, error: "Add a few words about what you did." };
@@ -77,13 +84,16 @@ export async function createPost({
 
     // Enforce one-per-day. Two clients racing could still both pass; that's
     // acceptable for a uni project — the worst case is a duplicate post.
+    //
+    // Achievement posts have no dayKey, so they can never match this query
+    // and can never block the daily check-in.
     const existing = await getDocs(
-      query(
-        postsCol(),
-        where("authorUid", "==", authorUid),
-        where("dayKey", "==", dayKey),
-        limit(1)
-      )
+        query(
+            postsCol(),
+            where("authorUid", "==", authorUid),
+            where("dayKey", "==", dayKey),
+            limit(1)
+        )
     );
     if (!existing.empty) {
       return {
@@ -95,10 +105,59 @@ export async function createPost({
     const ref = await addDoc(postsCol(), {
       authorUid,
       authorName: authorName || "Someone",
+      type: "checkin",
       imageUrl: imageUrl || null,
       imagePath: imagePath || null,
       reflection: reflection.trim(),
       dayKey,
+      createdAt: serverTimestamp(),
+    });
+    return { ok: true, id: ref.id };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+}
+
+/**
+ * Create an achievement post (share prompt -> social feed)
+ *
+ * no dayKey to allow use to post multiple achievement posts a day
+ *
+ * templateId + payload instead of an image. nothing gets uplaoded to storage
+ *
+ * reflection is optional. the card already carries the title
+ *
+ * the payload arrives pre-serialised by the share module (plain values only,
+ * no Timestamps or undefined), and is a snapshot rather than a reference:
+ * editing a budget or deleting an activity later can't rewrite a post that's
+ * already in the feed.
+ */
+export async function createAchievementPost({
+                                              authorUid,
+                                              authorName,
+                                              domain,
+                                              templateId,
+                                              payload,
+                                              reflection,
+                                              source = "manual",
+                                            }) {
+  if (!authorUid) return { ok: false, error: "Not signed in" };
+  if (!templateId || !payload) {
+    return { ok: false, error: "Nothing to share." };
+  }
+
+  try {
+    const ref = await addDoc(postsCol(), {
+      authorUid,
+      authorName: authorName || "Someone",
+      type: "achievement",
+      domain,                            // journal | fitness | todo | finance
+      templateId,                        // e.g. "fitness-stats"
+      payload,
+      reflection: (reflection || "").trim(),
+      imageUrl: null,                    // keeps the doc shape uniform
+      imagePath: null,
+      source,                            // "auto" | "manual"
       createdAt: serverTimestamp(),
     });
     return { ok: true, id: ref.id };
@@ -117,17 +176,21 @@ export async function deletePost(postId) {
   }
 }
 
-/** This user's post for today, or null. */
+/**
+ * This user's check-in post for today, or null.
+ *
+ * Achievement posts carry no dayKey, so they're excluded by the query
+ */
 export async function getMyTodayPost(uid) {
   if (!uid) return { ok: false, error: "Not signed in" };
   try {
     const snap = await getDocs(
-      query(
-        postsCol(),
-        where("authorUid", "==", uid),
-        where("dayKey", "==", todayKey()),
-        limit(1)
-      )
+        query(
+            postsCol(),
+            where("authorUid", "==", uid),
+            where("dayKey", "==", todayKey()),
+            limit(1)
+        )
     );
     if (snap.empty) return { ok: true, data: null };
     const d = snap.docs[0];
@@ -208,23 +271,26 @@ export async function deleteComment(postId, commentId) {
  * Firestore's `in` operator allows up to 30 values, which comfortably
  * covers a uni-student-scale friend list. If a user ever exceeds 30
  * friends we'd need to chunk this into multiple queries and merge.
+ *
+ * Achievement posts need no query change. they live in the same collection
+ * and are picked up by the same authorUid + createdAt ordering.
  */
 function buildFeedQuery(authorUids, pageSize) {
   const slice = authorUids.slice(0, 30);
   // Single-author special case: `==` is cheaper than `in` of length 1.
   if (slice.length === 1) {
     return query(
-      postsCol(),
-      where("authorUid", "==", slice[0]),
-      orderBy("createdAt", "desc"),
-      limit(pageSize)
+        postsCol(),
+        where("authorUid", "==", slice[0]),
+        orderBy("createdAt", "desc"),
+        limit(pageSize)
     );
   }
   return query(
-    postsCol(),
-    where("authorUid", "in", slice),
-    orderBy("createdAt", "desc"),
-    limit(pageSize)
+      postsCol(),
+      where("authorUid", "in", slice),
+      orderBy("createdAt", "desc"),
+      limit(pageSize)
   );
 }
 
@@ -240,25 +306,25 @@ export function subscribeToFeed(authorUids, callback, { pageSize = 30 } = {}) {
     return () => {};
   }
   return onSnapshot(
-    buildFeedQuery(authorUids, pageSize),
-    (snap) => {
-      const out = [];
-      snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
-      callback({ posts: out, error: null });
-    },
-    (err) => {
-      // Surface the error to the UI so the user can see why the feed is
-      // empty. Common cases:
-      //   permission-denied      → Firestore rules blocked the read
-      //   failed-precondition    → missing composite index (the message
-      //                            includes a URL to auto-create it)
-      // eslint-disable-next-line no-console
-      console.error("[Pulse] subscribeToFeed error", err?.code, err?.message);
-      callback({
-        posts: [],
-        error: { code: err?.code, message: err?.message },
-      });
-    }
+      buildFeedQuery(authorUids, pageSize),
+      (snap) => {
+        const out = [];
+        snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
+        callback({ posts: out, error: null });
+      },
+      (err) => {
+        // Surface the error to the UI so the user can see why the feed is
+        // empty. Common cases:
+        //   permission-denied      → Firestore rules blocked the read
+        //   failed-precondition    → missing composite index (the message
+        //                            includes a URL to auto-create it)
+        // eslint-disable-next-line no-console
+        console.error("[Pulse] subscribeToFeed error", err?.code, err?.message);
+        callback({
+          posts: [],
+          error: { code: err?.code, message: err?.message },
+        });
+      }
   );
 }
 
@@ -268,17 +334,17 @@ export function subscribeToFeed(authorUids, callback, { pageSize = 30 } = {}) {
  */
 export function subscribeToLikes(postId, uid, callback) {
   return onSnapshot(
-    likesCol(postId),
-    (snap) => {
-      callback({
-        count: snap.size,
-        likedByMe: uid ? snap.docs.some((d) => d.id === uid) : false,
-      });
-    },
-    (err) => {
-      // eslint-disable-next-line no-console
-      console.debug("[Pulse] subscribeToLikes error", err?.code, err?.message);
-    }
+      likesCol(postId),
+      (snap) => {
+        callback({
+          count: snap.size,
+          likedByMe: uid ? snap.docs.some((d) => d.id === uid) : false,
+        });
+      },
+      (err) => {
+        // eslint-disable-next-line no-console
+        console.debug("[Pulse] subscribeToLikes error", err?.code, err?.message);
+      }
   );
 }
 
@@ -286,15 +352,15 @@ export function subscribeToLikes(postId, uid, callback) {
 export function subscribeToComments(postId, callback) {
   const q = query(commentsCol(postId), orderBy("createdAt", "asc"));
   return onSnapshot(
-    q,
-    (snap) => {
-      const out = [];
-      snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
-      callback(out);
-    },
-    (err) => {
-      // eslint-disable-next-line no-console
-      console.debug("[Pulse] subscribeToComments error", err?.code, err?.message);
-    }
+      q,
+      (snap) => {
+        const out = [];
+        snap.forEach((d) => out.push({ id: d.id, ...d.data() }));
+        callback(out);
+      },
+      (err) => {
+        // eslint-disable-next-line no-console
+        console.debug("[Pulse] subscribeToComments error", err?.code, err?.message);
+      }
   );
 }

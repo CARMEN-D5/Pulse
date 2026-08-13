@@ -9,12 +9,12 @@ import Home from "./pages/Home";
 import EntryQuiz from "./pages/EntryQuiz";
 import SpiritualityPage from "./pages/SpiritualityPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
-import HealthPage from "./pages/HealthPage";
 import PhysicalActivity from "./pages/PhysicalActivity";
 import TodoList from "./pages/TodoList";
 import Finance from "./pages/Finance";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
 import Social from "./pages/Social";
+import { displayNameFor } from "./pages/Social";
 import {
   signUp,
   logIn,
@@ -24,6 +24,11 @@ import {
 } from "./auth/authService";
 import { ensureUserDoc, getUserDoc } from "./firestore/users";
 import { saveOnboardingBaseline } from "./firestore/scoring";
+import { createAchievementPost } from "./firestore/social";
+import {
+  SharePromptProvider,
+  resetSharePromptHistory,
+} from "./components/share";
 
 // Maps a domain key to the page component used when the user opens that
 // domain from Home. Finance has its own rich budget-tracker page and
@@ -51,6 +56,10 @@ const DOMAIN_PAGE_MAP = {
  * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
  * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
  * a returning user is taken straight to Home on refresh.
+ *
+ * The share prompt lives above the view switch rather than inside any single
+ * page, so the modal survives a view change and can send the user to the
+ * social feed after posting.
  */
 function App() {
   const [view, setView] = useState("splash");
@@ -139,6 +148,9 @@ function App() {
   const handleResetSubmit = async ({ email }) => resetPassword({ email });
 
   const handleLogout = async () => {
+    // Clear the "already prompted" set so the next account to sign in on this
+    // device gets its own share prompts.
+    resetSharePromptHistory();
     await logOut();
     setView("splash");
   };
@@ -173,108 +185,131 @@ function App() {
     setScoreVersion(v => v + 1);
   };
 
+  // Hands a finished share off to Firestore as an achievement post. Returns
+  // the { ok, error } shape the share modal expects, so a failed write shows
+  // an error in the modal instead of silently closing.
+  const handleSharePost = (post) =>
+      createAchievementPost({
+        ...post,
+        authorUid: user.uid,
+        authorName: displayNameFor(user),
+      });
+
   // Brief splash-coloured placeholder while Firebase restores the session.
   if (!authReady) {
     return (
-      <div className="auth-shell">
-        <div
-          className="pulse-logo"
-          style={{ fontSize: 28, color: "#c9184a" }}
-          aria-label="Loading Pulse"
-        >
-          <span className="pulse-logo-dot" aria-hidden="true" />
-          Pulse
+        <div className="auth-shell">
+          <div
+              className="pulse-logo"
+              style={{ fontSize: 28, color: "#c9184a" }}
+              aria-label="Loading Pulse"
+          >
+            <span className="pulse-logo-dot" aria-hidden="true" />
+            Pulse
+          </div>
         </div>
-      </div>
     );
   }
 
-  switch (view) {
-    case "login":
-      return (
-        <Login
-          onSubmit={handleLoginSubmit}
-          onForgotPassword={() => setView("reset")}
-          onBack={() => setView("splash")}
-          onSwitchToSignUp={() => setView("signup")}
-        />
-      );
+  // The view switch, pulled into a function so the provider can wrap it.
+  const renderView = () => {
+    switch (view) {
+      case "login":
+        return (
+            <Login
+                onSubmit={handleLoginSubmit}
+                onForgotPassword={() => setView("reset")}
+                onBack={() => setView("splash")}
+                onSwitchToSignUp={() => setView("signup")}
+            />
+        );
 
-    case "signup":
-      return (
-        <SignUp
-          onSubmit={handleSignUpSubmit}
-          onExit={() => setView("splash")}
-          onSwitchToLogin={() => setView("login")}
-        />
-      );
+      case "signup":
+        return (
+            <SignUp
+                onSubmit={handleSignUpSubmit}
+                onExit={() => setView("splash")}
+                onSwitchToLogin={() => setView("login")}
+            />
+        );
 
-    case "reset":
-      return (
-        <ResetPassword
-          onSubmit={handleResetSubmit}
-          onBackToLogin={() => setView("login")}
-        />
-      );
+      case "reset":
+        return (
+            <ResetPassword
+                onSubmit={handleResetSubmit}
+                onBackToLogin={() => setView("login")}
+            />
+        );
 
-    case "entryQuiz":
-      return (
-        <div className="auth-shell">
-          <EntryQuiz
-            onComplete={handleEntryQuizComplete}
-            loading={onboardingLoading}
-          />
-        </div>
-      );
+      case "entryQuiz":
+        return (
+            <div className="auth-shell">
+              <EntryQuiz
+                  onComplete={handleEntryQuizComplete}
+                  loading={onboardingLoading}
+              />
+            </div>
+        );
 
-    case "domain": {
-      const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
-      return DomainPage ? (
-        <DomainPage
-          domainScore={userDoc?.domainScores?.[activeDomain] ?? userDoc?.onboardingBaseline?.[activeDomain]}
-          user={user}
-          onBack={handleDomainBack}
-          onActivityLogged={handleActivityLogged}
-        />
-      ) : null;
+      case "domain": {
+        const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
+        return DomainPage ? (
+            <DomainPage
+                domainScore={userDoc?.domainScores?.[activeDomain] ?? userDoc?.onboardingBaseline?.[activeDomain]}
+                user={user}
+                onBack={handleDomainBack}
+                onActivityLogged={handleActivityLogged}
+            />
+        ) : null;
+      }
+
+      case "finance":
+        return <Finance user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
+
+      case "todo":
+        return <TodoList user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
+
+      case "progress":
+        return <ProgressAnalytics user={user} onBack={() => setView("home")} />;
+
+      case "social":
+        return <Social user={user} onBack={() => setView("home")} />;
+
+      case "home":
+        return (
+            <Home
+                user={user}
+                userDoc={userDoc}
+                scoreVersion={scoreVersion}
+                onDomainSelect={handleDomainSelect}
+                onOpenDomain={handleDomainSelect}
+                onNevigate={handleDomainSelect}
+                onOpenSocial={() => setView("social")}
+                onLogout={handleLogout}
+                onOpenProgress={() => setView("progress")}
+            />
+        );
+
+      case "splash":
+      default:
+        return (
+            <Splash
+                onLogin={() => setView("login")}
+                onSignUp={() => setView("signup")}
+            />
+        );
     }
+  };
 
-    case "finance":
-      return <Finance user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
-
-    case "todo":
-      return <TodoList user={user} onBack={() => setView("home")} onActivityLogged={handleActivityLogged} />;
-
-    case "progress":
-      return <ProgressAnalytics user={user} onBack={() => setView("home")} />;
-
-    case "social":
-      return <Social user={user} onBack={() => setView("home")} />;
-
-    case "home":
-      return (
-        <Home
+  return (
+      <SharePromptProvider
           user={user}
-          userDoc={userDoc}
-          scoreVersion={scoreVersion}
-          onDomainSelect={handleDomainSelect}
-          onOpenDomain={handleDomainSelect}
-          onNevigate={handleDomainSelect}
+          onPost={handleSharePost}
           onOpenSocial={() => setView("social")}
-          onLogout={handleLogout}
-          onOpenProgress={() => setView("progress")}
-        />
-      );
-
-    case "splash":
-    default:
-      return (
-        <Splash
-          onLogin={() => setView("login")}
-          onSignUp={() => setView("signup")}
-        />
-      );
-  }
+      >
+        {renderView()}
+      </SharePromptProvider>
+  );
 }
 
 export default App;
