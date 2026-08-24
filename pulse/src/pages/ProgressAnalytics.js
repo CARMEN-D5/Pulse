@@ -10,6 +10,7 @@ import { db } from "../firebase";
 import { seedDummyWeeklyScores } from "../firestore/seedDummyScores";
 import { DOMAINS, DOMAIN_KEYS } from "../scoring/scoringEngine";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 /* ── Domain config ─────────────────────────────────────────── */
 const DOMAIN_META = {
@@ -277,6 +278,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
       )}
 
       {/* ── Range toggles ── */}
+      <TutorialTarget id={TUTORIAL_TARGETS.profile.analytics}>
       <View style={styles.rangeBar}>
         {RANGE_OPTIONS.map((o) => {
           const activeRange = range === o.value;
@@ -295,6 +297,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
           );
         })}
       </View>
+      </TutorialTarget>
 
       {loading ? (
         <Loading label="Loading your history…" style={styles.loading} />

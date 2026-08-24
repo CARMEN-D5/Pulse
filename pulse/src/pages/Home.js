@@ -19,6 +19,7 @@ import { computeCurrentScores } from "../firestore/scoring";
 import { DOMAINS, DOMAIN_KEYS } from "../scoring/scoringEngine";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import DailyMissions from "./DailyMissions";
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 /* ── Domain visual config ──────────────────────────────────────
    The web build stored `gradient` as a CSS string. React Native takes the
@@ -283,6 +284,8 @@ function Home({
   const [scoresLoading, setScoresLoading] = useState(true);
   const [overviewTab, setOverviewTab] = useState("details");
 
+  useTutorial("appOverview", { enabled: Boolean(user?.uid && scores) });
+
   const openDomain = onDomainSelect || onOpenDomain || onNevigate || (() => {});
 
   useEffect(() => {
@@ -332,9 +335,12 @@ function Home({
         ) : scores ? (
           <>
             {/* ── Daily missions ─────────────────────── */}
-            <DailyMissions user={user} domainScores={scores.domainScores} />
+            <TutorialTarget id={TUTORIAL_TARGETS.home.dailyMissions}>
+              <DailyMissions user={user} domainScores={scores.domainScores} />
+            </TutorialTarget>
 
             {/* ── Overview: per-domain detail or radar ─ */}
+            <TutorialTarget id={TUTORIAL_TARGETS.home.domainCard}>
             <View style={[styles.card, shadow("md")]}>
               <View style={styles.overviewTabs} accessibilityRole="tablist">
                 <OverviewTab
@@ -409,6 +415,7 @@ function Home({
                 </View>
               )}
             </View>
+            </TutorialTarget>
 
             {/* ── Focus banner ───────────────────────── */}
             <Pressable

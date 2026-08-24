@@ -12,6 +12,7 @@ import {
   todayKey,
 } from "../data/spirituality";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 import { ShareButton } from "../components/share";
 
 // ---------------------------------------------------------------------------
@@ -422,10 +423,14 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
   }, [moodData]);
 
   return (
-    <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false}>
+    <Screen
+      contentContainerStyle={styles.screen}
+      keyboardAvoiding={false}
+    >
       <ScreenHeader title="Spirituality" subtitle={dateStr} onBack={onBack} />
 
       {/* Today card */}
+      <TutorialTarget id={TUTORIAL_TARGETS.journal.today}>
       <View
         style={[
           styles.card,
@@ -481,8 +486,10 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
           </View>
         )}
       </View>
+      </TutorialTarget>
 
       {/* Week chart */}
+      <TutorialTarget id={TUTORIAL_TARGETS.journal.week}>
       <View style={[styles.card, shadow("sm")]}>
         <View style={styles.todayHead}>
           <Text style={styles.sectionTitle}>This week</Text>
@@ -502,8 +509,10 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
           ))}
         </View>
       </View>
+      </TutorialTarget>
 
       {/* Journal entries */}
+      <TutorialTarget id={TUTORIAL_TARGETS.journal.entries}>
       <View style={[styles.card, shadow("sm")]}>
         <Text style={styles.sectionTitle}>Journal</Text>
 
@@ -574,6 +583,7 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
           </View>
         )}
       </View>
+      </TutorialTarget>
     </Screen>
   );
 }

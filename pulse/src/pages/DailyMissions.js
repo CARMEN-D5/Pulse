@@ -24,14 +24,16 @@ import {
 import MissionHistory from '../missions/MissionHistory';
 import { DOMAIN_META } from '../missions/missionPools';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from '../tutorial';
 
-export default function DailyMissions({ user, domainScores }) {
+export default function DailyMissions({ user, domainScores, tutorialEnabled = false }) {
     const [missions, setMissions]       = useState([]);
     const [loading, setLoading]         = useState(true);
     const [showHistory, setShowHistory] = useState(false);
 
     const uid      = user?.uid;
     const progress = missions.filter(m => m.completed).length;
+    useTutorial('missions', { enabled: tutorialEnabled && !loading && missions.length > 0 });
 
     // ── Initialise / refresh missions ─────────────────────────────────────────
 
@@ -158,6 +160,7 @@ export default function DailyMissions({ user, domainScores }) {
                 </View>
                 <View style={styles.headerRight}>
                     <Text style={styles.progressLabel}>{progress}/3 done</Text>
+                    <TutorialTarget id={TUTORIAL_TARGETS.missions.history}>
                     <Pressable
                         onPress={() => setShowHistory(true)}
                         accessibilityRole="button"
@@ -166,6 +169,7 @@ export default function DailyMissions({ user, domainScores }) {
                         <Icon name="history" size={14} color={colors.pulsePrimaryDark} />
                         <Text style={styles.historyBtnText}>History</Text>
                     </Pressable>
+                    </TutorialTarget>
                 </View>
             </View>
 
@@ -179,6 +183,7 @@ export default function DailyMissions({ user, domainScores }) {
             </View>
 
             {/* Mission list */}
+            <TutorialTarget id={TUTORIAL_TARGETS.missions.list}>
             <View style={styles.list}>
                 {missions.map((mission, idx) => {
                     const meta = DOMAIN_META[mission.domain] ?? { label: mission.domain, icon: '⭐', color: '#888' };
@@ -212,6 +217,7 @@ export default function DailyMissions({ user, domainScores }) {
                     );
                 })}
             </View>
+            </TutorialTarget>
 
             {progress === 3 ? (
                 <View style={styles.doneBanner}>

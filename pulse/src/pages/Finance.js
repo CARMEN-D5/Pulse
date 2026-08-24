@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import DateField from "../components/DateField";
 import Icon from "../components/Icon";
@@ -28,6 +28,13 @@ import { logAction } from "../firestore/scoring";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import DonutChart from "./DonutChart";
 import SpendingCalendar from "./SpendingCalendar";
+import {
+  TUTORIAL_TARGETS,
+  TutorialOverlayHost,
+  TutorialScrollView,
+  TutorialTarget,
+  useTutorial,
+} from "../tutorial";
 
 // Preset palette standing in for the web build's <input type="color">.
 // React Native has no native colour picker, and a swatch grid is faster to use
@@ -49,7 +56,7 @@ const ACCOUNT_COLORS = [
  *   - Recent transactions with delete
  *   - Settings modal: Budgets tab + Accounts tab
  */
-function Finance({ user, onBack, onActivityLogged }) {
+function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
   const uid = user?.uid;
 
   const [expenses, setExpenses] = useState([]);
@@ -60,6 +67,31 @@ function Finance({ user, onBack, onActivityLogged }) {
 
   const [showSettings, setShowSettings] = useState(false);
   const [financeTab, setFinanceTab] = useState("spending");
+
+  useEffect(() => {
+    if (tutorialTab) setFinanceTab(tutorialTab);
+  }, [tutorialTab]);
+
+  const financeTutorial = useTutorial("financeSpending", {
+    enabled: Boolean(uid),
+    actions: {
+      showSpending: () => {
+        setShowSettings(false);
+        setFinanceTab("spending");
+      },
+      closeSettings: () => setShowSettings(false),
+      openSettings: () => setShowSettings(true),
+      showAddExpense: () => {
+        setShowSettings(false);
+        setFinanceTab("spending");
+      },
+      cleanup: () => setShowSettings(false),
+    },
+  });
+  useTutorial("savingOverview", {
+    enabled: false,
+    actions: { showSaving: () => setFinanceTab("saving") },
+  });
 
   const { monthStart, monthEnd } = useMemo(() => monthBounds(), []);
   const monthName = useMemo(() => monthLabel(), []);
@@ -213,6 +245,7 @@ function Finance({ user, onBack, onActivityLogged }) {
               {/* finance only uses the manual share trigger — an automatic
                   prompt about budgeting is unlikely to be welcome */}
               <ShareButton domain="finance" payload={monthSharePayload} />
+              <TutorialTarget id={TUTORIAL_TARGETS.budget.settings}>
               <Pressable
                 onPress={() => setShowSettings(true)}
                 hitSlop={8}
@@ -222,6 +255,7 @@ function Finance({ user, onBack, onActivityLogged }) {
               >
                 <Icon name="settings" size={20} color={colors.text} />
               </Pressable>
+              </TutorialTarget>
             </View>
           ) : null
         }
@@ -229,6 +263,7 @@ function Finance({ user, onBack, onActivityLogged }) {
 
       <Alert message={error} />
 
+      <TutorialTarget id={TUTORIAL_TARGETS.budget.tabs}>
       <View style={styles.tabs} accessibilityRole="tablist">
         <ModalTab
           label="Spending"
@@ -241,12 +276,14 @@ function Finance({ user, onBack, onActivityLogged }) {
           onPress={() => setFinanceTab("saving")}
         />
       </View>
+      </TutorialTarget>
 
       {financeTab === "saving" ? (
         <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
       ) : (
         <>
       {/* ---------- Chart + legend ---------- */}
+      <TutorialTarget id={TUTORIAL_TARGETS.budget.summary}>
       <View style={[styles.card, shadow("sm")]}>
         <View style={styles.summary}>
           <DonutChart
@@ -270,6 +307,7 @@ function Finance({ user, onBack, onActivityLogged }) {
           </View>
         </View>
       </View>
+      </TutorialTarget>
 
       {/* ---------- Daily P&L calendar ---------- */}
       <View style={[styles.card, shadow("sm")]}>
@@ -313,6 +351,7 @@ function Finance({ user, onBack, onActivityLogged }) {
       </View>
 
       {/* ---------- Add expense ---------- */}
+      <TutorialTarget id={TUTORIAL_TARGETS.budget.addExpense}>
       <View style={[styles.card, shadow("sm")]}>
         <Text style={styles.sectionTitle}>Add an expense</Text>
         <AddExpenseForm
@@ -321,6 +360,7 @@ function Finance({ user, onBack, onActivityLogged }) {
           onSubmit={handleAddExpense}
         />
       </View>
+      </TutorialTarget>
 
       {/* ---------- Recent transactions ---------- */}
       <View style={[styles.card, shadow("sm")]}>
@@ -378,6 +418,7 @@ function Finance({ user, onBack, onActivityLogged }) {
 
       <SettingsModal
         visible={showSettings}
+        tutorialMode={financeTutorial.active}
         budgets={budgets}
         accounts={accounts}
         onSaveBudgets={handleSaveBudgets}
@@ -517,7 +558,15 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
 // Settings modal: Budgets tab + Accounts tab
 // ============================================================================
 
-function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccounts, onClose }) {
+function SettingsModal({
+  visible,
+  tutorialMode,
+  budgets,
+  accounts,
+  onSaveBudgets,
+  onSaveAccounts,
+  onClose,
+}) {
   const [tab, setTab] = useState("budgets");
 
   // ----- Budgets tab state -----
@@ -536,6 +585,7 @@ function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccoun
   // settings would show stale values from the last edit.
   useEffect(() => {
     if (!visible) return;
+    if (tutorialMode) setTab("budgets");
     const out = {};
     for (const c of DEFAULT_CATEGORIES) {
       out[c.id] = String(budgets?.[c.id]?.monthlyLimit || "");
@@ -543,7 +593,7 @@ function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccoun
     setBudgetDraft(out);
     setAcctDraft(accounts.map((a) => ({ ...a })));
     setDeletedIds([]);
-  }, [visible, budgets, accounts]);
+  }, [visible, tutorialMode, budgets, accounts]);
 
   // ---- handlers ----
   const saveBudgets = async () => {
@@ -584,6 +634,7 @@ function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccoun
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalRoot}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close settings" />
 
       <View style={styles.modalCard} accessibilityViewIsModal accessibilityLabel="Settings">
@@ -598,13 +649,15 @@ function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccoun
           />
         </View>
 
-        <ScrollView
+        <TutorialScrollView
+          tutorialScrollRoot
           style={styles.modalBody}
           contentContainerStyle={styles.modalBodyContent}
           keyboardShouldPersistTaps="handled"
         >
           {tab === "budgets" ? (
-            <>
+            <TutorialTarget id={TUTORIAL_TARGETS.budget.categoryLimits}>
+            <View style={styles.modalTutorialSection}>
               <Text style={styles.modalHint}>
                 Set the most you want to spend in each category each month.
               </Text>
@@ -626,7 +679,8 @@ function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccoun
                   />
                 </View>
               ))}
-            </>
+            </View>
+            </TutorialTarget>
           ) : (
             <>
               <Text style={styles.modalHint}>
@@ -688,7 +742,7 @@ function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccoun
               </Pressable>
             </>
           )}
-        </ScrollView>
+        </TutorialScrollView>
 
         <View style={styles.modalActions}>
           <Pressable
@@ -705,6 +759,8 @@ function SettingsModal({ visible, budgets, accounts, onSaveBudgets, onSaveAccoun
             style={styles.flex}
           />
         </View>
+      </View>
+      <TutorialOverlayHost scope="financeSettings" />
       </View>
     </Modal>
   );
@@ -725,6 +781,8 @@ function ModalTab({ label, active, onPress }) {
 
 const styles = StyleSheet.create({
   screen: { gap: spacing.md, paddingBottom: 40 },
+  modalRoot: { flex: 1 },
+  modalTutorialSection: { gap: spacing.md },
   flex: { flex: 1 },
   pressed: { opacity: 0.7 },
 
