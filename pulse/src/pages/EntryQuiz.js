@@ -26,13 +26,14 @@ function getScaleLabel(val) {
   return SCALE.find((s) => s.value === val)?.label ?? "";
 }
 
-function EntryQuiz({ onComplete, loading = false }) {
+function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
+  const domains = DOMAINS.filter((d) => !excludeDomains.include(d.id));
   const [answers, setAnswers] = useState(
-    Object.fromEntries(DOMAINS.map((d) => [d.id, null]))
+    Object.fromEntries(domains.map((d) => [d.id, null]))
   );
 
-  const isComplete = DOMAINS.every((d) => answers[d.id] !== null);
-  const answeredCount = DOMAINS.filter((d) => answers[d.id] !== null).length;
+  const isComplete = domains.every((d) => answers[d.id] !== null);
+  const answeredCount = domains.filter((d) => answers[d.id] !== null).length;
 
   function handleSelect(id, val) {
     setAnswers((prev) => ({ ...prev, [id]: val }));
@@ -40,7 +41,7 @@ function EntryQuiz({ onComplete, loading = false }) {
 
   function handleSubmit() {
     if (!isComplete || !onComplete) return;
-    onComplete(DOMAINS.map((d) => ({ domain: d.id, score: answers[d.id] })));
+    onComplete(domains.map((d) => ({ domain: d.id, score: answers[d.id] })));
   }
 
   return (
@@ -54,10 +55,10 @@ function EntryQuiz({ onComplete, loading = false }) {
           <Text style={styles.tagline}>How are you doing today?</Text>
         </View>
 
-        {DOMAINS.map((d, i) => {
+        {domains.map((d, i) => {
           const val = answers[d.id];
           const color = getScaleColor(val);
-          const isLast = i === DOMAINS.length - 1;
+          const isLast = i === domains.length - 1;
 
           return (
             <View key={d.id} style={[styles.domain, !isLast && styles.domainDivider]}>
