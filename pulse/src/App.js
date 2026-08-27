@@ -36,6 +36,25 @@ import {
 import { ensureUserDoc, getUserDoc } from "./firestore/users";
 import { saveOnboardingBaseline } from "./firestore/scoring";
 
+// Privacy consent (Privacy Act 1988 (Cth)). Two gates, deliberately separate:
+//   ConsentModal          -> APP 5 collection notice, before anything is collected
+//   SensitiveConsentModal -> APP 3.3 express consent, before the entry quiz
+// See src/privacy/consentNotice.js for the reasoning and the APP references.
+import ConsentModal from "./privacy/ConsentModal";
+import SensitiveConsentModal from "./privacy/SensitiveConsentModal";
+import { SENSITIVE_DOMAINS } from "./privacy/consentNotice";
+import {
+  acceptNotice,
+  answerSensitive,
+  clearLocalConsent,
+  isCurrent,
+  readLocalConsent,
+  sensitiveAnswered,
+  syncConsent,
+  writeLocalConsent,
+  writeProfileConsent,
+} from "./privacy/consentStore";
+
 // Maps a domain key to the page component used when the user opens that
 // domain from Home. Finance has its own rich budget-tracker page and
 // Productivity routes to the To-Do list — both handled separately below.
@@ -82,6 +101,8 @@ const BACK_TO_SPLASH_VIEWS = ["login", "signup", "reset"];
  * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
  * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
  * a returning user is taken straight to Home when the app relaunches.
+ *
+ * The two consent modals sit outside this switch
  */
 function App() {
   const [view, setView] = useState("splash");
@@ -96,11 +117,32 @@ function App() {
   // rather than always on Home.
   const [tabReturn, setTabReturn] = useState("home");
 
+  // Privacy consent record, reconciled between AsyncStorage (pre-auth) and
+  // /users/{uid}.privacyConsent (durable). `consentReady` gates the modals so
+  // they don't flash open during the first async read.
+  const [consent, setConsent] = useState(null);
+  const [consentReady, setConsentReady] = useState(false);
+  const [consentDeclined, setConsentDeclined] = useState(false);
+
   const fontsReady = useAppFonts();
 
   // Tracks whether the current auth event was triggered by a new sign-up.
   // Using a ref so handleSignUpSubmit can set it before onAuthChange fires.
   const isNewSignUp = useRef(false);
+
+  // Read the device-level consent record once on mount. This is what lets the
+  // APP 5 notice be shown over Splash, before there is a uid to write against.
+  useEffect(() => {
+    let alive = true;
+    readLocalConsent().then((record) => {
+      if (!alive) return;
+      setConsent(record);
+      setConsentReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Subscribe to Firebase auth state. Runs once on mount.
   useEffect(() => {
@@ -112,6 +154,13 @@ function App() {
         await ensureUserDoc(firebaseUser);
         const { data } = await getUserDoc(firebaseUser.uid);
         setUserDoc(data);
+
+        // Reconcile the device record with the account record. The profile
+        // wins where it exists, so signing in on a second phone does not
+        // re-prompt someone who has already consented.
+        const reconciled = await syncConsent(firebaseUser.uid, data);
+        setConsent(reconciled);
+        setConsentReady(true);
 
         // Routing rules:
         //   1. Brand-new sign-up → entry quiz
@@ -125,6 +174,10 @@ function App() {
         });
       } else {
         setUserDoc(null);
+        // Note: `consent` is deliberately NOT cleared here. This branch also
+        // fires on first launch with no session, and wiping it would race the
+        // mount effect above. Logout clears it explicitly instead.
+        setConsentDeclined(false);
         const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
@@ -148,7 +201,7 @@ function App() {
     if (Platform.OS !== "android") return undefined;
 
     const canGoBack =
-      STACKED_VIEWS.includes(view) || BACK_TO_SPLASH_VIEWS.includes(view);
+        STACKED_VIEWS.includes(view) || BACK_TO_SPLASH_VIEWS.includes(view);
 
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (!canGoBack) return false;
@@ -158,6 +211,49 @@ function App() {
 
     return () => subscription.remove();
   }, [view, goBack]);
+
+  /* ---------------- privacy consent ---------------- */
+
+  const handleConsentAccept = async (optional) => {
+    const record = acceptNotice(optional);
+    await writeLocalConsent(record);
+    if (user?.uid) await writeProfileConsent(user.uid, record);
+    setConsent(record);
+  };
+
+  // Declining is a valid answer, not an error. Nothing is written and nothing
+  // is collected — the user stays on Splash. Re-opening the app asks again,
+  // because the notice still has to be given before any collection happens.
+  const handleConsentDecline = () => setConsentDeclined(true);
+
+  const handleSensitiveAnswer = async (choices) => {
+    const record = answerSensitive(consent, choices);
+    await writeLocalConsent(record);
+    if (user?.uid) await writeProfileConsent(user.uid, record);
+    setConsent(record);
+  };
+
+  // Domains the user declined at the APP 3.3 gate. EntryQuiz skips these, so
+  // the ratings are never collected rather than collected and then discarded.
+  const excludedDomains = Object.entries(SENSITIVE_DOMAINS)
+      .filter(([, field]) => !consent?.[field])
+      .map(([domainId]) => domainId);
+
+  // APP 5: the notice comes before anything is collected, so it sits over
+  // Splash rather than in front of the signup form. It also catches existing
+  // accounts that predate the notice, and any bump to CONSENT_VERSION.
+  const needsNotice =
+      consentReady && authReady && !isCurrent(consent) && !consentDeclined;
+
+  // APP 3.3: asked only at the point sensitive information is about to be
+  // collected, i.e. immediately before the entry quiz.
+  const needsSensitiveConsent =
+      consentReady &&
+      view === "entryQuiz" &&
+      isCurrent(consent) &&
+      !sensitiveAnswered(consent);
+
+  /* ------------------------------------------------- */
 
   // EntryQuiz returns an array of { domain, score } using the entry-quiz
   // branch's domain ids (family_friends / work_productivity / financial).
@@ -207,6 +303,12 @@ function App() {
     // Prompt history is per-session and in-memory, so the next account on this
     // device gets its own share prompts.
     resetSharePromptHistory();
+    // Same reasoning for consent: the next person to use this device is a
+    // different person and has to be given the notice themselves. Their own
+    // record is on their profile, so signing back in restores it immediately.
+    await clearLocalConsent();
+    setConsent(null);
+    setConsentDeclined(false);
     setView("splash");
   };
 
@@ -214,11 +316,11 @@ function App() {
   // the { ok, error } shape the share modal expects, so a failed write shows
   // its error inline instead of closing the modal.
   const handleSharePost = (post) =>
-    createAchievementPost({
-      ...post,
-      authorUid: user.uid,
-      authorName: displayNameFor(user),
-    });
+      createAchievementPost({
+        ...post,
+        authorUid: user.uid,
+        authorName: displayNameFor(user),
+      });
 
   // Send a share as a DM instead of posting to the feed. Gets or creates
   // the conversation with the chosen friend, then sends one message that
@@ -320,55 +422,61 @@ function App() {
     // Manrope files load — swapping fonts mid-render would reflow every screen.
     if (!authReady || !fontsReady) {
       return (
-        <Screen scroll={false} center keyboardAvoiding={false}>
-          <Loading label="Pulse" />
-        </Screen>
+          <Screen scroll={false} center keyboardAvoiding={false}>
+            <Loading label="Pulse" />
+          </Screen>
       );
     }
 
     switch (view) {
       case "login":
         return (
-          <Login
-            onSubmit={handleLoginSubmit}
-            onForgotPassword={() => setView("reset")}
-            onBack={() => setView("splash")}
-            onSwitchToSignUp={() => setView("signup")}
-          />
+            <Login
+                onSubmit={handleLoginSubmit}
+                onForgotPassword={() => setView("reset")}
+                onBack={() => setView("splash")}
+                onSwitchToSignUp={() => setView("signup")}
+            />
         );
 
       case "signup":
         return (
-          <SignUp
-            onSubmit={handleSignUpSubmit}
-            onExit={() => setView("splash")}
-            onSwitchToLogin={() => setView("login")}
-          />
+            <SignUp
+                onSubmit={handleSignUpSubmit}
+                onExit={() => setView("splash")}
+                onSwitchToLogin={() => setView("login")}
+            />
         );
 
       case "reset":
         return (
-          <ResetPassword
-            onSubmit={handleResetSubmit}
-            onBackToLogin={() => setView("login")}
-          />
+            <ResetPassword
+                onSubmit={handleResetSubmit}
+                onBackToLogin={() => setView("login")}
+            />
         );
 
       case "entryQuiz":
-        return <EntryQuiz onComplete={handleEntryQuizComplete} loading={onboardingLoading} />;
+        return (
+            <EntryQuiz
+                onComplete={handleEntryQuizComplete}
+                loading={onboardingLoading}
+                excludeDomains={excludedDomains}
+            />
+        );
 
       case "domain": {
         const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
         return DomainPage ? (
-          <DomainPage
-            domainScore={
-              userDoc?.domainScores?.[activeDomain] ??
-              userDoc?.onboardingBaseline?.[activeDomain]
-            }
-            user={user}
-            onBack={handleStackedBack}
-            onActivityLogged={handleActivityLogged}
-          />
+            <DomainPage
+                domainScore={
+                    userDoc?.domainScores?.[activeDomain] ??
+                    userDoc?.onboardingBaseline?.[activeDomain]
+                }
+                user={user}
+                onBack={handleStackedBack}
+                onActivityLogged={handleActivityLogged}
+            />
         ) : null;
       }
 
@@ -384,26 +492,26 @@ function App() {
 
       case "todo":
         return (
-          <TodoList
-            user={user}
-            onBack={handleStackedBack}
-            onActivityLogged={handleActivityLogged}
-          />
+            <TodoList
+                user={user}
+                onBack={handleStackedBack}
+                onActivityLogged={handleActivityLogged}
+            />
         );
 
       case "missions":
         return (
-          <DailyMissionsPage
-            user={user}
-            userDoc={userDoc}
-            scoreVersion={scoreVersion}
-            onBack={handleStackedBack}
-          />
+            <DailyMissionsPage
+                user={user}
+                userDoc={userDoc}
+                scoreVersion={scoreVersion}
+                onBack={handleStackedBack}
+            />
         );
 
       case "social":
         return (
-          <Social user={user} onActivityLogged={handleActivityLogged} />
+            <Social user={user} onActivityLogged={handleActivityLogged} />
         );
 
       case "features":
@@ -420,14 +528,14 @@ function App() {
 
       case "home":
         return (
-          <Home
-            user={user}
-            userDoc={userDoc}
-            scoreVersion={scoreVersion}
-            onDomainSelect={handleDomainSelect}
-            onOpenDomain={handleDomainSelect}
-            onNevigate={handleDomainSelect}
-          />
+            <Home
+                user={user}
+                userDoc={userDoc}
+                scoreVersion={scoreVersion}
+                onDomainSelect={handleDomainSelect}
+                onOpenDomain={handleDomainSelect}
+                onNevigate={handleDomainSelect}
+            />
         );
 
       case "splash":
@@ -443,15 +551,15 @@ function App() {
     if (!TAB_VIEWS.includes(view)) return body;
 
     const displayName =
-      user?.displayName || user?.name || user?.email || "";
+        user?.displayName || user?.name || user?.email || "";
     return (
-      <AppShell
-        tab={view}
-        onTabChange={setView}
-        initials={displayName ? displayName.charAt(0).toUpperCase() : null}
-      >
-        {body}
-      </AppShell>
+        <AppShell
+            tab={view}
+            onTabChange={setView}
+            initials={displayName ? displayName.charAt(0).toUpperCase() : null}
+        >
+          {body}
+        </AppShell>
     );
   };
 
@@ -459,28 +567,40 @@ function App() {
   // notch/home-indicator insets through useSafeAreaInsets.
   // The share prompt lives above the view switch rather than inside any single
   // page, so a prompt raised on one domain survives navigating away.
+  // The consent modals sit alongside it for the same reason, and because the
+  // APP 5 notice has to be able to cover Splash — a view the switch owns.
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <TutorialProvider
-        user={user}
-        initialProgress={userDoc?.tutorialProgress}
-        navigation={tutorialNavigation}
-      >
-        <SharePromptProvider
-          user={user}
-          onPost={handleSharePost}
-          onDm={handleShareDm}
-          onOpenSocial={() => setView("social")}
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <TutorialProvider
+            user={user}
+            initialProgress={userDoc?.tutorialProgress}
+            navigation={tutorialNavigation}
         >
-          {screen()}
-        </SharePromptProvider>
-        <TutorialLauncher
-          request={tutorialRequest}
-          onConsumed={() => setTutorialRequest(null)}
+          <SharePromptProvider
+              user={user}
+              onPost={handleSharePost}
+              onDm={handleShareDm}
+              onOpenSocial={() => setView("social")}
+          >
+            {screen()}
+          </SharePromptProvider>
+          <TutorialLauncher
+              request={tutorialRequest}
+              onConsumed={() => setTutorialRequest(null)}
+          />
+        </TutorialProvider>
+
+        <ConsentModal
+            visible={needsNotice}
+            onAccept={handleConsentAccept}
+            onDecline={handleConsentDecline}
         />
-      </TutorialProvider>
-    </SafeAreaProvider>
+        <SensitiveConsentModal
+            visible={needsSensitiveConsent}
+            onAnswer={handleSensitiveAnswer}
+        />
+      </SafeAreaProvider>
   );
 }
 
