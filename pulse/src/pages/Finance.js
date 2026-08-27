@@ -59,11 +59,45 @@ function Finance({ user, onBack, onActivityLogged }) {
   const [error, setError] = useState("");
 
   const [showSettings, setShowSettings] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
   const [financeTab, setFinanceTab] = useState("spending");
 
-  const { monthStart, monthEnd } = useMemo(() => monthBounds(), []);
-  const monthName = useMemo(() => monthLabel(), []);
-  const monthDayCount = useMemo(() => daysInMonth(), []);
+  // Month currently being viewed. Anchored to the 1st of a month for a
+  // stable identity — using an arbitrary Date object breaks the useMemo
+  // deps because a fresh new Date() every render is never referentially
+  // equal to the previous one.
+  const [viewedMonth, setViewedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
+  const { monthStart, monthEnd } = useMemo(
+    () => monthBounds(viewedMonth),
+    [viewedMonth]
+  );
+  const monthName = useMemo(() => monthLabel(viewedMonth), [viewedMonth]);
+  const monthDayCount = useMemo(() => daysInMonth(viewedMonth), [viewedMonth]);
+
+  // True if the user is looking at the current calendar month (used to
+  // disable the "next" arrow — no browsing into the future).
+  const isCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return (
+      viewedMonth.getFullYear() === now.getFullYear() &&
+      viewedMonth.getMonth() === now.getMonth()
+    );
+  }, [viewedMonth]);
+
+  const goToPrevMonth = () =>
+    setViewedMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
+  const goToNextMonth = () => {
+    if (isCurrentMonth) return;
+    setViewedMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
+  };
+  const goToThisMonth = () => {
+    const now = new Date();
+    setViewedMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+  };
 
   // ---- load --------------------------------------------------------------
   const refresh = async () => {
@@ -89,7 +123,7 @@ function Finance({ user, onBack, onActivityLogged }) {
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid]);
+  }, [uid, monthStart.getTime()]);
 
   // ---- aggregations ------------------------------------------------------
   const spentByCategory = useMemo(() => {
@@ -246,6 +280,58 @@ function Finance({ user, onBack, onActivityLogged }) {
         <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
       ) : (
         <>
+      {/* ---------- Month navigator + primary "Add expense" button ----- */}
+      <View style={[styles.card, shadow("sm"), styles.monthBar]}>
+        <Pressable
+          onPress={goToPrevMonth}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Previous month"
+          style={({ pressed }) => [styles.monthArrow, pressed && styles.pressed]}
+        >
+          <Icon name="chevron-left" size={22} color={colors.text} />
+        </Pressable>
+
+        <Pressable
+          onPress={goToThisMonth}
+          disabled={isCurrentMonth}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isCurrentMonth ? `Viewing ${monthName}` : `Jump to this month`
+          }
+          style={styles.monthLabelBtn}
+        >
+          <Text style={styles.monthTitle}>{monthName}</Text>
+          {!isCurrentMonth ? (
+            <Text style={styles.monthJumpHint}>tap to jump to this month</Text>
+          ) : null}
+        </Pressable>
+
+        <Pressable
+          onPress={goToNextMonth}
+          disabled={isCurrentMonth}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Next month"
+          style={({ pressed }) => [
+            styles.monthArrow,
+            isCurrentMonth && styles.monthArrowDisabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Icon
+            name="chevron-right"
+            size={22}
+            color={isCurrentMonth ? colors.textMuted : colors.text}
+          />
+        </Pressable>
+      </View>
+
+      <PrimaryButton
+        label="＋  Add an expense"
+        onPress={() => setShowAddExpense(true)}
+      />
+
       {/* ---------- Chart + legend ---------- */}
       <View style={[styles.card, shadow("sm")]}>
         <View style={styles.summary}>
@@ -312,16 +398,6 @@ function Finance({ user, onBack, onActivityLogged }) {
         </View>
       </View>
 
-      {/* ---------- Add expense ---------- */}
-      <View style={[styles.card, shadow("sm")]}>
-        <Text style={styles.sectionTitle}>Add an expense</Text>
-        <AddExpenseForm
-          accounts={accounts}
-          defaultAccount={lastUsedAccount}
-          onSubmit={handleAddExpense}
-        />
-      </View>
-
       {/* ---------- Recent transactions ---------- */}
       <View style={[styles.card, shadow("sm")]}>
         <Text style={styles.sectionTitle}>Recent transactions</Text>
@@ -384,6 +460,19 @@ function Finance({ user, onBack, onActivityLogged }) {
         onSaveAccounts={handleSaveAccounts}
         onClose={() => setShowSettings(false)}
       />
+
+      <AddExpenseModal
+        visible={showAddExpense}
+        accounts={accounts}
+        defaultAccount={lastUsedAccount}
+        viewedMonth={viewedMonth}
+        onSubmit={async (payload) => {
+          const ok = await handleAddExpense(payload);
+          if (ok) setShowAddExpense(false);
+          return ok;
+        }}
+        onClose={() => setShowAddExpense(false)}
+      />
     </Screen>
   );
 }
@@ -392,18 +481,19 @@ function Finance({ user, onBack, onActivityLogged }) {
 // Add expense sub-component
 // ============================================================================
 
-function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
+function AddExpenseForm({ accounts, defaultAccount, initialDate, onSubmit }) {
   const todayIso = useMemo(() => {
     const d = new Date();
     const off = d.getTimezoneOffset();
     return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
   }, []);
+  const startingDate = initialDate || todayIso;
 
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("food");
   const [account, setAccount] = useState(defaultAccount || "");
   const [note, setNote] = useState("");
-  const [date, setDate] = useState(todayIso);
+  const [date, setDate] = useState(startingDate);
   const [submitting, setSubmitting] = useState(false);
 
   // If parent learns a better default after first render, sync it.
@@ -430,7 +520,7 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
       setCategory("food");
       // keep account selection for the next entry — most people use the
       // same account multiple times in a row
-      setDate(todayIso);
+      setDate(startingDate);
     }
   };
 
@@ -510,6 +600,70 @@ function AddExpenseForm({ accounts, defaultAccount, onSubmit }) {
         loading={submitting}
       />
     </View>
+  );
+}
+
+// ============================================================================
+// Add expense modal — wraps AddExpenseForm in a bottom-sheet Modal so
+// users don't have to scroll to reach it. Opened from the primary
+// "Add an expense" button that sits at the top of the Spending tab.
+// ============================================================================
+
+function AddExpenseModal({
+  visible,
+  accounts,
+  defaultAccount,
+  viewedMonth,
+  onSubmit,
+  onClose,
+}) {
+  // If the user is browsing a past month, default the form's date to the
+  // last day of that month so they can log a forgotten expense in the
+  // right period. Otherwise default to today.
+  const initialDate = useMemo(() => {
+    const now = new Date();
+    const isSameMonth =
+      viewedMonth.getFullYear() === now.getFullYear() &&
+      viewedMonth.getMonth() === now.getMonth();
+    const anchor = isSameMonth
+      ? now
+      : new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + 1, 0);
+    const off = anchor.getTimezoneOffset();
+    return new Date(anchor.getTime() - off * 60000).toISOString().slice(0, 10);
+  }, [viewedMonth]);
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={onClose}
+        accessibilityLabel="Close add expense"
+      />
+      <View style={styles.modalCard} accessibilityViewIsModal accessibilityLabel="Add expense">
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Add an expense</Text>
+          <Pressable
+            onPress={onClose}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            style={({ pressed }) => [styles.cogBtn, pressed && styles.pressed]}
+          >
+            <Icon name="close" size={20} color={colors.text} />
+          </Pressable>
+        </View>
+
+        <ScrollView keyboardShouldPersistTaps="handled">
+          <AddExpenseForm
+            key={initialDate}          // remount if viewedMonth changes
+            accounts={accounts}
+            defaultAccount={defaultAccount}
+            initialDate={initialDate}
+            onSubmit={onSubmit}
+          />
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 
@@ -843,9 +997,41 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   modalTitle: { ...type.h3, color: colors.text },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xs,
+  },
   modalBody: { flexGrow: 0 },
   modalBodyContent: { gap: spacing.md },
   modalHint: { ...type.small, color: colors.textMuted },
+
+  // Month navigator that sits above the donut on the Spending tab.
+  monthBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  monthArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.glass,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthArrowDisabled: { opacity: 0.35, backgroundColor: "transparent" },
+  monthLabelBtn: { flex: 1, alignItems: "center" },
+  monthTitle: { ...type.h3, color: colors.text, textAlign: "center" },
+  monthJumpHint: {
+    ...type.caption,
+    color: colors.textMuted,
+    marginTop: 2,
+    textAlign: "center",
+  },
 
   tabs: { flexDirection: "row", gap: 6 },
   tab: {

@@ -140,6 +140,8 @@ export async function createAchievementPost({
                                               payload,
                                               reflection,
                                               source = "manual",
+                                              imageUrl = null,
+                                              imagePath = null,
                                             }) {
   if (!authorUid) return { ok: false, error: "Not signed in" };
   if (!templateId || !payload) {
@@ -155,8 +157,8 @@ export async function createAchievementPost({
       templateId,                        // e.g. "fitness-stats"
       payload,
       reflection: (reflection || "").trim(),
-      imageUrl: null,                    // keeps the doc shape uniform
-      imagePath: null,
+      imageUrl,                          // optional photo attached from the share editor
+      imagePath,
       source,                            // "auto" | "manual"
       createdAt: serverTimestamp(),
     });

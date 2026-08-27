@@ -2,7 +2,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
 import AppShell from "./components/AppShell";
 import { Loading, Screen } from "./components/ui";
 import useAppFonts from "./hooks/useAppFonts";
@@ -25,6 +24,7 @@ import DailyMissionsPage from "./pages/DailyMissionsPage";
 import Social, { displayNameFor } from "./pages/Social";
 import { SharePromptProvider, resetSharePromptHistory } from "./components/share";
 import { createAchievementPost } from "./firestore/social";
+import { getOrCreateConversation, sendMessage } from "./firestore/messaging";
 import {
   signUp,
   logIn,
@@ -218,6 +218,29 @@ function App() {
       authorName: displayNameFor(user),
     });
 
+  // Send a share as a DM instead of posting to the feed. Gets or creates
+  // the conversation with the chosen friend, then sends one message that
+  // combines the reflection text and (optionally) the picked image. The
+  // achievement template's title is prepended so context is preserved.
+  const handleShareDm = async ({ friend, reflection, imageUrl }) => {
+    if (!user?.uid || !friend?.uid) {
+      return { ok: false, error: "Missing user or friend." };
+    }
+    const conv = await getOrCreateConversation(
+      { uid: user.uid, name: displayNameFor(user), email: user.email },
+      { uid: friend.uid, name: friend.name, email: friend.email, displayName: friend.name }
+    );
+    if (!conv.ok || !conv.data?.id) {
+      return { ok: false, error: conv.error || "Couldn't open that chat." };
+    }
+    return sendMessage(conv.data.id, {
+      senderUid: user.uid,
+      text: reflection,
+      imageUrl: imageUrl || null,
+      imagePath: null, // path lives with the sender's post history if needed
+    });
+  };
+
   // Domain card on Home was tapped. Each domain has its own destination:
   //   finance       -> rich budget-tracker page
   //   productivity  -> to-do list page
@@ -410,6 +433,7 @@ function App() {
       <SharePromptProvider
         user={user}
         onPost={handleSharePost}
+        onDm={handleShareDm}
         onOpenSocial={() => setView("social")}
       >
         {screen()}

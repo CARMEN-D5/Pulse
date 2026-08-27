@@ -45,6 +45,7 @@ export function SharePromptProvider({
                                         children,
                                         user,
                                         onPost, // async (post) => { ok, data } | { ok:false, error }
+                                        onDm,   // async ({ friend, reflection, imageUrl, ... }) => { ok, error? }
                                         onOpenSocial, // () => setView("social")
                                     }) {
     const [state, setState] = useState({
@@ -84,8 +85,10 @@ export function SharePromptProvider({
                     payload={state.payload}
                     source={state.source}
                     username={nameFor(user)}
+                    user={user}
                     onClose={closeSharePrompt}
                     onPost={onPost}
+                    onDm={onDm}
                     onPosted={onOpenSocial}
                 />
             )}

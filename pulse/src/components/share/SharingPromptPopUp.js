@@ -4,8 +4,10 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { templatesFor, serialisePayload } from "./shareTemplates";
 import TemplateCarousel from "./TemplateCarousel";
 import SharePostEditor from "./SharePostEditor";
+import FriendPicker from "./FriendPicker";
 import Icon from "../Icon";
 import { PrimaryButton } from "../ui";
+import { uploadPostImage } from "../../storage/uploads";
 import { colors, radius, spacing, type } from "../../theme";
 
 export default function SharingPromptPopUp({
@@ -13,8 +15,10 @@ export default function SharingPromptPopUp({
                                                payload,
                                                source = "manual",
                                                username,
+                                               user,
                                                onClose,
                                                onPost,
+                                               onDm,
                                                onPosted,
                                            }) {
     const templates = useMemo(
@@ -27,6 +31,12 @@ export default function SharingPromptPopUp({
     const [posting, setPosting] = useState(false);
     const [error, setError] = useState(null);
 
+    // Picked-but-not-yet-sent DM state: when the user taps "Send to
+    // friend..." in the editor we stash the composed post here and open
+    // the friend picker; on friend pick we run the DM flow.
+    const [pendingDm, setPendingDm] = useState(null);
+    const [dmPickerError, setDmPickerError] = useState(null);
+
     const selected = templates[index];
 
     // The web build bound Escape and locked body scroll. On native, <Modal>
@@ -34,18 +44,30 @@ export default function SharingPromptPopUp({
     // button — the equivalent of the Escape key here.
     if (!selected) return null;
 
-    const handlePost = async ({ reflection }) => {
+    // Upload the picked image (if any) to Storage. Runs before both feed
+    // posts and DMs so the returned URL is portable to either.
+    const uploadImageIfPresent = async (imageAsset) => {
+        if (!imageAsset || !user?.uid) return { url: null, path: null };
+        const up = await uploadPostImage(user.uid, imageAsset);
+        if (!up.ok) throw new Error(up.error || "Image upload failed.");
+        return { url: up.url, path: up.path };
+    };
+
+    // "Share to feed" path — same behaviour as before, plus optional image.
+    const shareToFeed = async ({ reflection, imageAsset }) => {
         setPosting(true);
         setError(null);
         try {
+            const { url, path } = await uploadImageIfPresent(imageAsset);
             const res = await onPost?.({
                 domain,
                 templateId: selected.id,
                 payload: serialisePayload(domain, payload),
                 reflection,
                 source,
+                imageUrl: url,
+                imagePath: path,
             });
-            // firestore/social.js returns { ok, data } / { ok:false, error }
             if (res && res.ok === false) {
                 setError(res.error || "Couldn't share that. Try again.");
                 setPosting(false);
@@ -56,6 +78,59 @@ export default function SharingPromptPopUp({
         } catch (e) {
             setError(e?.message ?? "Couldn't share that. Try again.");
             setPosting(false);
+        }
+    };
+
+    // "Send to friend..." path — stash the composed post and open the
+    // FriendPicker. Actual send runs on friend pick.
+    const beginDm = ({ reflection, imageAsset }) => {
+        setError(null);
+        setDmPickerError(null);
+        setPendingDm({ reflection, imageAsset });
+    };
+
+    const cancelDm = () => {
+        if (posting) return;
+        setPendingDm(null);
+        setDmPickerError(null);
+    };
+
+    const handleFriendPicked = async (friend) => {
+        if (!pendingDm) return;
+        setPosting(true);
+        setDmPickerError(null);
+        try {
+            const { url, path } = await uploadImageIfPresent(pendingDm.imageAsset);
+            const res = await onDm?.({
+                friend,
+                domain,
+                templateId: selected.id,
+                payload: serialisePayload(domain, payload),
+                reflection: pendingDm.reflection,
+                imageUrl: url,
+                imagePath: path,
+            });
+            if (res && res.ok === false) {
+                setDmPickerError(res.error || "Couldn't send that. Try again.");
+                setPosting(false);
+                return;
+            }
+            setPendingDm(null);
+            onClose();
+            onPosted?.();
+        } catch (e) {
+            setDmPickerError(e?.message ?? "Couldn't send that. Try again.");
+            setPosting(false);
+        }
+    };
+
+    // Editor's onSubmit receives { reflection, imageAsset, destination }
+    // and we dispatch on destination.
+    const handleEditorSubmit = (formValues) => {
+        if (formValues.destination === "dm") {
+            beginDm(formValues);
+        } else {
+            shareToFeed(formValues);
         }
     };
 
@@ -121,7 +196,7 @@ export default function SharingPromptPopUp({
                             username={username}
                             posting={posting}
                             error={error}
-                            onSubmit={handlePost}
+                            onSubmit={handleEditorSubmit}
                             onCancel={onClose}
                         />
                     )}
@@ -143,6 +218,16 @@ export default function SharingPromptPopUp({
                     </View>
                 )}
             </View>
+
+            {/* Layered on top of the popup — picks a friend for DM send. */}
+            <FriendPicker
+                visible={!!pendingDm}
+                user={user}
+                posting={posting}
+                error={dmPickerError}
+                onPick={handleFriendPicked}
+                onClose={cancelDm}
+            />
         </Modal>
     );
 }
