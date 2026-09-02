@@ -428,16 +428,26 @@ export const TEMPLATES = [
         domain: "finance",
         label: "Month",
         isAvailable: (p) => p?.kind === "month-under" && num(p.totalBudget) > 0,
-        title: (p) => `Finished ${p.monthLabel} under budget`,
+        // "Finished" is only true once the month is over. Finance.js shares the
+        // live current month, so `monthComplete` is absent there and this reads
+        // as the present tense. A month-end card can set it true.
+        title: (p) =>
+            p?.monthComplete
+                ? `Finished ${p.monthLabel} under budget`
+                : `Still under budget for ${p.monthLabel}`,
         render: (p, ctx) => {
             const used = (num(p.totalSpent) / num(p.totalBudget)) * 100;
             return (
                 <Card username={ctx.username}>
                     <Text style={styles.captionStrong}>{p.monthLabel}</Text>
                     <Ring pct={used}>{Math.round(used)}%</Ring>
-                    <Text style={styles.caption}>
-                        {money(p.totalSpent)} of {money(p.totalBudget)} spent
+                    <Text style={styles.headlineSm}>
+                        {p?.monthComplete ? "Finished under budget!" : "Still under budget!"}
                     </Text>
+                    {/* No dollar figures. The percentage says the same thing
+                        without telling the feed what someone earns or what
+                        their rent is. The amounts stay in the payload because
+                        the ring is computed from them. */}
                 </Card>
             );
         },
@@ -469,6 +479,34 @@ export const TEMPLATES = [
                 </Card>
             );
         },
+    },
+
+    /* ============ FINANCE — TRACKING STREAK ============
+         { streakDays, streakSince }
+
+         does not display monetary values with budget overview sharing option
+
+         has streak post option that logs since the start of the streak.
+    */
+    {
+        id: "finance-streak",
+        domain: "finance",
+        label: "Streak",
+        // Keep in step with MIN_SHAREABLE_STREAK in pages/financeStreak.js.
+        isAvailable: (p) => num(p?.streakDays) >= 2,
+        title: (p) => `${plural(num(p.streakDays), "day", "days")} of tracking my spending`,
+        render: (p, ctx) => (
+            <Card username={ctx.username}>
+                <Text style={styles.streakFlame}>🔥</Text>
+                <Text style={styles.headline}>{num(p.streakDays)}</Text>
+                <Text style={styles.caption}>
+                    {num(p.streakDays) === 1 ? "day" : "days"} tracking my spending
+                </Text>
+                {p.streakSince ? (
+                    <Text style={styles.caption}>since {p.streakSince}</Text>
+                ) : null}
+            </Card>
+        ),
     },
 
     /* ============ FINANCE — SAVING PLANS ============
@@ -583,6 +621,9 @@ const SERIALISERS = {
         monthLabel: p.monthLabel ?? "",
         totalSpent: num(p.totalSpent),
         totalBudget: num(p.totalBudget),
+        // False for a month still running, so the card says "still" rather
+        // than claiming a result that has not happened yet.
+        monthComplete: Boolean(p.monthComplete),
         categoryLabel: p.categoryLabel ?? "",
         categoryIcon: p.categoryIcon ?? "",
         categoryColor: p.categoryColor ?? "",
@@ -598,6 +639,9 @@ const SERIALISERS = {
         targetAmount: num(p.targetAmount),
         actualProgress: num(p.actualProgress),
         milestone: num(p.milestone),
+        // tracking streak — no amounts, deliberately
+        streakDays: num(p.streakDays),
+        streakSince: p.streakSince ?? "",
     }),
 };
 
@@ -663,6 +707,7 @@ const styles = StyleSheet.create({
 
     headline: { ...type.h2, color: colors.text, textAlign: "center" },
     headlineSm: { ...type.h3, color: colors.text, textAlign: "center" },
+    streakFlame: { fontSize: 40, textAlign: "center" },
 
     ringWrap: { width: 128, height: 128, alignItems: "center", justifyContent: "center" },
     ringLabel: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
