@@ -102,6 +102,27 @@ export async function computeCurrentScores(uid, userDoc) {
   const baseline = userDoc?.onboardingBaseline;
   if (!baseline) return null;
 
+  const currentWeekId = getWeekId();
+  const isNewWeek = userDoc.weekStartId !== currentWeekId;
+
+  // Week-start scores are frozen at the beginning of each week so that
+  // repeated computations within the same week produce the same result
+  // for the same set of events (no award-point drift).
+  let weekStartScores;
+  if (isNewWeek) {
+    weekStartScores = {};
+    for (const key of DOMAIN_KEYS) {
+      weekStartScores[key] = (userDoc.domainScores?.[key] ?? baseline[key]) ?? 60;
+    }
+  } else {
+    weekStartScores = userDoc.weekStartScores ?? {};
+    for (const key of DOMAIN_KEYS) {
+      if (weekStartScores[key] === undefined) {
+        weekStartScores[key] = (userDoc.domainScores?.[key] ?? baseline[key]) ?? 60;
+      }
+    }
+  }
+
   // Bucket events by domain (empty defaults — used when subcollection queries fail)
   const reflByDomain = Object.fromEntries(DOMAIN_KEYS.map(k => [k, []]));
   const pointsByDomain = Object.fromEntries(DOMAIN_KEYS.map(k => [k, 0]));
@@ -135,19 +156,19 @@ export async function computeCurrentScores(uid, userDoc) {
       }
     });
   } catch (err) {
-    // Subcollection rules not yet deployed — scores will be baseline-only
     console.debug('[Pulse] scoring subcollection query failed, using baseline only', err?.code);
   }
 
-  // Compute each domain score using the award-point delta approach:
-  //   observed (0-100) → award (-2 to +2) → newScore = previousScore + award
-  // We also keep the R/A/C breakdown around for the weekly snapshot.
+  const lastReflectionScores = userDoc.lastReflectionScores ?? {};
+  const newReflectionScores = { ...lastReflectionScores };
+
   const domainScores = {};
   const domainBreakdowns = {};
   for (const key of DOMAIN_KEYS) {
-    const previousScore = (userDoc.domainScores?.[key] ?? baseline[key]) ?? 60;
+    const previousScore = weekStartScores[key];
     const breakdown = computeDomainBreakdown({
       previousScore,
+      previousReflectionScore: lastReflectionScores[key],
       reflections: reflByDomain[key],
       actionPoints: pointsByDomain[key],
       activeDays: activeDaysByDomain[key].size,
@@ -155,20 +176,27 @@ export async function computeCurrentScores(uid, userDoc) {
     });
     domainScores[key] = breakdown.finalScore;
     domainBreakdowns[key] = breakdown;
+    if (reflByDomain[key].length > 0) {
+      newReflectionScores[key] = breakdown.reflectionScore;
+    }
   }
 
   const global = computeGlobalScores(domainScores);
 
-  // Persist the new domain scores back to the user doc so the next
-  // computation uses the updated previousScore instead of the original baseline.
   try {
-    await updateDoc(doc(db, 'users', uid), {
+    const updateData = {
       domainScores,
       lifeStrength: global.lifeStrength,
       evenness: global.evenness,
       balancedLifeScore: global.balancedLifeScore,
+      lastReflectionScores: newReflectionScores,
       scoresUpdatedAt: serverTimestamp(),
-    });
+    };
+    if (isNewWeek) {
+      updateData.weekStartScores = weekStartScores;
+      updateData.weekStartId = currentWeekId;
+    }
+    await updateDoc(doc(db, 'users', uid), updateData);
   } catch (err) {
     console.debug('[Pulse] failed to persist domain scores', err?.code);
   }
@@ -206,8 +234,9 @@ function todayString() {
 function getWeekStart() {
   const now = new Date();
   const day = now.getDay(); // 0 = Sunday
+  const diff = day === 0 ? 6 : day - 1; // Monday-based to match ISO 8601 getWeekId()
   const start = new Date(now);
-  start.setDate(now.getDate() - day);
+  start.setDate(now.getDate() - diff);
   start.setHours(0, 0, 0, 0);
   return start;
 }

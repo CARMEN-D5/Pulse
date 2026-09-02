@@ -25,11 +25,11 @@ import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
    The web build stored `gradient` as a CSS string. React Native takes the
    stops as an array instead, which expo-linear-gradient renders natively. */
 const DOMAIN_META = {
-  spirituality:  { icon: "auto_awesome",   gradient: ["#086a69", "#0a9e9c"], light: "#e6f7f6", text: "#086a69", accent: "#0a9e9c" },
-  relationships: { icon: "groups",          gradient: ["#4e607f", "#7889a8"], light: "#ebeef4", text: "#4e607f", accent: "#7889a8" },
-  productivity:  { icon: "business_center", gradient: ["#5a6550", "#7d8a72"], light: "#eef0eb", text: "#5a6550", accent: "#7d8a72" },
-  health:        { icon: "favorite",        gradient: ["#c9184a", "#ff4d6d"], light: "#fde8ee", text: "#c9184a", accent: "#ff4d6d" },
-  finance:       { icon: "payments",        gradient: ["#983f72", "#c06098"], light: "#f5e6ef", text: "#983f72", accent: "#c06098" },
+  spirituality:  { icon: "auto_awesome",   gradient: ["#2A7A6A", "#4AA898"], light: "#E6F5F0", text: "#2A7A6A", accent: "#4AA898" },
+  relationships: { icon: "groups",          gradient: ["#586880", "#8294AA"], light: "#ECF0F5", text: "#586880", accent: "#8294AA" },
+  productivity:  { icon: "business_center", gradient: ["#5A6550", "#7D8A72"], light: "#EEF0EB", text: "#5A6550", accent: "#7D8A72" },
+  health:        { icon: "favorite",        gradient: ["#B33D54", "#E0546E"], light: "#FAE8EC", text: "#B33D54", accent: "#E0546E" },
+  finance:       { icon: "payments",        gradient: ["#8E4570", "#B46098"], light: "#F5E6EF", text: "#8E4570", accent: "#B46098" },
 };
 
 const GRID_ORDER = ["spirituality", "health", "relationships", "finance", "productivity"];
@@ -84,10 +84,10 @@ function getScoreLabel(score) {
 }
 
 function getStatusColor(score) {
-  if (score >= 80) return "#2f9e7a";
-  if (score >= 60) return "#086a69";
-  if (score >= 40) return "#d4a017";
-  return "#c9184a";
+  if (score >= 80) return "#3A8F70";
+  if (score >= 60) return "#2A7A6A";
+  if (score >= 40) return "#C48030";
+  return "#B33D54";
 }
 
 /* ── Radar geometry ────────────────────────────────────────── */
@@ -115,8 +115,8 @@ function RadarChart({ domainScores }) {
     <Svg width="100%" height={200} viewBox="0 0 120 112">
       <Defs>
         <RadialGradient id="radarFill" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#ff4d6d" stopOpacity="0.25" />
-          <Stop offset="100%" stopColor="#c9184a" stopOpacity="0.08" />
+          <Stop offset="0%" stopColor="#E0546E" stopOpacity="0.22" />
+          <Stop offset="100%" stopColor="#B33D54" stopOpacity="0.06" />
         </RadialGradient>
       </Defs>
 
@@ -126,7 +126,7 @@ function RadarChart({ domainScores }) {
           key={pct}
           points={RADAR_ORDER.map((_, i) => radarPt(i, pct).join(",")).join(" ")}
           fill="none"
-          stroke="#eadfe3"
+          stroke="#E6DCD6"
           strokeWidth="0.3"
         />
       ))}
@@ -134,14 +134,14 @@ function RadarChart({ domainScores }) {
       {/* Axis lines */}
       {RADAR_ORDER.map((_, i) => {
         const [x, y] = radarPt(i, 100);
-        return <Line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="#eadfe3" strokeWidth="0.3" />;
+        return <Line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="#E6DCD6" strokeWidth="0.3" />;
       })}
 
       {/* Data polygon */}
       <Polygon
         points={poly}
         fill="url(#radarFill)"
-        stroke="#c9184a"
+        stroke="#B33D54"
         strokeWidth="0.8"
         strokeLinejoin="round"
       />
@@ -149,8 +149,8 @@ function RadarChart({ domainScores }) {
       {/* Data dots */}
       {pts.map(([x, y], i) => (
         <G key={i}>
-          <Circle cx={x} cy={y} r="2.2" fill="#fff" stroke="#c9184a" strokeWidth="0.8" />
-          <Circle cx={x} cy={y} r="1" fill="#c9184a" />
+          <Circle cx={x} cy={y} r="2.2" fill="#fff" stroke="#B33D54" strokeWidth="0.8" />
+          <Circle cx={x} cy={y} r="1" fill="#B33D54" />
         </G>
       ))}
 
@@ -165,7 +165,7 @@ function RadarChart({ domainScores }) {
               x={x}
               y={y - 1.5}
               textAnchor={anchor}
-              fill="#1f1f2e"
+              fill="#2A2523"
               fontSize="3.8"
               fontFamily={fonts.bold}
             >
@@ -175,7 +175,7 @@ function RadarChart({ domainScores }) {
               x={x}
               y={y + 3.2}
               textAnchor={anchor}
-              fill="#6b6b7a"
+              fill="#7D756F"
               fontSize="3.2"
               fontFamily={fonts.semibold}
             >
@@ -219,14 +219,14 @@ function ScoreRing({ score }) {
       <Svg width="100%" height="100%" viewBox="0 0 180 180">
         <Defs>
           <SvgLinearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#c9184a" />
-            <Stop offset="50%" stopColor="#ff4d6d" />
-            <Stop offset="100%" stopColor="#ff8fa3" />
+            <Stop offset="0%" stopColor="#B33D54" />
+            <Stop offset="50%" stopColor="#E0546E" />
+            <Stop offset="100%" stopColor="#E8889A" />
           </SvgLinearGradient>
         </Defs>
 
         {/* Track */}
-        <Circle cx="90" cy="90" r={RING_R} fill="none" stroke="#f0e0e5" strokeWidth="7" />
+        <Circle cx="90" cy="90" r={RING_R} fill="none" stroke="#E8DDD8" strokeWidth="7" />
 
         {/* Progress */}
         <AnimatedCircle
@@ -324,7 +324,10 @@ function Home({
       <View style={styles.main}>
         {/* ── Quote of the day ─────────────────────── */}
         <View style={styles.quote}>
-          <Text style={styles.quoteText}>{quoteOfTheDay()}</Text>
+          <View style={styles.quoteAccent} />
+          <View style={styles.quoteBody}>
+            <Text style={styles.quoteText}>{quoteOfTheDay()}</Text>
+          </View>
         </View>
 
         {scoresLoading ? (
@@ -469,14 +472,23 @@ const styles = StyleSheet.create({
   },
 
   quote: {
+    flexDirection: "row",
     backgroundColor: colors.accentSoft,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.accentSoftStrong,
+    overflow: "hidden",
+  },
+  quoteAccent: {
+    width: 3,
+    backgroundColor: colors.pulseAccent,
+  },
+  quoteBody: {
+    flex: 1,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  quoteText: { ...type.bodyMedium, color: colors.text },
+  quoteText: { ...type.bodyMedium, fontStyle: "italic", color: colors.textMuted },
 
   hero: { alignItems: "center", paddingTop: spacing.sm, paddingBottom: spacing.sm },
   skeletonRing: {

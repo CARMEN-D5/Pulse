@@ -8,7 +8,7 @@ import { PrimaryButton } from "../components/ui";
 import { colors, fonts, radius, spacing, type } from "../theme";
 
 const ICONS = ["✈️", "🏠", "🚗", "💻", "📱", "🎓", "💍", "🎁", "🏖️", "💰", "🐶", "🎮"];
-const COLOURS = ["#4d96ff", "#ff6b6b", "#9b5de5", "#f6c453", "#80b918", "#00b4d8", "#f72585", "#fb8500"];
+const COLOURS = ["#4A6D98", "#E0546E", "#8E4570", "#D4A94C", "#5A8A4A", "#2A7A6A", "#B33D54", "#C48030"];
 
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -21,7 +21,7 @@ export default function SavingPlanModal({ plan, onClose, onSave }) {
     plan || {
       name: "",
       icon: "✈️",
-      color: "#4d96ff",
+      color: "#4A6D98",
       targetAmount: "",
       dueDate: "",
       status: "active",
@@ -123,7 +123,7 @@ export default function SavingPlanModal({ plan, onClose, onSave }) {
           onChangeText={(value) => change("color", value)}
           autoCapitalize="none"
           maxLength={7}
-          placeholder="#4d96ff"
+          placeholder="#4A6D98"
           placeholderTextColor={colors.textMuted}
           accessibilityLabel="Custom colour hex"
         />

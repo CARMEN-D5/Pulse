@@ -39,7 +39,7 @@ export function AppBar({ initials, onOpenProfile }) {
         {initials ? (
           <Text style={styles.avatarText}>{initials}</Text>
         ) : (
-          <Icon name="person" size={22} color="#5b5a7a" />
+          <Icon name="person" size={22} color="#6B5A78" />
         )}
       </Pressable>
     </View>
@@ -119,13 +119,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.extrabold,
     fontSize: 26,
     lineHeight: 32,
-    letterSpacing: 1.5,
-    color: colors.pulseAccent,
-    // The mockup's wordmark is an outlined display face; the darker rose
-    // shadow underneath is the closest stand-in with the app's own family.
-    textShadowColor: colors.pulsePrimary,
+    letterSpacing: 2,
+    color: colors.pulsePrimaryDark,
+    textShadowColor: "rgba(179, 61, 84, 0.15)",
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
+    textShadowRadius: 2,
   },
   avatarBtn: {
     width: 38,
@@ -134,8 +132,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.accentSoftStrong,
+    borderWidth: 1.5,
+    borderColor: "rgba(226, 221, 236, 0.6)",
   },
-  avatarText: { ...type.label, fontFamily: fonts.extrabold, fontSize: 15, color: "#5b5a7a" },
+  avatarText: { ...type.label, fontFamily: fonts.extrabold, fontSize: 15, color: "#6B5A78" },
 
   tabBar: {
     flexDirection: "row",

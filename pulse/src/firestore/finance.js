@@ -37,11 +37,11 @@ import { db } from "../firebase";
 
 /** The default category set John starts with. Custom categories are a v2. */
 export const DEFAULT_CATEGORIES = [
-  { id: "food",          label: "Food",          icon: "🍜", color: "#ff6b6b" },
-  { id: "transport",     label: "Transport",     icon: "🚌", color: "#4d96ff" },
-  { id: "rent",          label: "Rent",          icon: "🏠", color: "#9b5de5" },
-  { id: "entertainment", label: "Entertainment", icon: "🎬", color: "#f6c453" },
-  { id: "other",         label: "Other",         icon: "💸", color: "#80b918" },
+  { id: "food",          label: "Food",          icon: "🍜", color: "#E0546E" },
+  { id: "transport",     label: "Transport",     icon: "🚌", color: "#4A6D98" },
+  { id: "rent",          label: "Rent",          icon: "🏠", color: "#8E4570" },
+  { id: "entertainment", label: "Entertainment", icon: "🎬", color: "#D4A94C" },
+  { id: "other",         label: "Other",         icon: "💸", color: "#5A8A4A" },
 ];
 
 export function categoryById(id) {
@@ -211,10 +211,10 @@ export function dayKey(date) {
  * the user fully owns this list — they can rename, recolor, add or delete.
  */
 export const DEFAULT_ACCOUNTS = [
-  { id: "everyday", name: "Everyday",   icon: "💳", color: "#4d96ff" },
-  { id: "savings",  name: "Savings",    icon: "🏦", color: "#80b918" },
-  { id: "credit",   name: "Credit Card", icon: "🪪", color: "#9b5de5" },
-  { id: "cash",     name: "Cash",       icon: "💵", color: "#f6c453" },
+  { id: "everyday", name: "Everyday",   icon: "💳", color: "#4A6D98" },
+  { id: "savings",  name: "Savings",    icon: "🏦", color: "#5A8A4A" },
+  { id: "credit",   name: "Credit Card", icon: "🪪", color: "#8E4570" },
+  { id: "cash",     name: "Cash",       icon: "💵", color: "#D4A94C" },
 ];
 
 function accountsCol(uid) {
@@ -270,7 +270,7 @@ export async function saveAccount(uid, account) {
         id: account.id,
         name: account.name || "Untitled",
         icon: account.icon || "💳",
-        color: account.color || "#4d96ff",
+        color: account.color || "#4A6D98",
         updatedAt: serverTimestamp(),
         createdAt: account.createdAt || serverTimestamp(),
       },

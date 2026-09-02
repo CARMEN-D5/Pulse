@@ -1261,19 +1261,21 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
 
-  tabs: { flexDirection: "row", gap: 6 },
+  tabs: {
+    flexDirection: "row",
+    backgroundColor: colors.pulseBgTintAlt,
+    borderRadius: radius.pill,
+    padding: 3,
+  },
   tab: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
   },
-  tabActive: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
-  tabText: { ...type.small, fontSize: 13, color: colors.text },
-  tabTextActive: { color: "#fff", fontFamily: fonts.semibold },
+  tabActive: { backgroundColor: colors.pulsePrimary },
+  tabText: { ...type.small, fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted },
+  tabTextActive: { color: "#fff", fontFamily: fonts.bold },
 
   card: {
     backgroundColor: colors.card,

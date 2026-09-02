@@ -155,7 +155,7 @@ function Profile({ user, onLogout, onReplayTutorial }) {
         <>
           <View style={styles.header}>
             <LinearGradient
-              colors={["#c9184a", "#ff8fa3"]}
+              colors={["#B33D54", "#E8889A"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.avatar}

@@ -129,11 +129,14 @@ export function calcAwardPoint(observedScore) {
 // Compute the new domain score plus the R/A/C breakdown that produced it.
 // Returns { reflectionScore, actionScore, consistencyScore, observed, awardPoints, finalScore }.
 // If there is no activity this week, finalScore = previousScore and inputs are 0/previousScore.
-export function computeDomainBreakdown({ previousScore, reflections, actionPoints, activeDays, weeklyTarget }) {
-  const hasActivity = actionPoints > 0 || reflections.length > 0;
-  if (!hasActivity) {
+export function computeDomainBreakdown({ previousScore, previousReflectionScore, reflections, actionPoints, activeDays, weeklyTarget }) {
+  const hasActions = actionPoints > 0;
+  const hasReflections = reflections.length > 0;
+  const rFallback = previousReflectionScore ?? previousScore;
+
+  if (!hasActions && !hasReflections) {
     return {
-      reflectionScore: previousScore,
+      reflectionScore: rFallback,
       actionScore: 0,
       consistencyScore: 0,
       observed: previousScore,
@@ -142,7 +145,19 @@ export function computeDomainBreakdown({ previousScore, reflections, actionPoint
     };
   }
 
-  const R = reflections.length > 0 ? calcReflectionScore(reflections) : previousScore;
+  const R = hasReflections ? calcReflectionScore(reflections) : rFallback;
+
+  if (!hasActions) {
+    return {
+      reflectionScore: R,
+      actionScore: 0,
+      consistencyScore: 0,
+      observed: previousScore,
+      awardPoints: 0,
+      finalScore: previousScore,
+    };
+  }
+
   const A = calcActionScore(actionPoints, weeklyTarget);
   const C = calcConsistencyScore(activeDays);
   const observed = calcDomainScore(R, A, C);

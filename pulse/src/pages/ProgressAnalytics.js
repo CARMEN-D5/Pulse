@@ -1,24 +1,24 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Path, Stop } from "react-native-svg";
 
 import Icon from "../components/Icon";
 import { EmptyState, Loading, Screen, ScreenHeader } from "../components/ui";
 import { db } from "../firebase";
-import { seedDummyWeeklyScores } from "../firestore/seedDummyScores";
+import { seedDummyWeeklyScores, SEED_PROFILES, SEED_PERIODS } from "../firestore/seedDummyScores";
 import { DOMAINS, DOMAIN_KEYS } from "../scoring/scoringEngine";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 /* ── Domain config ─────────────────────────────────────────── */
 const DOMAIN_META = {
-  spirituality:  { icon: "auto_awesome", color: "#086a69", label: "Spirit" },
-  relationships: { icon: "groups",       color: "#4e607f", label: "Social" },
-  productivity:  { icon: "work",         color: "#5a6550", label: "Work" },
-  health:        { icon: "favorite",     color: "#c9184a", label: "Health" },
-  finance:       { icon: "payments",     color: "#983f72", label: "Finance" },
+  spirituality:  { icon: "auto_awesome", color: "#2A7A6A", label: "Spirit" },
+  relationships: { icon: "groups",       color: "#586880", label: "Social" },
+  productivity:  { icon: "work",         color: "#5A6550", label: "Work" },
+  health:        { icon: "favorite",     color: "#B33D54", label: "Health" },
+  finance:       { icon: "payments",     color: "#8E4570", label: "Finance" },
 };
 
 const RANGE_OPTIONS = [
@@ -159,6 +159,9 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
   const [range, setRange] = useState(8);
   const [selectedDomain, setSelectedDomain] = useState("overall");
   const [seeding, setSeeding] = useState(false);
+  const [seedModalVisible, setSeedModalVisible] = useState(false);
+  const [seedProfile, setSeedProfile] = useState("journey");
+  const [seedWeeks, setSeedWeeks] = useState(8);
   const [fetchKey, setFetchKey] = useState(0);
 
   /* Fetch */
@@ -177,16 +180,26 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
   }, [user, fetchKey]);
 
   /* Seed */
-  const handleSeed = useCallback(async () => {
+  const handleSeedConfirm = useCallback(async () => {
     if (!user?.uid || seeding) return;
+    setSeedModalVisible(false);
     setSeeding(true);
     try {
-      const r = await seedDummyWeeklyScores(user.uid);
-      if (r.ok) setFetchKey((k) => k + 1);
+      const r = await seedDummyWeeklyScores(user.uid, seedProfile, seedWeeks);
+      if (r.ok) {
+        setFetchKey((k) => k + 1);
+        Alert.alert("Seeded", `${r.profile} profile — ${r.count} weeks written.`);
+      }
+    } catch (err) {
+      Alert.alert("Error", err?.message ?? "Failed to seed data.");
     } finally {
       setSeeding(false);
     }
-  }, [user, seeding]);
+  }, [user, seeding, seedProfile, seedWeeks]);
+
+  const handleSeed = useCallback(() => {
+    setSeedModalVisible(true);
+  }, []);
 
   /* Derived data */
   const filtered = useMemo(() => {
@@ -241,7 +254,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
   }, [filtered]);
 
   const chartColor =
-    selectedDomain === "overall" ? "#086a69" : DOMAIN_META[selectedDomain]?.color ?? "#086a69";
+    selectedDomain === "overall" ? "#2A7A6A" : DOMAIN_META[selectedDomain]?.color ?? "#2A7A6A";
   const activeLabel =
     selectedDomain === "overall" ? "Overall Balance Score" : DOMAIN_META[selectedDomain]?.label;
 
@@ -312,7 +325,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
         <>
           {/* ── Overall score card (teal gradient) ── */}
           <LinearGradient
-            colors={["#086a69", "#005d5c"]}
+            colors={["#2A7A6A", "#1D665A"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.scoreCard, shadow("lg")]}
@@ -436,7 +449,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
                           <Text
                             style={[
                               styles.insightStatText,
-                              { color: up ? "#086a69" : "#ac3434" },
+                              { color: up ? "#2A7A6A" : "#B33A3A" },
                             ]}
                           >
                             {up ? "+" : ""}
@@ -452,6 +465,88 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
           </View>
         </>
       )}
+
+      {/* ── Seed data modal ── */}
+      <Modal
+        visible={seedModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSeedModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setSeedModalVisible(false)}>
+          <Pressable style={[styles.modalCard, shadow("lg")]} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Seed Test Data</Text>
+            <Text style={styles.modalSubtitle}>
+              Choose a user profile and time period to generate realistic scoring data.
+            </Text>
+
+            <Text style={styles.modalSectionLabel}>PROFILE</Text>
+            <View style={styles.modalOptions}>
+              {Object.entries(SEED_PROFILES).map(([key, { label }]) => (
+                <Pressable
+                  key={key}
+                  onPress={() => setSeedProfile(key)}
+                  style={[
+                    styles.modalOption,
+                    seedProfile === key && styles.modalOptionActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      seedProfile === key && styles.modalOptionTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.modalSectionLabel}>TIME PERIOD</Text>
+            <View style={styles.modalOptions}>
+              {Object.entries(SEED_PERIODS).map(([key, { label }]) => (
+                <Pressable
+                  key={key}
+                  onPress={() => setSeedWeeks(Number(key))}
+                  style={[
+                    styles.modalOption,
+                    seedWeeks === Number(key) && styles.modalOptionActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      seedWeeks === Number(key) && styles.modalOptionTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => setSeedModalVisible(false)}
+                style={[styles.modalBtn, styles.modalBtnCancel]}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSeedConfirm}
+                disabled={seeding}
+                style={[styles.modalBtn, styles.modalBtnConfirm]}
+              >
+                <Icon name="science" size={16} color="#fff" />
+                <Text style={styles.modalBtnConfirmText}>
+                  {seeding ? "Seeding…" : "Seed Data"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Screen>
   );
 }
@@ -614,6 +709,72 @@ const styles = StyleSheet.create({
   insightBarFill: { height: "100%", borderRadius: radius.pill },
   insightStats: { flexDirection: "row", justifyContent: "space-between" },
   insightStatText: { ...type.caption, fontSize: 11, color: colors.textMuted },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  modalTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 18, color: colors.text },
+  modalSubtitle: { ...type.caption, fontSize: 13, color: colors.textMuted },
+  modalSectionLabel: {
+    ...type.caption,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  modalOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  modalOption: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.pulseBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalOptionActive: {
+    backgroundColor: colors.blPrimary,
+    borderColor: colors.blPrimary,
+  },
+  modalOptionText: { ...type.caption, fontSize: 12, color: colors.textMuted },
+  modalOptionTextActive: { color: "#fff" },
+  modalActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  modalBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+  },
+  modalBtnCancel: {
+    backgroundColor: colors.pulseBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalBtnCancelText: { ...type.label, fontSize: 14, color: colors.textMuted },
+  modalBtnConfirm: { backgroundColor: colors.blPrimary },
+  modalBtnConfirmText: { ...type.label, fontSize: 14, color: "#fff", fontFamily: fonts.bold },
 });
 
 export default ProgressAnalytics;
