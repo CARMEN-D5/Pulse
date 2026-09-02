@@ -1195,12 +1195,32 @@ function ThreadOverlay({ user, thread, onClose }) {
 
             {messages.map((m) => {
               const mine = m.senderUid === user.uid;
+              const hasImage = Boolean(m.imageUrl);
+              const hasText = Boolean(m.text);
               return (
                 <View
                   key={m.id}
                   style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}
                 >
-                  <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{m.text}</Text>
+                  {hasImage ? (
+                    <Image
+                      source={{ uri: m.imageUrl }}
+                      style={styles.bubbleImage}
+                      resizeMode="cover"
+                      accessibilityIgnoresInvertColors
+                    />
+                  ) : null}
+                  {hasText ? (
+                    <Text
+                      style={[
+                        styles.bubbleText,
+                        mine && styles.bubbleTextMine,
+                        hasImage && styles.bubbleTextWithImage,
+                      ]}
+                    >
+                      {m.text}
+                    </Text>
+                  ) : null}
                   <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
                     {timeAgo(m.createdAt)}
                   </Text>
@@ -1446,6 +1466,13 @@ const styles = StyleSheet.create({
   bubbleTheirs: { alignSelf: "flex-start", backgroundColor: colors.card },
   bubbleText: { ...type.body, fontSize: 14, color: colors.text },
   bubbleTextMine: { color: "#fff" },
+  bubbleTextWithImage: { marginTop: spacing.sm },
+  bubbleImage: {
+    width: 220,
+    height: 220,
+    borderRadius: radius.md,
+    marginBottom: 0,
+  },
   bubbleTime: { ...type.caption, fontSize: 10, color: colors.textMuted, marginTop: 2 },
   bubbleTimeMine: { color: "rgba(255,255,255,0.75)" },
 

@@ -137,21 +137,38 @@ const messagesCol = (convId) =>
  * lastMessageAt, and lastMessageSender on the parent conversation doc so
  * the inbox can show a preview and decide whether to render an unread dot.
  */
-export async function sendMessage(convId, { senderUid, text }) {
+/**
+ * Send a message. Text and image are both optional individually, but at
+ * least one must be provided. The parent conversation doc's lastMessage
+ * preview shows the text if present, otherwise "📷 Photo" — so the inbox
+ * list always has something meaningful even for image-only messages.
+ */
+export async function sendMessage(convId, { senderUid, text, imageUrl, imagePath }) {
   if (!senderUid) return { ok: false, error: "Not signed in" };
-  if (!text?.trim()) return { ok: false, error: "Message is empty." };
+  const trimmed = (text || "").trim();
+  if (!trimmed && !imageUrl) {
+    return { ok: false, error: "Message is empty." };
+  }
 
   try {
-    const trimmed = text.trim();
+    // Store null (not undefined) for the fields Firestore should persist as
+    // absent — makes rules and reads easier to reason about.
     await addDoc(messagesCol(convId), {
       senderUid,
-      text: trimmed,
+      text: trimmed || null,
+      imageUrl: imageUrl || null,
+      imagePath: imagePath || null,
       createdAt: serverTimestamp(),
     });
+    const preview = trimmed
+      ? trimmed.length > 80
+        ? trimmed.slice(0, 80) + "…"
+        : trimmed
+      : "📷 Photo";
     await setDoc(
       doc(db, "conversations", convId),
       {
-        lastMessage: trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed,
+        lastMessage: preview,
         lastMessageAt: serverTimestamp(),
         lastMessageSender: senderUid,
       },

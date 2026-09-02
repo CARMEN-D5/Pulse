@@ -13,9 +13,9 @@
 // Firebase console → Authentication → Sign-in method.
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { initializeApp } from "firebase/app";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import * as firebaseAuth from "firebase/auth";
-import { initializeFirestore, memoryLocalCache } from "firebase/firestore";
+import { getFirestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
 
@@ -38,7 +38,9 @@ if (!firebaseConfig.apiKey) {
   );
 }
 
-export const app = initializeApp(firebaseConfig);
+// Guard against Metro's fast-refresh re-running this module. Without
+// this guard `initializeApp` throws `app/duplicate-app` on hot-reload.
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Auth persistence differs by platform.
 //
@@ -48,16 +50,19 @@ export const app = initializeApp(firebaseConfig);
 // every time the app is killed. `getReactNativePersistence` backs the session
 // with AsyncStorage instead, which is what keeps a returning user on Home.
 //
-// `getReactNativePersistence` only exists in the SDK's react-native build, so
-// it is undefined on web — hence the branch rather than a plain top-level
-// import. Metro picks the right build via the "react-native" export
-// condition; see metro.config.js.
-export const auth =
-  Platform.OS === "web"
-    ? firebaseAuth.getAuth(app)
-    : firebaseAuth.initializeAuth(app, {
-        persistence: firebaseAuth.getReactNativePersistence(AsyncStorage),
-      });
+// The try/catch fallback catches `auth/already-initialized`, which
+// initializeAuth throws when Metro's fast-refresh re-runs this module.
+function makeAuth() {
+  if (Platform.OS === "web") return firebaseAuth.getAuth(app);
+  try {
+    return firebaseAuth.initializeAuth(app, {
+      persistence: firebaseAuth.getReactNativePersistence(AsyncStorage),
+    });
+  } catch (e) {
+    return firebaseAuth.getAuth(app);
+  }
+}
+export const auth = makeAuth();
 
 // `initializeFirestore` (instead of `getFirestore`) lets us pass transport
 // and cache options. Two settings here, both targeting the same bug class:
@@ -80,9 +85,18 @@ export const auth =
 //    kills itself rather than risk serving stale data. Memory-only
 //    sidesteps that entirely. Trade-off: offline support is lost and a
 //    cold start refetches everything — fine for a uni-scale app.
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  localCache: memoryLocalCache(),
-});
+// Same fast-refresh guard for Firestore. `initializeFirestore` throws
+// on the second call; `getFirestore` returns the existing instance.
+function makeDb() {
+  try {
+    return initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+      localCache: memoryLocalCache(),
+    });
+  } catch (e) {
+    return getFirestore(app);
+  }
+}
+export const db = makeDb();
 
 export const storage = getStorage(app);
