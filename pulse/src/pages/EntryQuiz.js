@@ -26,13 +26,6 @@ function getScaleLabel(val) {
   return SCALE.find((s) => s.value === val)?.label ?? "";
 }
 
-/**
- * `excludeDomains` carries the domain ids the user declined at the APP 3.3
- * consent gate (see src/privacy/SensitiveConsentModal.js). Those domains are
- * not shown, not counted towards completion, and not included in the payload
- * handed to onComplete — so the ratings are never collected at all, rather
- * than collected and then filtered out afterwards.
- */
 function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
   const domains = DOMAINS.filter((d) => !excludeDomains.includes(d.id));
 
@@ -121,13 +114,6 @@ function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
                   </View>
 
                   <Text style={styles.question}>{d.questions[0]}</Text>
-
-                  {/*
-                The web build used <input type="range">. React Native has no
-                core slider, and dragging a 5-stop scale on a phone is fiddly,
-                so the same 1-5 value is chosen by tapping a segment instead.
-                The data written back is identical.
-              */}
                   <View
                       style={styles.scaleRow}
                       accessibilityRole="radiogroup"

@@ -1,68 +1,49 @@
-
-// Consent is recorded in two places, deliberately:
-//
-//   AsyncStorage  — survives before there is a uid to write against, so the
-//                   first-launch notice can be shown over Splash and answered
-//                   by someone who has not signed up yet.
-//   /users/{uid}  — the durable record. Follows the account rather than the
-//                   device, so signing in on a second phone does not re-prompt,
-//                   and so there is something to point at if anyone ever asks
-//                   you to evidence that consent was obtained.
-//
-// The local copy is the cache; the profile copy is the source of truth.
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { updateUserDoc } from "../firestore/users";
 
 /**
- * Bump this whenever the notice text or the data inventory changes.
- * A stored record from an older version is treated as no consent, so the
- * user sees the current notice instead of being carried forward silently.
+ * Bump when the notice text or the data inventory changes. Both gates check
+ * it, so a bump re-notifies and re-asks.
  */
 export const CONSENT_VERSION = 1;
 
 const LOCAL_KEY = "pulse.privacyConsent";
 
 /**
- * Record shape (identical in both stores):
  * {
  *   version: 1,
- *   acceptedAt: "2026-08-27T02:35:00.000Z",
- *   analytics: false,        // optional, opt-in
- *   reminders: false,        // optional, opt-in
- *   sensitiveAnsweredAt: null | ISO string,
- *   health: false,           // APP 3.3 — health information
- *   spirituality: false,     // APP 3.3 — religious/spiritual beliefs
+ *   noticeAcknowledgedAt: "2026-08-27T..." | null,   // device
+ *   acceptedAt:           "2026-08-27T..." | null,   // account
+ *   analytics: false,
+ *   reminders: false,
+ *   health: false,          // APP 3.3 — health information
+ *   spirituality: false,    // APP 3.3 — religious/spiritual beliefs
  * }
  */
-
 export function emptyConsent() {
     return {
         version: CONSENT_VERSION,
+        noticeAcknowledgedAt: null,
         acceptedAt: null,
         analytics: false,
         reminders: false,
-        sensitiveAnsweredAt: null,
         health: false,
         spirituality: false,
     };
 }
 
-/** True when the record exists and matches the notice version currently shipped. */
-export function isCurrent(record) {
+/** Device has seen the current version of the collection notice. */
+export function noticeAcknowledged(record) {
+    return Boolean(record) && record.version === CONSENT_VERSION && Boolean(record.noticeAcknowledgedAt);
+}
+
+/** Account has a current consent record — the gate that gets its own view. */
+export function accountConsented(record) {
     return Boolean(record) && record.version === CONSENT_VERSION && Boolean(record.acceptedAt);
 }
 
-/**
- * True once the user has been asked the APP 3.3 question, whichever way they
- * answered. Declining is a valid answer and must not re-prompt on every launch.
- */
-export function sensitiveAnswered(record) {
-    return Boolean(record?.sensitiveAnsweredAt);
-}
-
-/* ---------------- local (pre-auth) ---------------- */
+/* ---------------- local (device) ---------------- */
 
 export async function readLocalConsent() {
     try {
@@ -71,7 +52,6 @@ export async function readLocalConsent() {
         const record = JSON.parse(raw);
         return record?.version === CONSENT_VERSION ? record : null;
     } catch (err) {
-        // Fail closed: an unreadable record means we ask again rather than assume.
         console.debug("[Pulse] readLocalConsent failed", err?.message);
         return null;
     }
@@ -86,27 +66,29 @@ export async function writeLocalConsent(record) {
     return record;
 }
 
-export async function clearLocalConsent() {
-    try {
-        await AsyncStorage.removeItem(LOCAL_KEY);
-    } catch (err) {
-        console.debug("[Pulse] clearLocalConsent failed", err?.message);
-    }
+/**
+ * Drops the ACCOUNT half of the local cache on logout, keeping the device's
+ * notice acknowledgement. This is what stops the modal reappearing on the
+ * logged-out splash screen while still making sure the next person to sign up
+ * hits their own account-level consent step.
+ */
+export async function clearAccountConsent() {
+    const current = await readLocalConsent();
+    const next = {
+        ...emptyConsent(),
+        noticeAcknowledgedAt: current?.noticeAcknowledgedAt ?? null,
+    };
+    await writeLocalConsent(next);
+    return next;
 }
 
-/* ---------------- profile (post-auth) ---------------- */
+/* ---------------- profile (account) ---------------- */
 
-/**
- * Persist the record onto /users/{uid}. `acceptedAt` is a client ISO string
- * rather than serverTimestamp() so the same object can round-trip through
- * AsyncStorage unchanged; updateUserDoc still stamps a server `updatedAt`.
- */
 export async function writeProfileConsent(uid, record) {
     if (!uid) return { ok: false, error: "No uid" };
     return updateUserDoc(uid, { privacyConsent: record });
 }
 
-/** Pull the record off an already-fetched user doc. */
 export function consentFromUserDoc(userDoc) {
     const record = userDoc?.privacyConsent;
     return record?.version === CONSENT_VERSION ? record : null;
@@ -114,53 +96,64 @@ export function consentFromUserDoc(userDoc) {
 
 /* ---------------- record builders ---------------- */
 
-/** Answer to the first-launch APP 5 notice. */
-export function acceptNotice({ analytics = false, reminders = false } = {}) {
+/** Answer to the first-launch APP 5 notice. Device-level only. */
+export function acknowledgeNotice(record) {
     return {
-        ...emptyConsent(),
-        acceptedAt: new Date().toISOString(),
-        analytics,
-        reminders,
+        ...(record ?? emptyConsent()),
+        version: CONSENT_VERSION,
+        noticeAcknowledgedAt: new Date().toISOString(),
     };
 }
 
-/** Answer to the APP 3.3 sensitive-information question, either way. */
-export function answerSensitive(record, { health = false, spirituality = false } = {}) {
+/** Answer to the account-level consent step, including the APP 3.3 toggles. */
+export function acceptAccountConsent(record, choices = {}) {
+    const { analytics = false, reminders = false, health = false, spirituality = false } = choices;
     return {
         ...(record ?? emptyConsent()),
-        sensitiveAnsweredAt: new Date().toISOString(),
+        version: CONSENT_VERSION,
+        acceptedAt: new Date().toISOString(),
+        analytics,
+        reminders,
         health,
         spirituality,
     };
 }
 
 /**
- * Called on sign-up and on sign-in: reconciles the device record with the
- * account record so the two agree.
+ * Reconcile device and account records on sign-in.
  *
- * The profile wins when it exists, because it is the durable one — a user who
- * consented on their old phone should not be asked again on their new one.
+ * The profile wins for the account half — someone who consented on their old
+ * phone is not asked again on their new one. The device's notice
+ * acknowledgement is preserved either way.
  */
 export async function syncConsent(uid, userDoc) {
+    const local = await readLocalConsent();
     const fromProfile = consentFromUserDoc(userDoc);
+
     if (fromProfile) {
-        await writeLocalConsent(fromProfile);
-        return fromProfile;
+        const merged = {
+            ...fromProfile,
+            noticeAcknowledgedAt:
+                local?.noticeAcknowledgedAt ?? fromProfile.noticeAcknowledgedAt ?? null,
+        };
+        await writeLocalConsent(merged);
+        return merged;
     }
 
-    const fromLocal = await readLocalConsent();
-    if (isCurrent(fromLocal)) {
-        // First sign-up on this device: carry the pre-auth answer onto the account.
-        await writeProfileConsent(uid, fromLocal);
-        return fromLocal;
-    }
-
-    return null;
+    // No account record yet. Keep whatever the device knows, but do NOT promote
+    // a previous user's account answers onto this uid — accountConsented() stays
+    // false, so registration routes through the consent view.
+    const carried = {
+        ...emptyConsent(),
+        noticeAcknowledgedAt: local?.noticeAcknowledgedAt ?? null,
+    };
+    await writeLocalConsent(carried);
+    return carried;
 }
 
 /**
- * Update the optional toggles or the sensitive-domain toggles from Settings,
- * without re-showing either modal. Keeps consent withdrawable (APP 1.4).
+ * Update toggles from Settings without re-showing either gate.
+ * Keeps consent as easy to withdraw as it was to give (APP 1.4).
  */
 export async function patchConsent(uid, record, patch) {
     const next = { ...(record ?? emptyConsent()), ...patch };

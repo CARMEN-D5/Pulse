@@ -1,62 +1,32 @@
-
-// First-launch collection notice (APP 5, Privacy Act 1988 (Cth)).
-// Shown over Splash, before any personal information is collected.
-//
-// Follows the SharingPromptPopUp idiom — transparent <Modal>, overlay Pressable,
-// bottom sheet on colors.card — with two deliberate differences:
-//
-//   1. Tapping the overlay does NOT dismiss. A dismissal that leaves no record
-//      would have to be treated as neither consent nor refusal, and the modal
-//      would just come back. A visible choice is kinder than a silent loop.
-//   2. "Not now" is not PrimaryButton variant="danger". Painting refusal red
-//      while acceptance is calm teal is a dark pattern, and consent obtained
-//      that way is not "voluntary" in the OAIC sense. It gets neutral,
-//      equal-weight styling instead.
-
 import React, { useState } from "react";
-import {
-    Linking,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    View,
-} from "react-native";
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "../components/ui";
 import { colors, radius, spacing, type } from "../theme";
-import {
-    NOTICE_SECTIONS,
-    OPTIONAL_CONSENTS,
-    PRIVACY_POLICY_URL,
-    SHORT_NOTICE,
-} from "./consentNotice";
+import { contactEmail, NOTICE_SECTIONS, privacyPolicyUrl, SHORT_NOTICE } from "./consentNotice";
 
-export default function ConsentModal({ visible, onAccept, onDecline }) {
+export default function ConsentModal({ visible, onAcknowledge, onDecline }) {
     const [expanded, setExpanded] = useState(false);
-    const [optional, setOptional] = useState(() =>
-        Object.fromEntries(OPTIONAL_CONSENTS.map((o) => [o.key, false]))
-    );
 
-    const toggle = (key) => setOptional((prev) => ({ ...prev, [key]: !prev[key] }));
+    const policyUrl = privacyPolicyUrl();
+    const email = contactEmail();
+
+    const openPolicy = async () => {
+        if (!policyUrl) return;
+        try {
+            const supported = await Linking.canOpenURL(policyUrl);
+            if (supported) await Linking.openURL(policyUrl);
+            else console.debug("[Pulse] cannot open privacy policy URL", policyUrl);
+        } catch (err) {
+            console.debug("[Pulse] openURL failed", err?.message);
+        }
+    };
 
     return (
-        <Modal
-            visible={visible}
-            transparent
-            animationType="slide"
-            // Android back must not count as an answer either way.
-            onRequestClose={() => {}}
-        >
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={() => {}}>
             <View style={styles.overlay} />
 
-            <View
-                style={styles.window}
-                accessibilityViewIsModal
-                accessibilityLabel="Your privacy on Pulse"
-            >
+            <View style={styles.window} accessibilityViewIsModal accessibilityLabel="Your privacy on Pulse">
                 <View style={styles.head}>
                     <View style={styles.logoRow}>
                         <View style={styles.logoDot} />
@@ -93,39 +63,30 @@ export default function ConsentModal({ visible, onAccept, onDecline }) {
                         ))
                         : null}
 
-                    {OPTIONAL_CONSENTS.length ? (
-                        <View style={styles.optional}>
-                            <Text style={styles.optionalHeading}>Optional — your choice</Text>
-
-                            {OPTIONAL_CONSENTS.map((o) => (
-                                <View key={o.key} style={styles.optionRow}>
-                                    <View style={styles.optionText}>
-                                        <Text style={styles.optionLabel}>{o.label}</Text>
-                                        <Text style={styles.optionDescription}>{o.description}</Text>
-                                    </View>
-                                    <Switch
-                                        value={optional[o.key]}
-                                        onValueChange={() => toggle(o.key)}
-                                        accessibilityLabel={o.label}
-                                        trackColor={{ false: colors.blOutlineVariant, true: colors.blPrimary }}
-                                        thumbColor={colors.card}
-                                    />
-                                </View>
-                            ))}
-                        </View>
-                    ) : null}
-
-                    <Pressable
-                        onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
-                        accessibilityRole="link"
-                        style={({ pressed }) => pressed && styles.pressed}
-                    >
-                        <Text style={styles.link}>Read our full privacy policy</Text>
-                    </Pressable>
+                    {policyUrl ? (
+                        <Pressable
+                            onPress={openPolicy}
+                            accessibilityRole="link"
+                            style={({ pressed }) => pressed && styles.pressed}
+                        >
+                            <Text style={styles.link}>Read our full privacy policy</Text>
+                        </Pressable>
+                    ) : email ? (
+                        // no policy site yet, but there is an address to ask at
+                        <Text style={styles.fallback}>
+                            For anything not covered here, contact us at {email}.
+                        </Text>
+                    ) : (
+                        // contact details and website not available, can sub in once created.
+                        <Text style={styles.fallback}>
+                            This notice covers how Pulse handles your information. A full privacy policy will be
+                            published with the app’s release.
+                        </Text>
+                    )}
                 </ScrollView>
 
                 <View style={styles.foot}>
-                    <PrimaryButton label="I understand — continue" onPress={() => onAccept(optional)} />
+                    <PrimaryButton label="I understand — continue" onPress={onAcknowledge} />
 
                     <Pressable
                         onPress={onDecline}
@@ -137,8 +98,7 @@ export default function ConsentModal({ visible, onAccept, onDecline }) {
                 </View>
 
                 <Text style={styles.footnote}>
-                    You can change these choices, or delete your account and everything in it, at any time in
-                    your profile.
+                    You will be asked about optional data before you start using Pulse.
                 </Text>
             </View>
         </Modal>
@@ -161,12 +121,7 @@ const styles = StyleSheet.create({
 
     head: { gap: spacing.xs },
     logoRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-    logoDot: {
-        width: 10,
-        height: 10,
-        borderRadius: radius.pill,
-        backgroundColor: colors.pulsePrimary,
-    },
+    logoDot: { width: 10, height: 10, borderRadius: radius.pill, backgroundColor: colors.pulsePrimary },
     logo: { ...type.label, color: colors.pulsePrimaryDark },
     title: { ...type.h2, color: colors.text },
 
@@ -191,25 +146,13 @@ const styles = StyleSheet.create({
     sectionHeading: { ...type.label, color: colors.text },
     sectionBody: { ...type.small, color: colors.textMuted },
 
-    optional: {
-        marginTop: spacing.xl,
-        paddingTop: spacing.lg,
-        borderTopWidth: 1,
-        borderColor: colors.border,
-        gap: spacing.lg,
-    },
-    optionalHeading: { ...type.caption, letterSpacing: 1, color: colors.textMuted },
-    optionRow: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
-    optionText: { flex: 1, gap: 2 },
-    optionLabel: { ...type.bodyMedium, color: colors.text },
-    optionDescription: { ...type.small, fontSize: 12, color: colors.textMuted },
-
     link: {
         ...type.label,
         color: colors.blPrimary,
         textDecorationLine: "underline",
         marginTop: spacing.xl,
     },
+    fallback: { ...type.small, color: colors.textMuted, marginTop: spacing.xl },
 
     foot: { gap: spacing.sm },
     secondary: {
