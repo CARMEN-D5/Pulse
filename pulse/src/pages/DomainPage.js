@@ -5,6 +5,7 @@ import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
 import { logAction, logReflection } from "../firestore/scoring";
 import { DOMAINS } from "../scoring/scoringEngine";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 const RATING_LABELS = ["", "Poor", "Fair", "Okay", "Good", "Great"];
 
@@ -48,6 +49,7 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
   const [actionsDone, setActionsDone] = useState([]);
 
   const [error, setError] = useState(null);
+  useTutorial("relationships", { enabled: domainKey === "relationships" });
 
   const handleLogReflection = async () => {
     setReflectionLoading(true);
@@ -96,6 +98,7 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
       <Alert message={error} />
 
       {/* Reflection section */}
+      <TutorialTarget id={TUTORIAL_TARGETS.domain.reflection}>
       <View style={[styles.section, shadow("sm")]}>
         <Text style={styles.sectionTitle}>Daily Check-in</Text>
         <Text style={styles.sectionPrompt}>{domain.reflectionPrompt}</Text>
@@ -118,8 +121,10 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
           </>
         )}
       </View>
+      </TutorialTarget>
 
       {/* Actions section */}
+      <TutorialTarget id={TUTORIAL_TARGETS.domain.actions}>
       <View style={[styles.section, shadow("sm")]}>
         <Text style={styles.sectionTitle}>Log an Action</Text>
         <Text style={styles.sectionSub}>
@@ -151,6 +156,7 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
           })}
         </View>
       </View>
+      </TutorialTarget>
     </Screen>
   );
 }

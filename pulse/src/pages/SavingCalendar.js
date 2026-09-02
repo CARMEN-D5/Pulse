@@ -10,6 +10,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { localDayKey } from "../firestore/savings";
 import { PrimaryButton } from "../components/ui";
 import { colors, fonts, radius, spacing, type } from "../theme";
+import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -179,10 +180,12 @@ export default function SavingCalendar({
         </View>
       ))}
 
-      <PrimaryButton
-        label={hasActivePlans ? "+ Add saving plan" : "Create a saving plan"}
-        onPress={onAddPlan}
-      />
+      <TutorialTarget id={TUTORIAL_TARGETS.saving.createPlan}>
+        <PrimaryButton
+          label={hasActivePlans ? "+ Add saving plan" : "Create a saving plan"}
+          onPress={onAddPlan}
+        />
+      </TutorialTarget>
     </View>
   );
 }

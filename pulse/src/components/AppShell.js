@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "./Icon";
 import ScreenGradient from "./ScreenGradient";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 /** The four root destinations, in the order the mockup lays them out. */
 export const TABS = [
@@ -57,23 +58,24 @@ export function TabBar({ active, onChange }) {
       {TABS.map((t) => {
         const selected = t.id === active;
         return (
-          <Pressable
-            key={t.id}
-            onPress={() => onChange(t.id)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            accessibilityLabel={t.label}
-            style={({ pressed }) => [styles.tabItem, pressed && styles.pressed]}
-          >
-            <View style={[styles.tabIcon, selected && styles.tabIconActive]}>
-              <Icon
-                name={t.icon}
-                size={20}
-                color={selected ? colors.pulsePrimaryDark : colors.textMuted}
-              />
-            </View>
-            <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{t.label}</Text>
-          </Pressable>
+          <TutorialTarget id={TUTORIAL_TARGETS.navigation[t.id]} key={t.id} style={styles.tabTarget}>
+            <Pressable
+              onPress={() => onChange(t.id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              accessibilityLabel={t.label}
+              style={({ pressed }) => [styles.tabItem, pressed && styles.pressed]}
+            >
+              <View style={[styles.tabIcon, selected && styles.tabIconActive]}>
+                <Icon
+                  name={t.icon}
+                  size={20}
+                  color={selected ? colors.pulsePrimaryDark : colors.textMuted}
+                />
+              </View>
+              <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{t.label}</Text>
+            </Pressable>
+          </TutorialTarget>
         );
       })}
     </View>
@@ -145,7 +147,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     ...shadow("md"),
   },
-  tabItem: { flex: 1, alignItems: "center", gap: 2, paddingHorizontal: spacing.xs },
+  tabItem: { width: "100%", alignItems: "center", gap: 2, paddingHorizontal: spacing.xs },
+  tabTarget: { flex: 1, alignItems: "stretch" },
   tabIcon: {
     width: 46,
     height: 28,

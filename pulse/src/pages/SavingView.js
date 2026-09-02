@@ -29,6 +29,7 @@ import SegmentedField from "../components/SegmentedField";
 import { PrimaryButton } from "../components/ui";
 import { confirm } from "../utils/dialogs";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 export default function SavingView({ uid, totalBudget, onError }) {
   const [plans, setPlans] = useState([]);
@@ -41,6 +42,14 @@ export default function SavingView({ uid, totalBudget, onError }) {
   const [progressQueue, setProgressQueue] = useState([]);
   const currentMonth = useMemo(() => monthBounds().monthStart, []);
   const [viewMonth, setViewMonth] = useState(currentMonth);
+
+  const savingOverviewTutorial = useTutorial("savingOverview", {
+    enabled: Boolean(uid),
+    actions: {
+      openPlan: () => setPlanModal({}),
+      cleanup: () => setPlanModal(null),
+    },
+  });
 
   const loadPlanData = useCallback(async () => {
     const planResponse = await listSavingPlans(uid);
@@ -75,7 +84,6 @@ export default function SavingView({ uid, totalBudget, onError }) {
   }, [loadCalendarMonth]);
 
   const active = useMemo(() => plans.filter((p) => p.status === "active"), [plans]);
-
   const progressEventsForDaySave = (dayKey, rows) => {
     const oldDayAmounts = calendarEntries
       .filter((entry) => entry.dayKey === dayKey)
@@ -104,7 +112,11 @@ export default function SavingView({ uid, totalBudget, onError }) {
   };
 
   useEffect(() => {
-    if (!uid || !active.length) return;
+    if (
+      !uid ||
+      !active.length ||
+      !savingOverviewTutorial.handled
+    ) return;
     let cancelled = false;
     (async () => {
       const todayKey = localDayKey();
@@ -132,7 +144,7 @@ export default function SavingView({ uid, totalBudget, onError }) {
     return () => {
       cancelled = true;
     };
-  }, [uid, active, totalBudget]);
+  }, [uid, active, totalBudget, savingOverviewTutorial.handled]);
 
   const handleDeletePlan = async (plan) => {
     const confirmed = await confirm(
@@ -152,6 +164,7 @@ export default function SavingView({ uid, totalBudget, onError }) {
 
   return (
     <>
+      <TutorialTarget id={TUTORIAL_TARGETS.saving.planArea}>
       <View style={[styles.card, shadow("sm")]}>
         {active.length ? (
           <View style={styles.planList}>
@@ -174,7 +187,9 @@ export default function SavingView({ uid, totalBudget, onError }) {
           </View>
         )}
       </View>
+      </TutorialTarget>
 
+      <TutorialTarget id={TUTORIAL_TARGETS.saving.calendar}>
       <View style={[styles.card, shadow("sm")]}>
         <SavingCalendar
           monthStart={viewMonth}
@@ -197,6 +212,7 @@ export default function SavingView({ uid, totalBudget, onError }) {
           onAddPlan={() => setPlanModal({})}
         />
       </View>
+      </TutorialTarget>
 
       <CompletedPlansHistory
         plans={plans}

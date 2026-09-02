@@ -9,7 +9,7 @@ import {
     serverTimestamp,
     updateDoc,
 } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import DateField from '../components/DateField';
@@ -22,6 +22,7 @@ import { todayKey } from '../firestore/social';
 import { useSharePrompt, ShareButton } from '../components/share';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { confirm } from '../utils/dialogs';
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from '../tutorial';
 
 /**
  * Returns true if the task is expired:
@@ -115,6 +116,7 @@ function formatDueDate(dateStr) {
  * and removing tasks from the user's active view.
  */
 function TodoList({ user, onBack, onActivityLogged }) {
+    useTutorial('todo', { enabled: Boolean(user?.uid) });
     const [todos, setTodos] = useState([]);
     const [input, setInput] = useState('');
     const [descInput, setDescInput] = useState('');
@@ -303,6 +305,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
             ) : null}
 
             {/* Add-task form */}
+            <TutorialTarget id={TUTORIAL_TARGETS.todo.form}>
             <View style={[styles.card, shadow('sm')]}>
                 <TextInput
                     style={styles.input}
@@ -333,8 +336,11 @@ function TodoList({ user, onBack, onActivityLogged }) {
 
                 <PrimaryButton label="Add" onPress={addTodo} disabled={!input.trim()} />
             </View>
+            </TutorialTarget>
 
             {/* Tabs */}
+            <TutorialTarget id={TUTORIAL_TARGETS.todo.filters}>
+            <View style={styles.tutorialGroup}>
             <View style={styles.tabs}>
                 <TabButton
                     label="Pending"
@@ -369,10 +375,13 @@ function TodoList({ user, onBack, onActivityLogged }) {
                     onChange={setSortMode}
                 />
             </View>
+            </View>
+            </TutorialTarget>
 
             {loading ? (
                 <Loading label="Loading…" style={styles.loading} />
             ) : (
+                <TutorialTarget id={TUTORIAL_TARGETS.todo.list}>
                 <View style={styles.list}>
                     {filteredTodos.map(todo => {
                         const expired = isExpired(todo);
@@ -478,6 +487,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
                         );
                     })}
                 </View>
+                </TutorialTarget>
             )}
         </Screen>
     );
@@ -553,6 +563,7 @@ const styles = StyleSheet.create({
     tabCountTextActive: { color: '#fff' },
 
     sortBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    tutorialGroup: { gap: spacing.md },
     sortLabel: { ...type.small, color: colors.textMuted },
 
     list: { gap: spacing.sm },

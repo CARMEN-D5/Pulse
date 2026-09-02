@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "./Icon";
 import ScreenGradient from "./ScreenGradient";
 import { colors, radius, shadow, spacing, type } from "../theme";
+import { TutorialScrollView } from "../tutorial";
 
 /**
  * Full-screen container: gradient background, safe-area padding, and an
@@ -42,6 +42,7 @@ export function Screen({
   gradient = true,
   keyboardAvoiding = true,
   safeArea = true,
+  scrollRef,
 }) {
   const insets = useSafeAreaInsets();
   const padding = safeArea
@@ -49,7 +50,8 @@ export function Screen({
     : null;
 
   const body = scroll ? (
-    <ScrollView
+    <TutorialScrollView
+      ref={scrollRef}
       style={styles.flex}
       contentContainerStyle={[
         styles.scrollContent,
@@ -60,7 +62,7 @@ export function Screen({
       showsVerticalScrollIndicator={false}
     >
       {children}
-    </ScrollView>
+    </TutorialScrollView>
   ) : (
     <View style={[styles.flex, center && styles.centerContent, contentContainerStyle]}>
       {children}

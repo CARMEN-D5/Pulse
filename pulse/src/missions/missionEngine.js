@@ -182,3 +182,13 @@ export async function loadHistory(uid) {
     const snap = await getDocs(q);
     return snap.docs.map(d => d.data());
 }
+
+/** Returns the Monday-to-Sunday date range represented by an ISO week. */
+export function getWeekRange(date = new Date()) {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = start.getDay() || 7;
+    start.setDate(start.getDate() - day + 1);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+}

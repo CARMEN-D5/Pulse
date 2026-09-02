@@ -15,7 +15,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Loading, Screen, ScreenHeader } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
-import { getWeekKey, loadDailyDoc, loadHistory } from './missionEngine';
+import { getWeekKey, getWeekRange, loadDailyDoc, loadHistory } from './missionEngine';
 import { ALL_DOMAINS, DOMAIN_META } from './missionPools';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -24,6 +24,18 @@ import { ALL_DOMAINS, DOMAIN_META } from './missionPools';
 function formatDay(dayKey) {
     const d = new Date(dayKey + 'T00:00:00');
     return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+export function formatWeekRange(date = new Date()) {
+    const { start, end } = getWeekRange(date);
+    const startLabel = start.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
+    const endLabel = end.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
+    const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+    if (sameMonth) {
+        const month = end.toLocaleDateString('en-AU', { month: 'long' });
+        return `${start.getDate()}–${end.getDate()} ${month}`;
+    }
+    return `${startLabel}–${endLabel}`;
 }
 
 /** Aggregate domain stats from a list of history records. */
@@ -152,7 +164,7 @@ function TabThisWeek({ history }) {
             {/* Week summary */}
             <View style={[styles.summary, shadow('sm')]}>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>This week's completion</Text>
+                    <Text style={styles.summaryLabel}>This week · {formatWeekRange()}</Text>
                     <Text style={[styles.summaryPct, { color }]}>{pct}%</Text>
                 </View>
                 <PctBar pct={pct} color={color} />
