@@ -36,6 +36,29 @@ import {
 import { ensureUserDoc, getUserDoc } from "./firestore/users";
 import { saveOnboardingBaseline } from "./firestore/scoring";
 
+// Privacy (Privacy Act 1988 (Cth)). Two gates, at two different moments:
+//
+//   ConsentModal   APP 5 collection notice. Once per device, over Splash,
+//                  before the signup form collects name and email. Not a
+//                  consent record — just "this handset has been told".
+//   ConsentScreen  The account-level consent, including the APP 3.3 answers.
+//                  Its own view between signup and the entry quiz.
+//
+// See src/privacy/consentNotice.js for the APP references and reasoning.
+import ConsentModal from "./privacy/ConsentModal";
+import ConsentScreen from "./privacy/ConsentScreen";
+import {
+  acceptAccountConsent,
+  accountConsented,
+  acknowledgeNotice,
+  clearAccountConsent,
+  noticeAcknowledged,
+  readLocalConsent,
+  syncConsent,
+  writeLocalConsent,
+  writeProfileConsent,
+} from "./privacy/consentStore";
+
 // Maps a domain key to the page component used when the user opens that
 // domain from Home. Finance has its own rich budget-tracker page and
 // Productivity routes to the To-Do list — both handled separately below.
@@ -65,6 +88,7 @@ const BACK_TO_SPLASH_VIEWS = ["login", "signup", "reset"];
  *   login      -> "Enter username/email and password"
  *   signup     -> "Complete Registration"
  *   reset      -> "Reset Password"
+ *   consent    -> account-level privacy consent (APP 3.3 + optional extras)
  *   entryQuiz  -> first-time 1-5 baseline ratings
  *
  * Then four tabs behind the bottom bar:
@@ -82,6 +106,9 @@ const BACK_TO_SPLASH_VIEWS = ["login", "signup", "reset"];
  * Auth is provided by Firebase (see src/firebase.js + src/auth/authService.js).
  * `onAuthChange` keeps the view in sync with Firebase's persisted session, so
  * a returning user is taken straight to Home when the app relaunches.
+ *
+ * `consent` sits ahead of `entryQuiz` rather than overlaying it, so the
+ * consent reads as part of registration and the quiz never renders behind it.
  */
 function App() {
   const [view, setView] = useState("splash");
@@ -96,11 +123,32 @@ function App() {
   // rather than always on Home.
   const [tabReturn, setTabReturn] = useState("home");
 
+  // Privacy consent, reconciled between AsyncStorage (device) and
+  // /users/{uid}.privacyConsent (account). `consentReady` gates the notice so
+  // it does not flash open during the first async read.
+  const [consent, setConsent] = useState(null);
+  const [consentReady, setConsentReady] = useState(false);
+  const [consentSaving, setConsentSaving] = useState(false);
+
   const fontsReady = useAppFonts();
 
   // Tracks whether the current auth event was triggered by a new sign-up.
   // Using a ref so handleSignUpSubmit can set it before onAuthChange fires.
   const isNewSignUp = useRef(false);
+
+  // Read the device consent record once on mount, so the APP 5 notice can be
+  // shown over Splash before there is a uid to write against.
+  useEffect(() => {
+    let alive = true;
+    readLocalConsent().then((record) => {
+      if (!alive) return;
+      setConsent(record);
+      setConsentReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Subscribe to Firebase auth state. Runs once on mount.
   useEffect(() => {
@@ -113,19 +161,29 @@ function App() {
         const { data } = await getUserDoc(firebaseUser.uid);
         setUserDoc(data);
 
-        // Routing rules:
-        //   1. Brand-new sign-up → entry quiz
-        //   2. Existing user without a saved baseline → entry quiz
-        //   3. Otherwise preserve any current authed view, default to home
+        // Reconcile device and account records. The profile wins for the
+        // account half, so someone who consented on another handset is not
+        // asked again here.
+        const reconciled = await syncConsent(firebaseUser.uid, data);
+        setConsent(reconciled);
+        setConsentReady(true);
+
+        // Routing rules, in order:
+        //   1. No account-level consent yet → consent view. This covers a new
+        //      sign-up, an account predating the feature, and a version bump.
+        //   2. Brand-new sign-up → entry quiz
+        //   3. Existing user without a saved baseline → entry quiz
+        //   4. Otherwise preserve any current authed view, default to home
         const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS];
         setView((current) => {
+          if (!accountConsented(reconciled)) return "consent";
           if (isNewSignUp.current) return "entryQuiz";
           if (!data?.onboardingCompletedAt) return "entryQuiz";
           return AUTHED_VIEWS.includes(current) ? current : "home";
         });
       } else {
         setUserDoc(null);
-        const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "entryQuiz"];
+        const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "consent", "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
     });
@@ -143,12 +201,13 @@ function App() {
 
   // Android hardware back button. Returning true tells the OS we handled the
   // press; returning false lets it fall through and background the app, which
-  // is what should happen on Home and Splash.
+  // is what should happen on Home and Splash — and on `consent`, which must
+  // not be dismissable by the back button.
   useEffect(() => {
     if (Platform.OS !== "android") return undefined;
 
     const canGoBack =
-      STACKED_VIEWS.includes(view) || BACK_TO_SPLASH_VIEWS.includes(view);
+        STACKED_VIEWS.includes(view) || BACK_TO_SPLASH_VIEWS.includes(view);
 
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (!canGoBack) return false;
@@ -158,6 +217,39 @@ function App() {
 
     return () => subscription.remove();
   }, [view, goBack]);
+
+  /* ---------------- privacy ---------------- */
+
+  // APP 5 notice, device level. Acknowledging is not a consent record, so it
+  // is written locally only — there is no signed-in user at this point. The
+  // sheet has a single button: a notice is a statement, and the decision it
+  // leads to belongs to the consent screen during registration.
+  const handleNoticeAcknowledge = async () => {
+    const record = acknowledgeNotice(consent);
+    await writeLocalConsent(record);
+    setConsent(record);
+  };
+
+  // Account-level consent, from the `consent` view. Writes both stores, then
+  // hands off to the rest of registration.
+  const handleConsentComplete = async (choices) => {
+    setConsentSaving(true);
+    const record = acceptAccountConsent(consent, choices);
+    await writeLocalConsent(record);
+    if (user?.uid) await writeProfileConsent(user.uid, record);
+    setConsent(record);
+    setConsentSaving(false);
+    setView(userDoc?.onboardingCompletedAt ? "home" : "entryQuiz");
+  };
+
+  // Shown only while signed out, and only until this device has acknowledged
+  // it. Both conditions matter: `!user` keeps it off every authed screen, and
+  // the acknowledgement survives logout so it does not reappear on Splash
+  // after signing out. A second person signing up on this handset still gets
+  // their own account-level gate, so nothing is lost by not repeating it.
+  const needsNotice = consentReady && authReady && !user && !noticeAcknowledged(consent);
+
+  /* ----------------------------------------- */
 
   // EntryQuiz returns an array of { domain, score } using the entry-quiz
   // branch's domain ids (family_friends / work_productivity / financial).
@@ -189,12 +281,12 @@ function App() {
 
   const handleLoginSubmit = async ({ email, password }) => {
     const result = await logIn({ email, password });
-    // onAuthChange will push us to "home" or "entryQuiz" on success.
+    // onAuthChange will push us to "consent", "entryQuiz" or "home" on success.
     return result;
   };
 
   const handleSignUpSubmit = async ({ name, email, password }) => {
-    // Set before signUp so onAuthChange routes to the entry quiz.
+    // Set before signUp so onAuthChange routes into onboarding.
     isNewSignUp.current = true;
     const result = await signUp({ name, email, password });
     return result;
@@ -207,6 +299,13 @@ function App() {
     // Prompt history is per-session and in-memory, so the next account on this
     // device gets its own share prompts.
     resetSharePromptHistory();
+    // Drop this account's consent answers but keep the device's notice
+    // acknowledgement — otherwise the notice reappears on the logged-out
+    // splash screen, where nothing is being collected and it has no business
+    // being. The next person to sign up passes through the `consent` view
+    // regardless, which is the gate that actually matters.
+    const cleared = await clearAccountConsent();
+    setConsent(cleared);
     setView("splash");
   };
 
@@ -214,11 +313,11 @@ function App() {
   // the { ok, error } shape the share modal expects, so a failed write shows
   // its error inline instead of closing the modal.
   const handleSharePost = (post) =>
-    createAchievementPost({
-      ...post,
-      authorUid: user.uid,
-      authorName: displayNameFor(user),
-    });
+      createAchievementPost({
+        ...post,
+        authorUid: user.uid,
+        authorName: displayNameFor(user),
+      });
 
   // Send a share as a DM instead of posting to the feed. Gets or creates
   // the conversation with the chosen friend, then sends one message that
@@ -320,39 +419,42 @@ function App() {
     // Manrope files load — swapping fonts mid-render would reflow every screen.
     if (!authReady || !fontsReady) {
       return (
-        <Screen scroll={false} center keyboardAvoiding={false}>
-          <Loading label="Pulse" />
-        </Screen>
+          <Screen scroll={false} center keyboardAvoiding={false}>
+            <Loading label="Pulse" />
+          </Screen>
       );
     }
 
     switch (view) {
       case "login":
         return (
-          <Login
-            onSubmit={handleLoginSubmit}
-            onForgotPassword={() => setView("reset")}
-            onBack={() => setView("splash")}
-            onSwitchToSignUp={() => setView("signup")}
-          />
+            <Login
+                onSubmit={handleLoginSubmit}
+                onForgotPassword={() => setView("reset")}
+                onBack={() => setView("splash")}
+                onSwitchToSignUp={() => setView("signup")}
+            />
         );
 
       case "signup":
         return (
-          <SignUp
-            onSubmit={handleSignUpSubmit}
-            onExit={() => setView("splash")}
-            onSwitchToLogin={() => setView("login")}
-          />
+            <SignUp
+                onSubmit={handleSignUpSubmit}
+                onExit={() => setView("splash")}
+                onSwitchToLogin={() => setView("login")}
+            />
         );
 
       case "reset":
         return (
-          <ResetPassword
-            onSubmit={handleResetSubmit}
-            onBackToLogin={() => setView("login")}
-          />
+            <ResetPassword
+                onSubmit={handleResetSubmit}
+                onBackToLogin={() => setView("login")}
+            />
         );
+
+      case "consent":
+        return <ConsentScreen onComplete={handleConsentComplete} loading={consentSaving} />;
 
       case "entryQuiz":
         return <EntryQuiz onComplete={handleEntryQuizComplete} loading={onboardingLoading} />;
@@ -360,15 +462,15 @@ function App() {
       case "domain": {
         const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
         return DomainPage ? (
-          <DomainPage
-            domainScore={
-              userDoc?.domainScores?.[activeDomain] ??
-              userDoc?.onboardingBaseline?.[activeDomain]
-            }
-            user={user}
-            onBack={handleStackedBack}
-            onActivityLogged={handleActivityLogged}
-          />
+            <DomainPage
+                domainScore={
+                    userDoc?.domainScores?.[activeDomain] ??
+                    userDoc?.onboardingBaseline?.[activeDomain]
+                }
+                user={user}
+                onBack={handleStackedBack}
+                onActivityLogged={handleActivityLogged}
+            />
         ) : null;
       }
 
@@ -384,26 +486,26 @@ function App() {
 
       case "todo":
         return (
-          <TodoList
-            user={user}
-            onBack={handleStackedBack}
-            onActivityLogged={handleActivityLogged}
-          />
+            <TodoList
+                user={user}
+                onBack={handleStackedBack}
+                onActivityLogged={handleActivityLogged}
+            />
         );
 
       case "missions":
         return (
-          <DailyMissionsPage
-            user={user}
-            userDoc={userDoc}
-            scoreVersion={scoreVersion}
-            onBack={handleStackedBack}
-          />
+            <DailyMissionsPage
+                user={user}
+                userDoc={userDoc}
+                scoreVersion={scoreVersion}
+                onBack={handleStackedBack}
+            />
         );
 
       case "social":
         return (
-          <Social user={user} onActivityLogged={handleActivityLogged} />
+            <Social user={user} onActivityLogged={handleActivityLogged} />
         );
 
       case "features":
@@ -420,14 +522,14 @@ function App() {
 
       case "home":
         return (
-          <Home
-            user={user}
-            userDoc={userDoc}
-            scoreVersion={scoreVersion}
-            onDomainSelect={handleDomainSelect}
-            onOpenDomain={handleDomainSelect}
-            onNevigate={handleDomainSelect}
-          />
+            <Home
+                user={user}
+                userDoc={userDoc}
+                scoreVersion={scoreVersion}
+                onDomainSelect={handleDomainSelect}
+                onOpenDomain={handleDomainSelect}
+                onNevigate={handleDomainSelect}
+            />
         );
 
       case "splash":
@@ -437,21 +539,21 @@ function App() {
   };
 
   // The four tabs share the PULSE app bar and the bottom tab bar; every other
-  // view (auth, entry quiz, stacked pages) fills the screen on its own.
+  // view (auth, consent, entry quiz, stacked pages) fills the screen on its own.
   const screen = () => {
     const body = content();
     if (!TAB_VIEWS.includes(view)) return body;
 
     const displayName =
-      user?.displayName || user?.name || user?.email || "";
+        user?.displayName || user?.name || user?.email || "";
     return (
-      <AppShell
-        tab={view}
-        onTabChange={setView}
-        initials={displayName ? displayName.charAt(0).toUpperCase() : null}
-      >
-        {body}
-      </AppShell>
+        <AppShell
+            tab={view}
+            onTabChange={setView}
+            initials={displayName ? displayName.charAt(0).toUpperCase() : null}
+        >
+          {body}
+        </AppShell>
     );
   };
 
@@ -459,28 +561,33 @@ function App() {
   // notch/home-indicator insets through useSafeAreaInsets.
   // The share prompt lives above the view switch rather than inside any single
   // page, so a prompt raised on one domain survives navigating away.
+  // The APP 5 notice sits alongside it because it has to be able to cover
+  // Splash, a view the switch owns. The account-level consent is a real view
+  // in that switch instead, so nothing renders behind it.
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <TutorialProvider
-        user={user}
-        initialProgress={userDoc?.tutorialProgress}
-        navigation={tutorialNavigation}
-      >
-        <SharePromptProvider
-          user={user}
-          onPost={handleSharePost}
-          onDm={handleShareDm}
-          onOpenSocial={() => setView("social")}
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <TutorialProvider
+            user={user}
+            initialProgress={userDoc?.tutorialProgress}
+            navigation={tutorialNavigation}
         >
-          {screen()}
-        </SharePromptProvider>
-        <TutorialLauncher
-          request={tutorialRequest}
-          onConsumed={() => setTutorialRequest(null)}
-        />
-      </TutorialProvider>
-    </SafeAreaProvider>
+          <SharePromptProvider
+              user={user}
+              onPost={handleSharePost}
+              onDm={handleShareDm}
+              onOpenSocial={() => setView("social")}
+          >
+            {screen()}
+          </SharePromptProvider>
+          <TutorialLauncher
+              request={tutorialRequest}
+              onConsumed={() => setTutorialRequest(null)}
+          />
+        </TutorialProvider>
+
+        <ConsentModal visible={needsNotice} onAcknowledge={handleNoticeAcknowledge} />
+      </SafeAreaProvider>
   );
 }
 

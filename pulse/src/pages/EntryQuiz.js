@@ -26,9 +26,15 @@ function getScaleLabel(val) {
   return SCALE.find((s) => s.value === val)?.label ?? "";
 }
 
+/**
+ * All five domains are always asked. An earlier version let the user skip
+ * health and spirituality at the APP 3.3 consent gate; that gate is now a
+ * statement on the consent screen rather than a pair of switches, so there is
+ * no filtered subset any more and this is back to the plain five.
+ */
 function EntryQuiz({ onComplete, loading = false }) {
   const [answers, setAnswers] = useState(
-    Object.fromEntries(DOMAINS.map((d) => [d.id, null]))
+      Object.fromEntries(DOMAINS.map((d) => [d.id, null]))
   );
 
   const isComplete = DOMAINS.every((d) => answers[d.id] !== null);
@@ -44,116 +50,116 @@ function EntryQuiz({ onComplete, loading = false }) {
   }
 
   return (
-    <Screen contentContainerStyle={styles.screen}>
-      <Card style={styles.card}>
-        <View style={styles.brand}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoDot} />
-            <Text style={styles.logo}>Pulse</Text>
+      <Screen contentContainerStyle={styles.screen}>
+        <Card style={styles.card}>
+          <View style={styles.brand}>
+            <View style={styles.brandRow}>
+              <View style={styles.logoDot} />
+              <Text style={styles.logo}>Pulse</Text>
+            </View>
+            <Text style={styles.tagline}>How are you doing today?</Text>
           </View>
-          <Text style={styles.tagline}>How are you doing today?</Text>
-        </View>
 
-        {DOMAINS.map((d, i) => {
-          const val = answers[d.id];
-          const color = getScaleColor(val);
-          const isLast = i === DOMAINS.length - 1;
+          {DOMAINS.map((d, i) => {
+            const val = answers[d.id];
+            const color = getScaleColor(val);
+            const isLast = i === DOMAINS.length - 1;
 
-          return (
-            <View key={d.id} style={[styles.domain, !isLast && styles.domainDivider]}>
-              <View style={styles.domainHead}>
-                <View style={styles.domainHeadText}>
-                  <Text style={styles.domainName}>
-                    {d.icon ? `${d.icon} ` : ""}
-                    {d.name}
-                  </Text>
-                  <Text style={styles.domainFocus}>{d.focus}</Text>
-                </View>
+            return (
+                <View key={d.id} style={[styles.domain, !isLast && styles.domainDivider]}>
+                  <View style={styles.domainHead}>
+                    <View style={styles.domainHeadText}>
+                      <Text style={styles.domainName}>
+                        {d.icon ? `${d.icon} ` : ""}
+                        {d.name}
+                      </Text>
+                      <Text style={styles.domainFocus}>{d.focus}</Text>
+                    </View>
 
-                <View
-                  style={[
-                    styles.valueBadge,
-                    {
-                      backgroundColor: val ? `${color}22` : colors.pulseBg,
-                      borderColor: val ? `${color}55` : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.valueBadgeText, { color: val ? color : colors.textMuted }]}
-                    numberOfLines={1}
-                  >
-                    {val ? `${val} — ${getScaleLabel(val)}` : "Not set"}
-                  </Text>
-                </View>
-              </View>
+                    <View
+                        style={[
+                          styles.valueBadge,
+                          {
+                            backgroundColor: val ? `${color}22` : colors.pulseBg,
+                            borderColor: val ? `${color}55` : colors.border,
+                          },
+                        ]}
+                    >
+                      <Text
+                          style={[styles.valueBadgeText, { color: val ? color : colors.textMuted }]}
+                          numberOfLines={1}
+                      >
+                        {val ? `${val} — ${getScaleLabel(val)}` : "Not set"}
+                      </Text>
+                    </View>
+                  </View>
 
-              <Text style={styles.question}>{d.questions[0]}</Text>
+                  <Text style={styles.question}>{d.questions[0]}</Text>
 
-              {/*
+                  {/*
                 The web build used <input type="range">. React Native has no
                 core slider, and dragging a 5-stop scale on a phone is fiddly,
                 so the same 1-5 value is chosen by tapping a segment instead.
                 The data written back is identical.
               */}
-              <View
-                style={styles.scaleRow}
-                accessibilityRole="radiogroup"
-                accessibilityLabel={`${d.name} rating`}
-              >
-                {SCALE.map((s) => {
-                  const selected = val === s.value;
-                  return (
-                    <Pressable
-                      key={s.value}
-                      onPress={() => handleSelect(d.id, s.value)}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected }}
-                      accessibilityLabel={`${s.value}, ${s.label}`}
-                      style={({ pressed }) => [
-                        styles.scaleItem,
-                        selected && { backgroundColor: `${color}1f`, borderColor: color },
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.scaleValue,
-                          { color: selected ? color : colors.textMuted },
-                        ]}
-                      >
-                        {s.value}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.scaleLabel,
-                          selected && { color, fontFamily: type.label.fontFamily },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {s.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          );
-        })}
+                  <View
+                      style={styles.scaleRow}
+                      accessibilityRole="radiogroup"
+                      accessibilityLabel={`${d.name} rating`}
+                  >
+                    {SCALE.map((s) => {
+                      const selected = val === s.value;
+                      return (
+                          <Pressable
+                              key={s.value}
+                              onPress={() => handleSelect(d.id, s.value)}
+                              accessibilityRole="radio"
+                              accessibilityState={{ selected }}
+                              accessibilityLabel={`${s.value}, ${s.label}`}
+                              style={({ pressed }) => [
+                                styles.scaleItem,
+                                selected && { backgroundColor: `${color}1f`, borderColor: color },
+                                pressed && styles.pressed,
+                              ]}
+                          >
+                            <Text
+                                style={[
+                                  styles.scaleValue,
+                                  { color: selected ? color : colors.textMuted },
+                                ]}
+                            >
+                              {s.value}
+                            </Text>
+                            <Text
+                                style={[
+                                  styles.scaleLabel,
+                                  selected && { color, fontFamily: type.label.fontFamily },
+                                ]}
+                                numberOfLines={2}
+                            >
+                              {s.label}
+                            </Text>
+                          </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+            );
+          })}
 
-        <PrimaryButton
-          label={
-            isComplete
-              ? "Submit check-in"
-              : `Answer all questions to continue (${answeredCount}/${DOMAINS.length})`
-          }
-          onPress={handleSubmit}
-          disabled={!isComplete}
-          loading={loading}
-          style={styles.submit}
-        />
-      </Card>
-    </Screen>
+          <PrimaryButton
+              label={
+                isComplete
+                    ? "Submit check-in"
+                    : `Answer all questions to continue (${answeredCount}/${DOMAINS.length})`
+              }
+              onPress={handleSubmit}
+              disabled={!isComplete}
+              loading={loading}
+              style={styles.submit}
+          />
+        </Card>
+      </Screen>
   );
 }
 
