@@ -24,7 +24,7 @@ export async function listSavingPlans(uid) {
 export async function saveSavingPlan(uid, plan) {
   if (!uid) return result(new Error("No user"));
   const data = {
-    uid, name: plan.name.trim(), icon: plan.icon || "🎯", color: plan.color || "#4d96ff",
+    uid, name: plan.name.trim(), icon: plan.icon || "🎯", color: plan.color || "#4A6D98",
     targetAmount: Number(plan.targetAmount), dueDate: plan.dueDate,
     status: plan.status || "active", updatedAt: serverTimestamp(),
     completedAt: plan.status === "completed" ? (plan.completedAt || serverTimestamp()) : null,

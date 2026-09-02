@@ -89,7 +89,7 @@ function DayRow({ record }) {
                 </View>
 
                 <View style={styles.dayRight}>
-                    <Text style={[styles.dayPct, { color: allDone ? '#2f9e7a' : '#c9184a' }]}>
+                    <Text style={[styles.dayPct, { color: allDone ? '#3A8F70' : '#B33D54' }]}>
                         {pct}%
                     </Text>
                     <Text style={styles.chevron}>{open ? '▲' : '▼'}</Text>
@@ -148,7 +148,7 @@ function TabThisWeek({ history }) {
     const total      = weekRecs.reduce((s, r) => s + (r.missions?.length ?? 0), 0);
     const completed  = weekRecs.reduce((s, r) => s + (r.missions?.filter(m => m.completed).length ?? 0), 0);
     const pct        = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const color = pct >= 70 ? '#2f9e7a' : '#c9184a';
+    const color = pct >= 70 ? '#3A8F70' : '#B33D54';
 
     if (weekRecs.length === 0) {
         return (
@@ -229,7 +229,7 @@ function TabAllTime({ history }) {
     const total     = history.reduce((s, r) => s + (r.missions?.length ?? 0), 0);
     const completed = history.reduce((s, r) => s + (r.missions?.filter(m => m.completed).length ?? 0), 0);
     const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const color = pct >= 70 ? '#2f9e7a' : '#c9184a';
+    const color = pct >= 70 ? '#3A8F70' : '#B33D54';
 
     // Domain share of total missions (pie-like breakdown)
     const domainStats = aggregateDomains(history);
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     missionBody: { flex: 1, gap: 1 },
     missionText: { ...type.small, fontSize: 12, color: colors.text },
     missionDomain: { ...type.caption, fontSize: 10 },
-    missionStatus: { ...type.caption, fontSize: 10, color: '#c9184a' },
+    missionStatus: { ...type.caption, fontSize: 10, color: '#B33D54' },
     missionStatusDone: { color: colors.success },
 
     domainCard: {

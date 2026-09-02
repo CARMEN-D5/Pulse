@@ -14,11 +14,11 @@ import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 /* ── Domain config ─────────────────────────────────────────── */
 const DOMAIN_META = {
-  spirituality:  { icon: "auto_awesome", color: "#086a69", label: "Spirit" },
-  relationships: { icon: "groups",       color: "#4e607f", label: "Social" },
-  productivity:  { icon: "work",         color: "#5a6550", label: "Work" },
-  health:        { icon: "favorite",     color: "#c9184a", label: "Health" },
-  finance:       { icon: "payments",     color: "#983f72", label: "Finance" },
+  spirituality:  { icon: "auto_awesome", color: "#2A7A6A", label: "Spirit" },
+  relationships: { icon: "groups",       color: "#586880", label: "Social" },
+  productivity:  { icon: "work",         color: "#5A6550", label: "Work" },
+  health:        { icon: "favorite",     color: "#B33D54", label: "Health" },
+  finance:       { icon: "payments",     color: "#8E4570", label: "Finance" },
 };
 
 const RANGE_OPTIONS = [
@@ -241,7 +241,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
   }, [filtered]);
 
   const chartColor =
-    selectedDomain === "overall" ? "#086a69" : DOMAIN_META[selectedDomain]?.color ?? "#086a69";
+    selectedDomain === "overall" ? "#2A7A6A" : DOMAIN_META[selectedDomain]?.color ?? "#2A7A6A";
   const activeLabel =
     selectedDomain === "overall" ? "Overall Balance Score" : DOMAIN_META[selectedDomain]?.label;
 
@@ -312,7 +312,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
         <>
           {/* ── Overall score card (teal gradient) ── */}
           <LinearGradient
-            colors={["#086a69", "#005d5c"]}
+            colors={["#2A7A6A", "#1D665A"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.scoreCard, shadow("lg")]}
@@ -436,7 +436,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
                           <Text
                             style={[
                               styles.insightStatText,
-                              { color: up ? "#086a69" : "#ac3434" },
+                              { color: up ? "#2A7A6A" : "#B33A3A" },
                             ]}
                           >
                             {up ? "+" : ""}

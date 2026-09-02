@@ -19,7 +19,7 @@ function getScaleColor(val) {
   if (val === 2) return "#e08a3c";
   if (val === 3) return "#e0c23c";
   if (val === 4) return "#5aac6e";
-  return "#2f9e7a";
+  return "#3A8F70";
 }
 
 function getScaleLabel(val) {

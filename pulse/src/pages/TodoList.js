@@ -43,8 +43,8 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };
 
 const PRIORITY_OPTIONS = [
-    { value: 'High', label: '🔴 High', color: '#c9184a' },
-    { value: 'Medium', label: '🟠 Medium', color: '#f57c00' },
+    { value: 'High', label: '🔴 High', color: '#B33D54' },
+    { value: 'Medium', label: '🟠 Medium', color: '#C48030' },
     { value: 'Low', label: '🟢 Low', color: '#2d6a4f' },
 ];
 
@@ -469,7 +469,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                                 <Text
                                                     style={[
                                                         styles.metaPriority,
-                                                        { color: todo.priority === 'High' ? '#c9184a' : '#1a827d' },
+                                                        { color: todo.priority === 'High' ? '#B33D54' : '#2A7A6A' },
                                                     ]}
                                                 >
                                                     {PRIORITY_DISPLAY[todo.priority] ?? todo.priority}
@@ -594,20 +594,20 @@ const styles = StyleSheet.create({
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
     itemText: { ...type.bodyMedium, color: colors.text },
     itemTextDone: { textDecorationLine: 'line-through', color: '#aaa' },
-    itemTextExpired: { color: '#c9184a' },
+    itemTextExpired: { color: '#B33D54' },
     expiredTag: {
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: radius.pill,
         backgroundColor: 'rgba(201, 24, 74, 0.1)',
     },
-    expiredTagText: { ...type.caption, fontSize: 10, color: '#c9184a' },
+    expiredTagText: { ...type.caption, fontSize: 10, color: '#B33D54' },
 
     itemDescription: { ...type.small, color: '#666', marginVertical: 4 },
     itemMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: 4 },
     metaPriority: { ...type.caption, fontFamily: fonts.bold, fontSize: 11 },
     metaText: { ...type.caption, fontSize: 11, color: colors.textMuted },
-    metaExpired: { color: '#c9184a' },
+    metaExpired: { color: '#B33D54' },
 });
 
 export default TodoList;

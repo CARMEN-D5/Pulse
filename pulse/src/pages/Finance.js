@@ -40,8 +40,8 @@ import {
 // React Native has no native colour picker, and a swatch grid is faster to use
 // on a phone than a hue wheel anyway.
 const ACCOUNT_COLORS = [
-  "#4d96ff", "#2f9e7a", "#c9184a", "#f57c00",
-  "#983f72", "#086a69", "#5a6550", "#4e607f",
+  "#4A6D98", "#3A8F70", "#B33D54", "#C48030",
+  "#8E4570", "#2A7A6A", "#5a6550", "#4e607f",
 ];
 
 /**
@@ -783,7 +783,7 @@ function SettingsModal({
     const newId = `acc-${Date.now().toString(36)}`;
     setAcctDraft((prev) => [
       ...prev,
-      { id: newId, name: "New account", icon: "💳", color: "#4d96ff" },
+      { id: newId, name: "New account", icon: "💳", color: "#4A6D98" },
     ]);
   };
 

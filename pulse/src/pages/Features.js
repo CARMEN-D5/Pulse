@@ -6,6 +6,8 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { LinearGradient } from "expo-linear-gradient";
+
 import Icon from "../components/Icon";
 import { Screen } from "../components/ui";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
@@ -13,11 +15,11 @@ import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 // `id` is what App.js switches on to pick the destination view.
 export const TOOLS = [
-  { id: "journal",  icon: "sentiment_satisfied", label: "Journal",                   sub: "Spirituality" },
-  { id: "todo",     icon: "event_note",          label: "To-do List",                sub: "Work & Productivity" },
-  { id: "finance",  icon: "savings",             label: "Budget Tracker",            sub: "Financial Wellbeing" },
-  { id: "activity", icon: "directions_run",      label: "Physical Activity Tracker", sub: "Health" },
-  { id: "missions", icon: "check_box",           label: "Daily Missions",            sub: "Today's three missions" },
+  { id: "journal",  icon: "sentiment_satisfied", label: "Journal",                   sub: "Spirituality",          gradient: ["#2A7A6A", "#4AA898"] },
+  { id: "todo",     icon: "event_note",          label: "To-do List",                sub: "Work & Productivity",   gradient: ["#5A6550", "#7D8A72"] },
+  { id: "finance",  icon: "savings",             label: "Budget Tracker",            sub: "Financial Wellbeing",   gradient: ["#8E4570", "#B46098"] },
+  { id: "activity", icon: "directions_run",      label: "Physical Activity Tracker", sub: "Health",                gradient: ["#B33D54", "#E0546E"] },
+  { id: "missions", icon: "check_box",           label: "Daily Missions",            sub: "Today's three missions", gradient: ["#4A6D98", "#6A8DB8"] },
 ];
 
 function Features({ onOpen }) {
@@ -54,7 +56,14 @@ function Features({ onOpen }) {
               pressed && styles.pressed,
             ]}
           >
-            <Icon name={tool.icon} size={24} color={colors.text} />
+            <LinearGradient
+              colors={tool.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.iconTile}
+            >
+              <Icon name={tool.icon} size={20} color="#fff" />
+            </LinearGradient>
             <View style={styles.rowText}>
               <Text style={styles.rowLabel}>{tool.label}</Text>
               <Text style={styles.rowSub}>{tool.sub}</Text>
@@ -98,17 +107,24 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.sm,
   },
 
+  iconTile: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
   },
   rowTinted: { backgroundColor: colors.rowTint },
-  rowText: { flex: 1, gap: 1 },
-  rowLabel: { ...type.title, fontFamily: fonts.medium, fontSize: 17, color: colors.text },
+  rowText: { flex: 1, gap: 2 },
+  rowLabel: { ...type.title, fontFamily: fonts.semibold, fontSize: 16, color: colors.text },
   rowSub: { ...type.small, color: colors.textMuted },
 });
 
