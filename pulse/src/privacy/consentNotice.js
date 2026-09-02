@@ -43,7 +43,7 @@ export function privacyPolicyUrl() {
     return url;
 }
 
-/** Contact email if one is configured, else null. */
+/** Contact email if one is configured, else null. Same guard reasoning. */
 export function contactEmail() {
     const raw = CONTACT.email;
     if (typeof raw !== 'string') return null;
@@ -165,7 +165,7 @@ export const NOTICE_SECTIONS = [
 ];
 
 /**
- * Optional processing which is not necessary to run the app, so opt-in, unticked by
+ * Optional processing — not necessary to run the app, so opt-in, unticked by
  * default, and refusing must not block access.
  */
 export const OPTIONAL_CONSENTS = [
@@ -184,55 +184,37 @@ export const OPTIONAL_CONSENTS = [
 ];
 
 /* ================================================================
- * PART 2 — Sensitive information consent (APP 3.3)
+ * PART 2 — Sensitive information (APP 3.3)
  * ================================================================ */
 
 /**
- * APP 3.3 permits collection of sensitive information only where the
- * individual consents and the collection is reasonably necessary. OAIC treats
- * valid consent as voluntary, informed, current, SPECIFIC, and given by a
- * person with capacity. A tick buried in a general "I agree to everything"
- * box fails "specific", which is why these are individually switchable.
+ * Health information and information about religious or spiritual beliefs are
+ * sensitive information under s6(1). APP 3.3 allows collection only with the
+ * individual's consent.
  *
- * Declining must allow app to be ususable still, so consent is voluntary.
+ * Health and spirituality are two of Pulse's five domains and are not
+ * separable from the product, so they are not offered as toggles. Consent is
+ * obtained instead by naming them plainly on the consent screen and treating
+ * "Continue" as the agreement — the user is told exactly what is collected
+ * before an account is used, and can decline by not continuing.
+ *
+ * The trade-off, recorded here so it is a decision and not an oversight: OAIC
+ * treats valid consent as voluntary, informed, current, SPECIFIC and given
+ * with capacity. Bundling weakens "specific" compared with per-domain
+ * switches. What keeps it defensible is that this text names the two
+ * categories directly rather than burying them in a general agreement, and
+ * that the account can be deleted with its contents at any time.
  */
-export const SENSITIVE_CONSENT = {
-    heading: 'Two questions before you start',
+export const SENSITIVE_NOTICE = {
+    heading: 'Health and spiritual wellbeing',
     body:
-        'The next few questions ask how you are going with your health and with your spiritual life.\n\n' +
-        'Australian privacy law treats information about your health and about religious or spiritual ' +
-        'beliefs as sensitive, and we are only allowed to collect it if you specifically agree.\n\n' +
-        'If you would rather not, you can skip those two areas. Pulse will still track the other three, ' +
-        'and you can turn them on later in your profile.',
-    items: [
-        {
-            key: 'healthConsent',
-            label: 'Track my health and activity',
-            description:
-                'Your health rating, the activity you log, and your mood check-ins. Stored against your ' +
-                'account and visible only to you, unless you choose to share a post.',
-        },
-        {
-            key: 'spiritualityConsent',
-            label: 'Track my spirituality',
-            description:
-                'Spirituality ratings and reflections. Stored against your account, visible only to you ' +
-                'unless you choose to share a post.',
-        },
-    ],
-};
-
-/**
- * Domains gated behind SENSITIVE_CONSENT, as
- *   <EntryQuiz domain id> : <consent record field>
- *
- * EntryQuiz's ids happen to match the record fields here; App.js maps the
- * quiz ids to scoring-engine keys separately via ENTRY_QUIZ_KEY_MAP.
- *
- * If the user declines, EntryQuiz skips these ids, Home should hide the
- * cards, and the scoring engine should treat them as untracked, not zero.
- */
-export const SENSITIVE_DOMAINS = {
-    health: 'health',
-    spirituality: 'spirituality',
+        'Two of the five areas Pulse tracks are your health and your spiritual life.\n\n' +
+        'Australian privacy law treats information about health, and about religious or spiritual ' +
+        'beliefs, as sensitive — a higher standard than ordinary personal information. We are only ' +
+        'allowed to collect it with your agreement.\n\n' +
+        'These entries are stored against your account and visible only to you, unless you choose to ' +
+        'share a post. You can delete your account and everything in it at any time.',
+    agreement:
+        'By continuing you agree to Pulse collecting your health and spirituality entries as part of ' +
+        'tracking all five areas.',
 };

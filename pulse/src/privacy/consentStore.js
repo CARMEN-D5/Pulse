@@ -17,8 +17,7 @@ const LOCAL_KEY = "pulse.privacyConsent";
  *   acceptedAt:           "2026-08-27T..." | null,   // account
  *   analytics: false,
  *   reminders: false,
- *   health: false,          // APP 3.3 — health information
- *   spirituality: false,    // APP 3.3 — religious/spiritual beliefs
+ *   sensitiveConsent: true, // APP 3.3 — health + spiritual entries
  * }
  */
 export function emptyConsent() {
@@ -28,8 +27,7 @@ export function emptyConsent() {
         acceptedAt: null,
         analytics: false,
         reminders: false,
-        health: false,
-        spirituality: false,
+        sensitiveConsent: false,
     };
 }
 
@@ -105,17 +103,24 @@ export function acknowledgeNotice(record) {
     };
 }
 
-/** Answer to the account-level consent step, including the APP 3.3 toggles. */
+/**
+ * Answer to the account-level consent step.
+ *
+ * `sensitiveConsent` is set true rather than being a user toggle: health and
+ * spirituality are two of the five domains and are not separable from the
+ * product, so the consent screen names them and "Continue" is the agreement.
+ * The flag is still written because APP 3.3 consent you cannot evidence is
+ * worth very little — this is the record that it was given, and when.
+ */
 export function acceptAccountConsent(record, choices = {}) {
-    const { analytics = false, reminders = false, health = false, spirituality = false } = choices;
+    const { analytics = false, reminders = false } = choices;
     return {
         ...(record ?? emptyConsent()),
         version: CONSENT_VERSION,
         acceptedAt: new Date().toISOString(),
         analytics,
         reminders,
-        health,
-        spirituality,
+        sensitiveConsent: true,
     };
 }
 
@@ -152,8 +157,10 @@ export async function syncConsent(uid, userDoc) {
 }
 
 /**
- * Update toggles from Settings without re-showing either gate.
- * Keeps consent as easy to withdraw as it was to give (APP 1.4).
+ * Update the optional toggles from Settings without re-showing either gate.
+ * Keeps consent as easy to withdraw as it was to give (APP 1.4). Note this
+ * covers analytics and reminders only — the sensitive-information consent is
+ * withdrawn by deleting the account, since those domains are the product.
  */
 export async function patchConsent(uid, record, patch) {
     const next = { ...(record ?? emptyConsent()), ...patch };

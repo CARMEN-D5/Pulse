@@ -2,60 +2,22 @@ import React, { useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { Card, PrimaryButton, Screen } from "../components/ui";
-import { colors, domainColors, radius, spacing, type } from "../theme";
-import { OPTIONAL_CONSENTS, SENSITIVE_CONSENT, SHORT_NOTICE } from "./consentNotice";
-
-const ROW_ACCENT = {
-    healthConsent: domainColors.health,
-    spiritualityConsent: domainColors.spirituality,
-};
+import { colors, domainColors, fonts, radius, spacing, type } from "../theme";
+import { OPTIONAL_CONSENTS, SENSITIVE_NOTICE, SHORT_NOTICE } from "./consentNotice";
 
 export default function ConsentScreen({ onComplete, loading = false }) {
-    const [choices, setChoices] = useState(() => ({
-        ...Object.fromEntries(SENSITIVE_CONSENT.items.map((i) => [i.key, false])),
-        ...Object.fromEntries(OPTIONAL_CONSENTS.map((o) => [o.key, false])),
-    }));
+    const [choices, setChoices] = useState(() =>
+        Object.fromEntries(OPTIONAL_CONSENTS.map((o) => [o.key, false]))
+    );
 
     const toggle = (key) => setChoices((prev) => ({ ...prev, [key]: !prev[key] }));
 
     const submit = (overrides = null) => {
         const c = overrides ?? choices;
         onComplete({
-            health: Boolean(c.healthConsent),
-            spirituality: Boolean(c.spiritualityConsent),
             analytics: Boolean(c.analyticsConsent),
             reminders: Boolean(c.remindersConsent),
         });
-    };
-
-    const declineAll = () => submit({});
-
-    const renderRow = (item, accent) => {
-        const on = choices[item.key];
-        return (
-            <View
-                key={item.key}
-                style={[
-                    styles.row,
-                    {
-                        borderColor: on ? `${accent}55` : colors.border,
-                        backgroundColor: on ? `${accent}12` : "rgba(255,255,255,0.5)",
-                    },
-                ]}
-            >
-                <View style={styles.rowText}>
-                    <Text style={[styles.rowLabel, on && { color: accent }]}>{item.label}</Text>
-                    <Text style={styles.rowDescription}>{item.description}</Text>
-                </View>
-                <Switch
-                    value={on}
-                    onValueChange={() => toggle(item.key)}
-                    accessibilityLabel={item.label}
-                    trackColor={{ false: colors.blOutlineVariant, true: accent }}
-                    thumbColor={colors.card}
-                />
-            </View>
-        );
     };
 
     return (
@@ -66,17 +28,22 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                         <View style={styles.logoDot} />
                         <Text style={styles.logo}>Pulse</Text>
                     </View>
-                    <Text style={styles.tagline}>Two quick choices before you start</Text>
+                    <Text style={styles.tagline}>Before you start</Text>
                 </View>
 
                 <Text style={styles.recap}>{SHORT_NOTICE}</Text>
 
+                {/* Sensitive information — stated, not switchable. */}
                 <View style={styles.group}>
-                    <Text style={styles.groupHeading}>{SENSITIVE_CONSENT.heading}</Text>
-                    <Text style={styles.groupBody}>{SENSITIVE_CONSENT.body}</Text>
-                    {SENSITIVE_CONSENT.items.map((item) =>
-                        renderRow(item, ROW_ACCENT[item.key] ?? colors.blPrimary)
-                    )}
+                    <View style={styles.sensitiveHead}>
+                        <View style={[styles.dot, { backgroundColor: domainColors.health }]} />
+                        <View style={[styles.dot, { backgroundColor: domainColors.spirituality }]} />
+                        <Text style={styles.groupHeading}>{SENSITIVE_NOTICE.heading}</Text>
+                    </View>
+                    <Text style={styles.groupBody}>{SENSITIVE_NOTICE.body}</Text>
+                    <View style={styles.agreementBox}>
+                        <Text style={styles.agreementText}>{SENSITIVE_NOTICE.agreement}</Text>
+                    </View>
                 </View>
 
                 {OPTIONAL_CONSENTS.length ? (
@@ -85,28 +52,57 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                         <Text style={styles.groupBody}>
                             Neither of these is needed to run Pulse. Leave them off and nothing changes.
                         </Text>
-                        {OPTIONAL_CONSENTS.map((o) => renderRow(o, colors.blPrimary))}
+                        {OPTIONAL_CONSENTS.map((o) => {
+                            const on = choices[o.key];
+                            return (
+                                <View
+                                    key={o.key}
+                                    style={[
+                                        styles.row,
+                                        {
+                                            borderColor: on ? `${colors.blPrimary}55` : colors.border,
+                                            backgroundColor: on ? `${colors.blPrimary}12` : "rgba(255,255,255,0.5)",
+                                        },
+                                    ]}
+                                >
+                                    <View style={styles.rowText}>
+                                        <Text style={[styles.rowLabel, on && { color: colors.blPrimary }]}>
+                                            {o.label}
+                                        </Text>
+                                        <Text style={styles.rowDescription}>{o.description}</Text>
+                                    </View>
+                                    <Switch
+                                        value={on}
+                                        onValueChange={() => toggle(o.key)}
+                                        accessibilityLabel={o.label}
+                                        trackColor={{ false: colors.blOutlineVariant, true: colors.blPrimary }}
+                                        thumbColor={colors.card}
+                                    />
+                                </View>
+                            );
+                        })}
                     </View>
                 ) : null}
 
                 <PrimaryButton
-                    label="Continue"
+                    label="I agree — continue"
                     onPress={() => submit()}
                     loading={loading}
                     style={styles.submit}
                 />
 
                 <Pressable
-                    onPress={declineAll}
+                    onPress={() => submit({})}
                     disabled={loading}
                     accessibilityRole="button"
                     style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
                 >
-                    <Text style={styles.secondaryText}>Skip all of these</Text>
+                    <Text style={styles.secondaryText}>Continue without the extras</Text>
                 </Pressable>
 
                 <Text style={styles.footnote}>
-                    Whatever you choose, you can change it later in your profile.
+                    You can change the optional settings, or delete your account and everything in it, at any
+                    time in your profile.
                 </Text>
             </Card>
         </Screen>
@@ -133,8 +129,19 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
         marginBottom: spacing.lg,
     },
+    sensitiveHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+    dot: { width: 8, height: 8, borderRadius: radius.pill },
     groupHeading: { ...type.title, color: colors.text },
     groupBody: { ...type.small, color: colors.textMuted, marginBottom: spacing.xs },
+
+    agreementBox: {
+        padding: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.accentSoft,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    agreementText: { ...type.small, fontFamily: fonts.semibold, color: colors.text },
 
     row: {
         flexDirection: "row",

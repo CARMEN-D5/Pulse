@@ -47,7 +47,6 @@ import { saveOnboardingBaseline } from "./firestore/scoring";
 // See src/privacy/consentNotice.js for the APP references and reasoning.
 import ConsentModal from "./privacy/ConsentModal";
 import ConsentScreen from "./privacy/ConsentScreen";
-import { SENSITIVE_DOMAINS } from "./privacy/consentNotice";
 import {
   acceptAccountConsent,
   accountConsented,
@@ -129,7 +128,6 @@ function App() {
   // it does not flash open during the first async read.
   const [consent, setConsent] = useState(null);
   const [consentReady, setConsentReady] = useState(false);
-  const [noticeDeclined, setNoticeDeclined] = useState(false);
   const [consentSaving, setConsentSaving] = useState(false);
 
   const fontsReady = useAppFonts();
@@ -185,7 +183,6 @@ function App() {
         });
       } else {
         setUserDoc(null);
-        setNoticeDeclined(false);
         const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "consent", "entryQuiz"];
         setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
       }
@@ -224,17 +221,14 @@ function App() {
   /* ---------------- privacy ---------------- */
 
   // APP 5 notice, device level. Acknowledging is not a consent record, so it
-  // is written locally only — there is no signed-in user at this point.
+  // is written locally only — there is no signed-in user at this point. The
+  // sheet has a single button: a notice is a statement, and the decision it
+  // leads to belongs to the consent screen during registration.
   const handleNoticeAcknowledge = async () => {
     const record = acknowledgeNotice(consent);
     await writeLocalConsent(record);
     setConsent(record);
   };
-
-  // Declining the notice is valid. Nothing is written and nothing collected;
-  // the user stays on Splash. Re-opening the app asks again, because the
-  // notice still has to precede any collection.
-  const handleNoticeDecline = () => setNoticeDeclined(true);
 
   // Account-level consent, from the `consent` view. Writes both stores, then
   // hands off to the rest of registration.
@@ -248,19 +242,12 @@ function App() {
     setView(userDoc?.onboardingCompletedAt ? "home" : "entryQuiz");
   };
 
-  // Domains the user declined at the APP 3.3 gate. EntryQuiz skips these, so
-  // the ratings are never collected rather than collected and then discarded.
-  const excludedDomains = Object.entries(SENSITIVE_DOMAINS)
-      .filter(([, field]) => !consent?.[field])
-      .map(([domainId]) => domainId);
-
   // Shown only while signed out, and only until this device has acknowledged
   // it. Both conditions matter: `!user` keeps it off every authed screen, and
   // the acknowledgement survives logout so it does not reappear on Splash
   // after signing out. A second person signing up on this handset still gets
   // their own account-level gate, so nothing is lost by not repeating it.
-  const needsNotice =
-      consentReady && authReady && !user && !noticeAcknowledged(consent) && !noticeDeclined;
+  const needsNotice = consentReady && authReady && !user && !noticeAcknowledged(consent);
 
   /* ----------------------------------------- */
 
@@ -319,7 +306,6 @@ function App() {
     // regardless, which is the gate that actually matters.
     const cleared = await clearAccountConsent();
     setConsent(cleared);
-    setNoticeDeclined(false);
     setView("splash");
   };
 
@@ -471,13 +457,7 @@ function App() {
         return <ConsentScreen onComplete={handleConsentComplete} loading={consentSaving} />;
 
       case "entryQuiz":
-        return (
-            <EntryQuiz
-                onComplete={handleEntryQuizComplete}
-                loading={onboardingLoading}
-                excludeDomains={excludedDomains}
-            />
-        );
+        return <EntryQuiz onComplete={handleEntryQuizComplete} loading={onboardingLoading} />;
 
       case "domain": {
         const DomainPage = DOMAIN_PAGE_MAP[activeDomain];
@@ -606,11 +586,7 @@ function App() {
           />
         </TutorialProvider>
 
-        <ConsentModal
-            visible={needsNotice}
-            onAcknowledge={handleNoticeAcknowledge}
-            onDecline={handleNoticeDecline}
-        />
+        <ConsentModal visible={needsNotice} onAcknowledge={handleNoticeAcknowledge} />
       </SafeAreaProvider>
   );
 }

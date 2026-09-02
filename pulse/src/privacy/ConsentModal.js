@@ -5,7 +5,7 @@ import { PrimaryButton } from "../components/ui";
 import { colors, radius, spacing, type } from "../theme";
 import { contactEmail, NOTICE_SECTIONS, privacyPolicyUrl, SHORT_NOTICE } from "./consentNotice";
 
-export default function ConsentModal({ visible, onAcknowledge, onDecline }) {
+export default function ConsentModal({ visible, onAcknowledge }) {
     const [expanded, setExpanded] = useState(false);
 
     const policyUrl = privacyPolicyUrl();
@@ -18,6 +18,7 @@ export default function ConsentModal({ visible, onAcknowledge, onDecline }) {
             if (supported) await Linking.openURL(policyUrl);
             else console.debug("[Pulse] cannot open privacy policy URL", policyUrl);
         } catch (err) {
+            // Never let a dead link take down the consent flow.
             console.debug("[Pulse] openURL failed", err?.message);
         }
     };
@@ -72,12 +73,13 @@ export default function ConsentModal({ visible, onAcknowledge, onDecline }) {
                             <Text style={styles.link}>Read our full privacy policy</Text>
                         </Pressable>
                     ) : email ? (
-                        // no policy site yet, but there is an address to ask at
+                        // No policy site yet, but there is an address to ask at.
                         <Text style={styles.fallback}>
                             For anything not covered here, contact us at {email}.
                         </Text>
                     ) : (
-                        // contact details and website not available, can sub in once created.
+                        // Neither configured. The notice above is complete on its own, so
+                        // say so plainly rather than offering a link that goes nowhere.
                         <Text style={styles.fallback}>
                             This notice covers how Pulse handles your information. A full privacy policy will be
                             published with the app’s release.
@@ -86,19 +88,11 @@ export default function ConsentModal({ visible, onAcknowledge, onDecline }) {
                 </ScrollView>
 
                 <View style={styles.foot}>
-                    <PrimaryButton label="I understand — continue" onPress={onAcknowledge} />
-
-                    <Pressable
-                        onPress={onDecline}
-                        accessibilityRole="button"
-                        style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-                    >
-                        <Text style={styles.secondaryText}>Not now</Text>
-                    </Pressable>
+                    <PrimaryButton label="Got it" onPress={onAcknowledge} />
                 </View>
 
                 <Text style={styles.footnote}>
-                    You will be asked about optional data before you start using Pulse.
+                    You will be asked to agree to this before you create an account.
                 </Text>
             </View>
         </Modal>
@@ -155,17 +149,6 @@ const styles = StyleSheet.create({
     fallback: { ...type.small, color: colors.textMuted, marginTop: spacing.xl },
 
     foot: { gap: spacing.sm },
-    secondary: {
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: spacing.lg,
-        paddingHorizontal: spacing.xl,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: colors.blOutlineVariant,
-        backgroundColor: "rgba(255,255,255,0.6)",
-    },
-    secondaryText: { ...type.title, fontSize: 16, color: colors.blOnSurface },
 
     footnote: { ...type.caption, fontSize: 11, color: colors.textMuted, textAlign: "center" },
 });

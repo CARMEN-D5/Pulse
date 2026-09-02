@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Card, PrimaryButton, Screen } from "../components/ui";
@@ -26,38 +26,19 @@ function getScaleLabel(val) {
   return SCALE.find((s) => s.value === val)?.label ?? "";
 }
 
-function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
-  const domains = DOMAINS.filter((d) => !excludeDomains.includes(d.id));
-
-  // Keyed on the FULL domain list on purpose. `excludeDomains` can change
-  // while this screen is mounted — the consent modal opens over the quiz, so
-  // answering it re-renders us with a different filter. A useState initialiser
-  // only runs once, so seeding this from `domains` would leave the newly
-  // included domains with no key at all, and `answers[id] !== null` is true
-  // for `undefined` — the quiz would report itself complete with nothing
-  // answered and submit undefined scores.
+/**
+ * All five domains are always asked. An earlier version let the user skip
+ * health and spirituality at the APP 3.3 consent gate; that gate is now a
+ * statement on the consent screen rather than a pair of switches, so there is
+ * no filtered subset any more and this is back to the plain five.
+ */
+function EntryQuiz({ onComplete, loading = false }) {
   const [answers, setAnswers] = useState(
       Object.fromEntries(DOMAINS.map((d) => [d.id, null]))
   );
 
-  // If a domain becomes excluded after the user has already rated it, drop the
-  // rating rather than leaving it sitting in state. It would not be submitted
-  // either way, but not holding it at all is the better default.
-  useEffect(() => {
-    if (!excludeDomains.length) return;
-    setAnswers((prev) => {
-      const stale = excludeDomains.filter((id) => prev[id] !== null && prev[id] !== undefined);
-      if (!stale.length) return prev;
-      const next = { ...prev };
-      for (const id of stale) next[id] = null;
-      return next;
-    });
-  }, [excludeDomains.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const isComplete = domains.every((d) => answers[d.id] !== null && answers[d.id] !== undefined);
-  const answeredCount = domains.filter(
-      (d) => answers[d.id] !== null && answers[d.id] !== undefined
-  ).length;
+  const isComplete = DOMAINS.every((d) => answers[d.id] !== null);
+  const answeredCount = DOMAINS.filter((d) => answers[d.id] !== null).length;
 
   function handleSelect(id, val) {
     setAnswers((prev) => ({ ...prev, [id]: val }));
@@ -65,7 +46,7 @@ function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
 
   function handleSubmit() {
     if (!isComplete || !onComplete) return;
-    onComplete(domains.map((d) => ({ domain: d.id, score: answers[d.id] })));
+    onComplete(DOMAINS.map((d) => ({ domain: d.id, score: answers[d.id] })));
   }
 
   return (
@@ -79,10 +60,10 @@ function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
             <Text style={styles.tagline}>How are you doing today?</Text>
           </View>
 
-          {domains.map((d, i) => {
+          {DOMAINS.map((d, i) => {
             const val = answers[d.id];
             const color = getScaleColor(val);
-            const isLast = i === domains.length - 1;
+            const isLast = i === DOMAINS.length - 1;
 
             return (
                 <View key={d.id} style={[styles.domain, !isLast && styles.domainDivider]}>
@@ -114,6 +95,13 @@ function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
                   </View>
 
                   <Text style={styles.question}>{d.questions[0]}</Text>
+
+                  {/*
+                The web build used <input type="range">. React Native has no
+                core slider, and dragging a 5-stop scale on a phone is fiddly,
+                so the same 1-5 value is chosen by tapping a segment instead.
+                The data written back is identical.
+              */}
                   <View
                       style={styles.scaleRow}
                       accessibilityRole="radiogroup"
@@ -163,7 +151,7 @@ function EntryQuiz({ onComplete, loading = false, excludeDomains = [] }) {
               label={
                 isComplete
                     ? "Submit check-in"
-                    : `Answer all questions to continue (${answeredCount}/${domains.length})`
+                    : `Answer all questions to continue (${answeredCount}/${DOMAINS.length})`
               }
               onPress={handleSubmit}
               disabled={!isComplete}
