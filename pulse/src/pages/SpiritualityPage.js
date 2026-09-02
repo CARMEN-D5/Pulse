@@ -5,6 +5,7 @@ import { loadMoodData, saveMoodData, todayKey } from "../data/spirituality";
 import { logAction, logReflection } from "../firestore/scoring";
 import { JournalPromptOverlay, MoodCheckInOverlay, MoodDashboard } from "./MoodTracker";
 import { useSharePrompt } from "../components/share";
+import { useTutorial } from "../tutorial";
 
 /**
  * Phase machine:
@@ -22,6 +23,18 @@ function SpiritualityPage({ user, onBack, onActivityLogged }) {
   // opening phase is decided once the read resolves.
   const [phase, setPhase] = useState("loading");
   const [pendingMoodId, setPendingMoodId] = useState(null);
+  const [needsCheckin, setNeedsCheckin] = useState(false);
+
+  const startCheckin = useCallback(() => {
+    if (!needsCheckin) return;
+    setNeedsCheckin(false);
+    setPhase("checkin");
+  }, [needsCheckin]);
+
+  const journalTutorial = useTutorial("journal", {
+    enabled: Boolean(uid && phase === "dashboard"),
+    actions: { startCheckin },
+  });
 
   const { openSharePrompt } = useSharePrompt();
 
@@ -30,12 +43,20 @@ function SpiritualityPage({ user, onBack, onActivityLogged }) {
     loadMoodData(uid).then((data) => {
       if (cancelled) return;
       setMoodData(data);
-      setPhase(data[todayKey()]?.moodId ? "dashboard" : "checkin");
+      const missingToday = !data[todayKey()]?.moodId;
+      setNeedsCheckin(missingToday);
+      setPhase("dashboard");
     });
     return () => {
       cancelled = true;
     };
   }, [uid]);
+
+  useEffect(() => {
+    if (phase === "dashboard" && needsCheckin && journalTutorial.handled && !journalTutorial.active) {
+      startCheckin();
+    }
+  }, [journalTutorial.active, journalTutorial.handled, needsCheckin, phase, startCheckin]);
 
   const persistMood = useCallback(
     (moodId, journalText, emotions = []) => {

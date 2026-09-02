@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackHandler, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -24,6 +24,7 @@ import Finance from "./pages/Finance";
 import DailyMissionsPage from "./pages/DailyMissionsPage";
 import Social, { displayNameFor } from "./pages/Social";
 import { SharePromptProvider, resetSharePromptHistory } from "./components/share";
+import { firstTutorialRoute, TutorialProvider, useTutorialContext } from "./tutorial";
 import { createAchievementPost } from "./firestore/social";
 import {
   signUp,
@@ -90,6 +91,7 @@ function App() {
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [activeDomain, setActiveDomain] = useState(null);
   const [scoreVersion, setScoreVersion] = useState(0);
+  const [tutorialRequest, setTutorialRequest] = useState(null);
   // Tab a stacked page was opened from, so dismissing it lands back there
   // rather than always on Home.
   const [tabReturn, setTabReturn] = useState("home");
@@ -261,6 +263,29 @@ function App() {
     setView(tabReturn);
   };
 
+  // Tutorial navigation uses the same view state as the app, but only this
+  // adapter may restore a route while a tutorial is active. Normal navigation
+  // handlers remain unchanged when no tutorial is running.
+  const ensureTutorialRoute = useCallback((route) => {
+    if (!route?.view) return;
+    setActiveDomain(route.view === "domain" ? route.domain || null : null);
+    setView(route.view);
+  }, []);
+
+  const tutorialNavigation = useMemo(
+    () => ({
+      currentRoute: { view, domain: view === "domain" ? activeDomain : null },
+      ensureRoute: ensureTutorialRoute,
+    }),
+    [activeDomain, ensureTutorialRoute, view]
+  );
+
+  const handleReplayTutorial = (tutorialId) => {
+    setTabReturn("profile");
+    ensureTutorialRoute(firstTutorialRoute(tutorialId));
+    setTutorialRequest({ id: tutorialId, nonce: Date.now() });
+  };
+
   // Called whenever a reflection or action is logged inside a domain page.
   // Incrementing scoreVersion causes Home to re-fetch and recompute scores.
   const handleActivityLogged = () => {
@@ -330,6 +355,7 @@ function App() {
             user={user}
             onBack={handleStackedBack}
             onActivityLogged={handleActivityLogged}
+            tutorialTab={tutorialRequest?.id === "savingOverview" ? "saving" : undefined}
           />
         );
 
@@ -361,7 +387,13 @@ function App() {
         return <Features onOpen={handleToolSelect} />;
 
       case "profile":
-        return <Profile user={user} onLogout={handleLogout} />;
+        return (
+          <Profile
+            user={user}
+            onLogout={handleLogout}
+            onReplayTutorial={handleReplayTutorial}
+          />
+        );
 
       case "home":
         return (
@@ -407,15 +439,45 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <SharePromptProvider
+      <TutorialProvider
         user={user}
-        onPost={handleSharePost}
-        onOpenSocial={() => setView("social")}
+        initialProgress={userDoc?.tutorialProgress}
+        navigation={tutorialNavigation}
       >
-        {screen()}
-      </SharePromptProvider>
+        <SharePromptProvider
+          user={user}
+          onPost={handleSharePost}
+          onOpenSocial={() => setView("social")}
+        >
+          {screen()}
+        </SharePromptProvider>
+        <TutorialLauncher
+          request={tutorialRequest}
+          onConsumed={() => setTutorialRequest(null)}
+        />
+      </TutorialProvider>
     </SafeAreaProvider>
   );
+}
+
+function TutorialLauncher({ request, onConsumed }) {
+  const { active, startTutorial } = useTutorialContext();
+
+  useEffect(() => {
+    if (!request?.id) return undefined;
+    if (active?.id === request.id) {
+      onConsumed?.();
+      return undefined;
+    }
+    if (active) return undefined;
+
+    const timer = setTimeout(() => {
+      if (startTutorial(request.id, { force: true })) onConsumed?.();
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [active, onConsumed, request, startTutorial]);
+
+  return null;
 }
 
 export default App;

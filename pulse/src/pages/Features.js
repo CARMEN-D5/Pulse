@@ -9,6 +9,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Icon from "../components/Icon";
 import { Screen } from "../components/ui";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 // `id` is what App.js switches on to pick the destination view.
 export const TOOLS = [
@@ -20,6 +21,7 @@ export const TOOLS = [
 ];
 
 function Features({ onOpen }) {
+  useTutorial("features");
   return (
     <Screen
       gradient={false}
@@ -27,13 +29,21 @@ function Features({ onOpen }) {
       keyboardAvoiding={false}
       contentContainerStyle={styles.screen}
     >
+      <TutorialTarget id={TUTORIAL_TARGETS.features.list} style={styles.flex}>
       <View style={[styles.card, shadow("md")]}>
         <Text style={styles.cardTitle}>Tools</Text>
         <View style={styles.rule} />
 
         {TOOLS.map((tool, i) => (
-          <Pressable
+          <TutorialTarget
+            id={
+              tool.id === "missions"
+                ? TUTORIAL_TARGETS.features.missions
+                : `features.tool.${tool.id}`
+            }
             key={tool.id}
+          >
+          <Pressable
             onPress={() => onOpen?.(tool.id)}
             accessibilityRole="button"
             accessibilityLabel={`${tool.label}, ${tool.sub}`}
@@ -51,8 +61,10 @@ function Features({ onOpen }) {
             </View>
             <Icon name="chevron_right" size={20} color={colors.textMuted} />
           </Pressable>
+          </TutorialTarget>
         ))}
       </View>
+      </TutorialTarget>
     </Screen>
   );
 }
@@ -60,6 +72,7 @@ function Features({ onOpen }) {
 const styles = StyleSheet.create({
   screen: { padding: spacing.lg, paddingBottom: spacing.xxl },
   pressed: { opacity: 0.7 },
+  flex: { flex: 1 },
 
   card: {
     flex: 1,

@@ -39,7 +39,11 @@ function DailyMissionsPage({ user, userDoc, scoreVersion, onBack }) {
       {loading ? (
         <Loading label="Loading your missions…" style={styles.loading} />
       ) : (
-        <DailyMissions user={user} domainScores={scores?.domainScores ?? {}} />
+        <DailyMissions
+          user={user}
+          domainScores={scores?.domainScores ?? {}}
+          tutorialEnabled
+        />
       )}
     </Screen>
   );

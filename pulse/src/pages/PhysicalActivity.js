@@ -9,7 +9,7 @@ import {
     serverTimestamp,
     updateDoc,
 } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import DateField from '../components/DateField';
@@ -20,6 +20,7 @@ import { logAction } from '../firestore/scoring';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { confirm } from '../utils/dialogs';
 import { useSharePrompt, ShareButton } from '../components/share';
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from '../tutorial';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -93,6 +94,10 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
 
     const [exercises, setExercises] = useState(EMPTY_EXERCISES);
     const [editExercises, setEditExercises] = useState(EMPTY_EXERCISES);
+    useTutorial('activity', {
+        enabled: Boolean(user?.uid),
+        actions: { showNew: () => setPageTab('new') },
+    });
 
     const { openSharePrompt } = useSharePrompt();
 
@@ -299,10 +304,13 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                 </Pressable>
             ) : null}
 
-            <SegmentedField options={PAGE_OPTIONS} value={pageTab} onChange={setPageTab} />
+            <TutorialTarget id={TUTORIAL_TARGETS.activity.pages}>
+                <SegmentedField options={PAGE_OPTIONS} value={pageTab} onChange={setPageTab} />
+            </TutorialTarget>
 
             {/* Add-activity form */}
             {pageTab === 'new' ? (
+            <TutorialTarget id={TUTORIAL_TARGETS.activity.form}>
             <View style={[styles.card, shadow('sm')]}>
                 <TextInput
                     style={styles.input}
@@ -418,8 +426,11 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                     </View>
                 ) : null}
 
-                <PrimaryButton label="Add" onPress={addActivity} disabled={!input.trim()} />
+                <TutorialTarget id={TUTORIAL_TARGETS.activity.submit}>
+                    <PrimaryButton label="Add" onPress={addActivity} disabled={!input.trim()} />
+                </TutorialTarget>
             </View>
+            </TutorialTarget>
             ) : null}
 
             {/* Saved templates */}

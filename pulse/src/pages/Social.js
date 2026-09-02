@@ -46,6 +46,7 @@ import { searchUserByEmail } from "../firestore/users";
 import { deletePostImage, pickImage, uploadPostImage } from "../storage/uploads";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { confirm } from "../utils/dialogs";
+import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 /**
  * Social — feed of daily posts, your own daily post composer, and DMs.
@@ -59,6 +60,7 @@ import { confirm } from "../utils/dialogs";
  */
 function Social({ user, onBack, onActivityLogged }) {
   const [tab, setTab] = useState("feed");
+  useTutorial("social", { enabled: Boolean(user?.uid) });
 
   // The open conversation (id + other-user metadata). Null = no overlay.
   const [openThread, setOpenThread] = useState(null);
@@ -183,6 +185,7 @@ function Social({ user, onBack, onActivityLogged }) {
         </Pressable>
       ) : null}
 
+      <TutorialTarget id={TUTORIAL_TARGETS.social.tabs}>
       <View style={styles.tabs} accessibilityRole="tablist">
         {[
           { id: "feed", label: "Feed" },
@@ -209,7 +212,10 @@ function Social({ user, onBack, onActivityLogged }) {
           </Pressable>
         ))}
       </View>
+      </TutorialTarget>
 
+      <TutorialTarget id={TUTORIAL_TARGETS.social.content}>
+      <View>
       {tab === "feed" && (
         <FeedTab
           user={user}
@@ -233,6 +239,8 @@ function Social({ user, onBack, onActivityLogged }) {
           onError={setSocialError}
         />
       )}
+      </View>
+      </TutorialTarget>
 
       <ThreadOverlay
         user={user}

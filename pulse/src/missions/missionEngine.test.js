@@ -20,6 +20,7 @@ jest.mock('firebase/firestore', () => ({
 
 import {
     getWeekKey,
+    getWeekRange,
     getDayKey,
     analyseScores,
     generateDailyMissions,
@@ -263,5 +264,14 @@ describe('missionPools integrity', () => {
                 expect(text.trim().length).toBeGreaterThan(0);
             });
         });
+    });
+});
+
+describe('getWeekRange', () => {
+    test('returns the Monday through Sunday dates for the same ISO week', () => {
+        const { start, end } = getWeekRange(new Date(2025, 7, 14));
+        expect(start).toEqual(new Date(2025, 7, 11));
+        expect(end).toEqual(new Date(2025, 7, 17));
+        expect(getWeekKey(start)).toBe(getWeekKey(end));
     });
 });
