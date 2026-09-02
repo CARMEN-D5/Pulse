@@ -24,6 +24,7 @@ import {
   saveAccount,
   setBudget,
 } from "../firestore/finance";
+import { computeLoggingStreak, formatStreakSince } from "./financeStreak";
 import { logAction } from "../firestore/scoring";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import DonutChart from "./DonutChart";
@@ -43,6 +44,10 @@ const ACCOUNT_COLORS = [
   "#4A6D98", "#3A8F70", "#B33D54", "#C48030",
   "#8E4570", "#2A7A6A", "#5a6550", "#4e607f",
 ];
+
+// How far back the streak read looks. The streak crosses month boundaries, so
+// it cannot reuse the dashboard's current-month query.
+const STREAK_LOOKBACK_DAYS = 120;
 
 /**
  * Finance / budget tracker page.
@@ -64,6 +69,8 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Tracking streak, for the share card. See pages/financeStreak.js.
+  const [streak, setStreak] = useState({ days: 0, since: null, daysTracked: 0 });
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -149,6 +156,22 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
     setExpenses(exp.data || []);
     setBudgets(bud.data || {});
     setAccounts(acc.data?.length ? acc.data : DEFAULT_ACCOUNTS);
+
+    // Separate, wider read for the streak: a run of tracked days routinely
+    // spans the 1st of a month, so the current-month query above cannot see
+    // it. listExpenses's two parameters are a plain date range despite being
+    // named for months. A failed read is not surfaced as an error — the
+    // streak is a nicety, and the page is still perfectly usable without it.
+    const streakStart = new Date();
+    streakStart.setDate(streakStart.getDate() - STREAK_LOOKBACK_DAYS);
+    const streakEnd = new Date();
+    streakEnd.setDate(streakEnd.getDate() + 1);
+    const streakRes = await listExpenses(uid, {
+      monthStart: streakStart,
+      monthEnd: streakEnd,
+    });
+    setStreak(computeLoggingStreak(streakRes.ok ? streakRes.data : []));
+
     setLoading(false);
   };
 
@@ -168,32 +191,42 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
   }, [expenses]);
 
   const totalSpent = useMemo(
-    () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
-    [spentByCategory]
+      () => Object.values(spentByCategory).reduce((a, b) => a + b, 0),
+      [spentByCategory]
   );
 
   const totalBudget = useMemo(
-    () => DEFAULT_CATEGORIES.reduce((acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0), 0),
-    [budgets]
+      () => DEFAULT_CATEGORIES.reduce((acc, c) => acc + (budgets[c.id]?.monthlyLimit || 0), 0),
+      [budgets]
   );
 
   const dailyAllowance = useMemo(
-    () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
-    [totalBudget, monthDayCount]
+      () => (totalBudget > 0 ? totalBudget / monthDayCount : 0),
+      [totalBudget, monthDayCount]
   );
 
-  // Payload for the manual share button. `isAvailable` on the finance
-  // templates requires totalBudget > 0, so the button hides itself until the
-  // user has actually set some budgets.
+  // Payload for the manual share button.
+  //
+  // `kind` is computed rather than fixed. It used to be hardcoded to
+  // "month-under", so a month where you set a $300 budget and spent $500
+  // still offered a card headed "Finished <month> under budget". Now the
+  // month card hides itself when the claim isn't true.
+  //
+  // `streakDays` sits alongside it rather than inside `kind`, because a
+  // tracking streak is orthogonal to what the budget did — it is what remains
+  // shareable after a month that went badly, and it rewards the behaviour
+  // rather than the outcome. No dollar figures on that card by design.
   //
   // For a single category instead, the payload is:
   //   { kind: "category-under", categoryLabel, categoryIcon, categoryColor,
   //     spent, cap, monthLabel }
   const monthSharePayload = {
-    kind: "month-under",
+    kind: totalBudget > 0 && totalSpent <= totalBudget ? "month-under" : "month-over",
     monthLabel: monthName,
     totalSpent,
     totalBudget,
+    streakDays: streak.days,
+    streakSince: formatStreakSince(streak.since),
   };
 
   // Categories sorted by this-month spend, descending. Ties keep their
@@ -201,24 +234,24 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
   // non-zero) the donut chart slices, so the most prevalent category sits
   // at the top of the legend list.
   const rankedCategories = useMemo(
-    () =>
-      [...DEFAULT_CATEGORIES].sort(
-        (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
-      ),
-    [spentByCategory]
+      () =>
+          [...DEFAULT_CATEGORIES].sort(
+              (a, b) => (spentByCategory[b.id] || 0) - (spentByCategory[a.id] || 0)
+          ),
+      [spentByCategory]
   );
 
   const donutData = useMemo(
-    () =>
-      rankedCategories
-        .filter((c) => spentByCategory[c.id] > 0)
-        .map((c) => ({
-          id: c.id,
-          label: c.label,
-          value: spentByCategory[c.id],
-          color: c.color,
-        })),
-    [rankedCategories, spentByCategory]
+      () =>
+          rankedCategories
+              .filter((c) => spentByCategory[c.id] > 0)
+              .map((c) => ({
+                id: c.id,
+                label: c.label,
+                value: spentByCategory[c.id],
+                color: c.color,
+              })),
+      [rankedCategories, spentByCategory]
   );
 
   // Track most-recently-used account so the form can preselect it.
@@ -268,15 +301,15 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
 
   // ---- render ------------------------------------------------------------
   return (
-    <Screen contentContainerStyle={styles.screen}>
-      <ScreenHeader
-        title="Budget"
-        subtitle={monthName}
-        onBack={onBack}
-        right={
-          financeTab === "spending" ? (
-            <View style={styles.headerActions}>
-              {/* finance only uses the manual share trigger — an automatic
+      <Screen contentContainerStyle={styles.screen}>
+        <ScreenHeader
+            title="Budget"
+            subtitle={monthName}
+            onBack={onBack}
+            right={
+              financeTab === "spending" ? (
+                  <View style={styles.headerActions}>
+                    {/* finance only uses the manual share trigger — an automatic
                   prompt about budgeting is unlikely to be welcome */}
               <ShareButton domain="finance" payload={monthSharePayload} />
               <TutorialTarget id={TUTORIAL_TARGETS.budget.settings}>
@@ -295,7 +328,7 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
         }
       />
 
-      <Alert message={error} />
+        <Alert message={error} />
 
       <TutorialTarget id={TUTORIAL_TARGETS.budget.tabs}>
       <View style={styles.tabs} accessibilityRole="tablist">
@@ -395,46 +428,46 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
       </View>
       </TutorialTarget>
 
-      {/* ---------- Daily P&L calendar ---------- */}
-      <View style={[styles.card, shadow("sm")]}>
-        <SpendingCalendar
-          expenses={expenses}
-          monthStart={monthStart}
-          dailyAllowance={dailyAllowance}
-        />
-      </View>
+              {/* ---------- Daily P&L calendar ---------- */}
+              <View style={[styles.card, shadow("sm")]}>
+                <SpendingCalendar
+                    expenses={expenses}
+                    monthStart={monthStart}
+                    dailyAllowance={dailyAllowance}
+                />
+              </View>
 
-      {/* ---------- Per-category bars ---------- */}
-      <View style={[styles.card, shadow("sm")]}>
-        <Text style={styles.sectionTitle}>Category limits</Text>
+              {/* ---------- Per-category bars ---------- */}
+              <View style={[styles.card, shadow("sm")]}>
+                <Text style={styles.sectionTitle}>Category limits</Text>
 
-        <View style={styles.budgetRows}>
-          {DEFAULT_CATEGORIES.map((c) => {
-            const cap = budgets[c.id]?.monthlyLimit || 0;
-            const spent = spentByCategory[c.id];
-            const ratio = cap > 0 ? spent / cap : 0;
-            const pct = Math.min(ratio, 1) * 100;
-            return (
-              <View key={c.id} style={styles.budgetRow}>
-                <View style={styles.budgetRowHead}>
-                  <Text style={styles.budgetRowName}>
-                    {c.icon} {c.label}
-                  </Text>
-                  <Text style={styles.budgetRowAmount}>
-                    ${spent.toFixed(0)}
-                    {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
-                  </Text>
-                </View>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[styles.barFill, { width: `${pct}%`, backgroundColor: c.color }]}
-                  />
+                <View style={styles.budgetRows}>
+                  {DEFAULT_CATEGORIES.map((c) => {
+                    const cap = budgets[c.id]?.monthlyLimit || 0;
+                    const spent = spentByCategory[c.id];
+                    const ratio = cap > 0 ? spent / cap : 0;
+                    const pct = Math.min(ratio, 1) * 100;
+                    return (
+                        <View key={c.id} style={styles.budgetRow}>
+                          <View style={styles.budgetRowHead}>
+                            <Text style={styles.budgetRowName}>
+                              {c.icon} {c.label}
+                            </Text>
+                            <Text style={styles.budgetRowAmount}>
+                              ${spent.toFixed(0)}
+                              {cap > 0 ? ` / $${cap.toFixed(0)}` : " · no budget set"}
+                            </Text>
+                          </View>
+                          <View style={styles.barTrack}>
+                            <View
+                                style={[styles.barFill, { width: `${pct}%`, backgroundColor: c.color }]}
+                            />
+                          </View>
+                        </View>
+                    );
+                  })}
                 </View>
               </View>
-            );
-          })}
-        </View>
-      </View>
 
       {/* Add expense is now opened via the "+ Add an expense" button at
           the top of the Spending tab (opens AddExpenseModal). The inline
@@ -443,55 +476,55 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
       <View style={[styles.card, shadow("sm")]}>
         <Text style={styles.sectionTitle}>Recent transactions</Text>
 
-        {loading ? (
-          <Text style={styles.emptyState}>Loading…</Text>
-        ) : expenses.length === 0 ? (
-          <Text style={styles.emptyState}>No expenses yet — add one above to get started.</Text>
-        ) : (
-          <View style={styles.txList}>
-            {expenses.slice(0, 12).map((e) => {
-              const cat = categoryById(e.category);
-              const acc = accountById(accounts, e.account);
-              const date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
-              return (
-                <View key={e.id} style={styles.txRow}>
-                  <View style={[styles.txIcon, { backgroundColor: `${cat.color}22` }]}>
-                    <Text style={styles.txIconText}>{cat.icon}</Text>
-                  </View>
+                {loading ? (
+                    <Text style={styles.emptyState}>Loading…</Text>
+                ) : expenses.length === 0 ? (
+                    <Text style={styles.emptyState}>No expenses yet — add one above to get started.</Text>
+                ) : (
+                    <View style={styles.txList}>
+                      {expenses.slice(0, 12).map((e) => {
+                        const cat = categoryById(e.category);
+                        const acc = accountById(accounts, e.account);
+                        const date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+                        return (
+                            <View key={e.id} style={styles.txRow}>
+                              <View style={[styles.txIcon, { backgroundColor: `${cat.color}22` }]}>
+                                <Text style={styles.txIconText}>{cat.icon}</Text>
+                              </View>
 
-                  <View style={styles.flex}>
-                    <View style={styles.txCatRow}>
-                      <View style={[styles.txAccountIcon, { backgroundColor: `${acc.color}22` }]}>
-                        <Text style={styles.txAccountIconText}>{acc.icon}</Text>
-                      </View>
-                      <Text style={styles.txCat}>{cat.label}</Text>
+                              <View style={styles.flex}>
+                                <View style={styles.txCatRow}>
+                                  <View style={[styles.txAccountIcon, { backgroundColor: `${acc.color}22` }]}>
+                                    <Text style={styles.txAccountIconText}>{acc.icon}</Text>
+                                  </View>
+                                  <Text style={styles.txCat}>{cat.label}</Text>
+                                </View>
+                                <Text style={styles.txMeta} numberOfLines={1}>
+                                  {acc.name} ·{" "}
+                                  {date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                                  {e.note ? ` · ${e.note}` : ""}
+                                </Text>
+                              </View>
+
+                              <Text style={styles.txAmount}>${e.amount.toFixed(2)}</Text>
+
+                              <Pressable
+                                  onPress={() => handleDelete(e.id)}
+                                  hitSlop={8}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Delete expense"
+                                  style={({ pressed }) => [pressed && styles.pressed]}
+                              >
+                                <Icon name="close" size={18} color={colors.textMuted} />
+                              </Pressable>
+                            </View>
+                        );
+                      })}
                     </View>
-                    <Text style={styles.txMeta} numberOfLines={1}>
-                      {acc.name} ·{" "}
-                      {date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                      {e.note ? ` · ${e.note}` : ""}
-                    </Text>
-                  </View>
-
-                  <Text style={styles.txAmount}>${e.amount.toFixed(2)}</Text>
-
-                  <Pressable
-                    onPress={() => handleDelete(e.id)}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Delete expense"
-                    style={({ pressed }) => [pressed && styles.pressed]}
-                  >
-                    <Icon name="close" size={18} color={colors.textMuted} />
-                  </Pressable>
-                </View>
-              );
-            })}
-          </View>
+                )}
+              </View>
+            </>
         )}
-      </View>
-        </>
-      )}
 
       <SettingsModal
         visible={showSettings}
@@ -567,81 +600,81 @@ function AddExpenseForm({ accounts, defaultAccount, initialDate, onSubmit }) {
   };
 
   return (
-    <View style={styles.form}>
-      <TextInput
-        style={styles.amountInput}
-        keyboardType="decimal-pad"
-        placeholder="$0.00"
-        placeholderTextColor={colors.textMuted}
-        value={amount}
-        onChangeText={setAmount}
-        accessibilityLabel="Amount"
-      />
+      <View style={styles.form}>
+        <TextInput
+            style={styles.amountInput}
+            keyboardType="decimal-pad"
+            placeholder="$0.00"
+            placeholderTextColor={colors.textMuted}
+            value={amount}
+            onChangeText={setAmount}
+            accessibilityLabel="Amount"
+        />
 
-      <View style={styles.chipWrap} accessibilityRole="radiogroup" accessibilityLabel="Category">
-        {DEFAULT_CATEGORIES.map((c) => {
-          const selected = category === c.id;
-          return (
-            <Pressable
-              key={c.id}
-              onPress={() => setCategory(c.id)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              style={({ pressed }) => [
-                styles.chip,
-                selected && { backgroundColor: `${c.color}22`, borderColor: c.color },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={[styles.chipText, selected && { color: c.color, fontFamily: fonts.semibold }]}>
-                {c.icon} {c.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+        <View style={styles.chipWrap} accessibilityRole="radiogroup" accessibilityLabel="Category">
+          {DEFAULT_CATEGORIES.map((c) => {
+            const selected = category === c.id;
+            return (
+                <Pressable
+                    key={c.id}
+                    onPress={() => setCategory(c.id)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      selected && { backgroundColor: `${c.color}22`, borderColor: c.color },
+                      pressed && styles.pressed,
+                    ]}
+                >
+                  <Text style={[styles.chipText, selected && { color: c.color, fontFamily: fonts.semibold }]}>
+                    {c.icon} {c.label}
+                  </Text>
+                </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.chipWrap} accessibilityRole="radiogroup" accessibilityLabel="Account">
+          {accounts.map((a) => {
+            const selected = account === a.id;
+            return (
+                <Pressable
+                    key={a.id}
+                    onPress={() => setAccount(a.id)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      selected && { backgroundColor: `${a.color}22`, borderColor: a.color },
+                      pressed && styles.pressed,
+                    ]}
+                >
+                  <View style={[styles.accountSwatch, { backgroundColor: a.color }]} />
+                  <Text style={[styles.chipText, selected && { fontFamily: fonts.semibold }]}>
+                    {a.icon} {a.name}
+                  </Text>
+                </Pressable>
+            );
+          })}
+        </View>
+
+        <DateField value={date} onChange={setDate} clearable={false} />
+
+        <TextInput
+            style={styles.input}
+            placeholder="Note (optional)"
+            placeholderTextColor={colors.textMuted}
+            value={note}
+            onChangeText={setNote}
+        />
+
+        <PrimaryButton
+            label={submitting ? "Adding…" : "Add expense"}
+            onPress={submit}
+            disabled={!canSubmit}
+            loading={submitting}
+        />
       </View>
-
-      <View style={styles.chipWrap} accessibilityRole="radiogroup" accessibilityLabel="Account">
-        {accounts.map((a) => {
-          const selected = account === a.id;
-          return (
-            <Pressable
-              key={a.id}
-              onPress={() => setAccount(a.id)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              style={({ pressed }) => [
-                styles.chip,
-                selected && { backgroundColor: `${a.color}22`, borderColor: a.color },
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={[styles.accountSwatch, { backgroundColor: a.color }]} />
-              <Text style={[styles.chipText, selected && { fontFamily: fonts.semibold }]}>
-                {a.icon} {a.name}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <DateField value={date} onChange={setDate} clearable={false} />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Note (optional)"
-        placeholderTextColor={colors.textMuted}
-        value={note}
-        onChangeText={setNote}
-      />
-
-      <PrimaryButton
-        label={submitting ? "Adding…" : "Add expense"}
-        onPress={submit}
-        disabled={!canSubmit}
-        loading={submitting}
-      />
-    </View>
   );
 }
 
@@ -792,17 +825,17 @@ function SettingsModal({
       <View style={styles.modalRoot}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close settings" />
 
-      <View style={styles.modalCard} accessibilityViewIsModal accessibilityLabel="Settings">
-        <Text style={styles.modalTitle}>Settings</Text>
+        <View style={styles.modalCard} accessibilityViewIsModal accessibilityLabel="Settings">
+          <Text style={styles.modalTitle}>Settings</Text>
 
-        <View style={styles.tabs} accessibilityRole="tablist">
-          <ModalTab label="Budgets" active={tab === "budgets"} onPress={() => setTab("budgets")} />
-          <ModalTab
-            label="Accounts"
-            active={tab === "accounts"}
-            onPress={() => setTab("accounts")}
-          />
-        </View>
+          <View style={styles.tabs} accessibilityRole="tablist">
+            <ModalTab label="Budgets" active={tab === "budgets"} onPress={() => setTab("budgets")} />
+            <ModalTab
+                label="Accounts"
+                active={tab === "accounts"}
+                onPress={() => setTab("accounts")}
+            />
+          </View>
 
         <TutorialScrollView
           tutorialScrollRoot
@@ -842,51 +875,51 @@ function SettingsModal({
                 Manage the bank accounts and payment methods you spend from.
               </Text>
 
-              {acctDraft.map((a, i) => (
-                <View key={a.id} style={styles.accountEditRow}>
-                  <View style={styles.accountEditTop}>
-                    <TextInput
-                      style={styles.accIcon}
-                      value={a.icon}
-                      onChangeText={(v) => updateAcct(i, { icon: v.slice(0, 2) })}
-                      accessibilityLabel="Icon"
-                    />
-                    <TextInput
-                      style={[styles.input, styles.flex]}
-                      value={a.name}
-                      onChangeText={(v) => updateAcct(i, { name: v })}
-                      accessibilityLabel="Account name"
-                    />
-                    <Pressable
-                      onPress={() => deleteAcct(i)}
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel="Delete account"
-                      style={({ pressed }) => [pressed && styles.pressed]}
-                    >
-                      <Icon name="close" size={20} color={colors.textMuted} />
-                    </Pressable>
-                  </View>
+                  {acctDraft.map((a, i) => (
+                      <View key={a.id} style={styles.accountEditRow}>
+                        <View style={styles.accountEditTop}>
+                          <TextInput
+                              style={styles.accIcon}
+                              value={a.icon}
+                              onChangeText={(v) => updateAcct(i, { icon: v.slice(0, 2) })}
+                              accessibilityLabel="Icon"
+                          />
+                          <TextInput
+                              style={[styles.input, styles.flex]}
+                              value={a.name}
+                              onChangeText={(v) => updateAcct(i, { name: v })}
+                              accessibilityLabel="Account name"
+                          />
+                          <Pressable
+                              onPress={() => deleteAcct(i)}
+                              hitSlop={8}
+                              accessibilityRole="button"
+                              accessibilityLabel="Delete account"
+                              style={({ pressed }) => [pressed && styles.pressed]}
+                          >
+                            <Icon name="close" size={20} color={colors.textMuted} />
+                          </Pressable>
+                        </View>
 
-                  {/* Colour picker: preset swatches instead of a hue wheel. */}
-                  <View style={styles.swatchRow}>
-                    {ACCOUNT_COLORS.map((color) => (
-                      <Pressable
-                        key={color}
-                        onPress={() => updateAcct(i, { color })}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected: a.color === color }}
-                        accessibilityLabel={`Colour ${color}`}
-                        style={[
-                          styles.swatch,
-                          { backgroundColor: color },
-                          a.color === color && styles.swatchSelected,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </View>
-              ))}
+                        {/* Colour picker: preset swatches instead of a hue wheel. */}
+                        <View style={styles.swatchRow}>
+                          {ACCOUNT_COLORS.map((color) => (
+                              <Pressable
+                                  key={color}
+                                  onPress={() => updateAcct(i, { color })}
+                                  accessibilityRole="radio"
+                                  accessibilityState={{ selected: a.color === color }}
+                                  accessibilityLabel={`Colour ${color}`}
+                                  style={[
+                                    styles.swatch,
+                                    { backgroundColor: color },
+                                    a.color === color && styles.swatchSelected,
+                                  ]}
+                              />
+                          ))}
+                        </View>
+                      </View>
+                  ))}
 
               <Pressable
                 onPress={addAcct}
@@ -923,14 +956,14 @@ function SettingsModal({
 
 function ModalTab({ label, active, onPress }) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}
-    >
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
-    </Pressable>
+      <Pressable
+          onPress={onPress}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: active }}
+          style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}
+      >
+        <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+      </Pressable>
   );
 }
 
