@@ -101,12 +101,20 @@ export default function SharingPromptPopUp({
         setDmPickerError(null);
         try {
             const { url, path } = await uploadImageIfPresent(pendingDm.imageAsset);
+            // Build a rich text summary so the DM shows the same info as
+            // the feed template card (title + key stats + reflection), not
+            // just the raw reflection text on its own.
+            const dmText = formatDmSummary(
+                selected,
+                payload,
+                pendingDm.reflection
+            );
             const res = await onDm?.({
                 friend,
                 domain,
                 templateId: selected.id,
                 payload: serialisePayload(domain, payload),
-                reflection: pendingDm.reflection,
+                reflection: dmText,
                 imageUrl: url,
                 imagePath: path,
             });
@@ -257,6 +265,75 @@ const styles = StyleSheet.create({
     bodyContent: { gap: spacing.md },
     foot: { flexDirection: "row", gap: spacing.sm },
 });
+
+/**
+ * Serialise a share template + payload into a plain-text message body
+ * so DMs read like a card, not just the raw reflection text.
+ *
+ * Output shape:
+ *
+ *   ✨ {template.title(payload)}
+ *   {key stats, dot-separated}
+ *
+ *   {reflection}
+ *
+ * We whitelist the fields we know about across all domains rather than
+ * dumping every payload key — keeps DMs readable and hides internal
+ * plumbing like `type` / `activityDate`.
+ */
+function formatDmSummary(template, payload, reflection) {
+    const lines = [];
+    const title = template?.title?.(payload);
+    if (title) lines.push(`✨ ${title}`);
+
+    const p = payload || {};
+    const facts = [];
+
+    // Fitness / cardio
+    if (p.distance != null && Number(p.distance) > 0) facts.push(`${p.distance} km`);
+    if (p.duration) facts.push(p.duration);
+
+    // Fitness / strength (workoutStats-like fields either raw or expanded)
+    if (Array.isArray(p.exercises)) {
+        const exerciseCount = p.exercises.length;
+        const setCount = p.exercises.reduce((s, ex) =>
+            s + (Array.isArray(ex.sets) ? ex.sets.length : 0), 0);
+        if (exerciseCount) facts.push(`${exerciseCount} exercises`);
+        if (setCount) facts.push(`${setCount} sets`);
+    }
+
+    // Todo
+    if (p.completedCount != null && p.totalCount != null) {
+        facts.push(`${p.completedCount} / ${p.totalCount} tasks`);
+    } else if (p.count != null) {
+        facts.push(`${p.count} tasks`);
+    }
+
+    // Finance
+    if (p.categoryLabel) facts.push(String(p.categoryLabel));
+    if (p.spent != null && p.cap != null) {
+        facts.push(`$${Math.round(p.spent)} / $${Math.round(p.cap)}`);
+    }
+    if (p.totalSpent != null && p.totalBudget != null) {
+        facts.push(
+            `$${Math.round(p.totalSpent)} / $${Math.round(p.totalBudget)} this month`
+        );
+    }
+    if (p.monthLabel) facts.push(String(p.monthLabel));
+
+    // Journal / mood
+    if (p.mood) facts.push(`Mood: ${p.mood}`);
+    if (Array.isArray(p.emotions) && p.emotions.length) {
+        facts.push(p.emotions.slice(0, 3).join(", "));
+    }
+
+    if (facts.length) lines.push(facts.join(" · "));
+
+    const trimmed = (reflection || "").trim();
+    if (trimmed) lines.push(trimmed);
+
+    return lines.filter(Boolean).join("\n\n");
+}
 
 /*
 logic for share prompt in each domain
