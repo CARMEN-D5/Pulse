@@ -19,7 +19,7 @@ export function getSavingProgressEvent(plan, oldSavedAmount, newSavedAmount) {
   }
 
   const crossed = SAVING_MILESTONES.filter(
-    (milestone) => oldProgress < milestone && newProgress >= milestone
+      (milestone) => oldProgress < milestone && newProgress >= milestone
   );
   if (!crossed.length) return null;
 
@@ -32,4 +32,35 @@ export function getSavingProgressEvent(plan, oldSavedAmount, newSavedAmount) {
     targetAmount,
     actualProgress: Math.min(Math.round(newProgress), 100),
   };
+}
+
+// sharing
+export function savingsSharePayload(event, plan) {
+  if (!event) return null;
+  return {
+    kind: event.type === "completed" ? "savings-goal" : "savings-milestone",
+    planName: event.planName ?? plan?.name ?? "",
+    planIcon: plan?.icon ?? "🎯",
+    planColor: plan?.color ?? "",
+    savedAmount: Number(event.savedAmount || 0),
+    targetAmount: Number(event.targetAmount || 0),
+    actualProgress: Number(event.actualProgress || 0),
+    milestone: Number(event.milestone || 0),
+  };
+}
+
+/**
+ * Picks the one event worth prompting about when several fire from a single
+ * save — paying four plans at once, or one payment crossing 25% and 50%
+ * together. Prompting for each in turn is the fastest way to teach someone to
+ * dismiss the prompt without reading it.
+ *
+ * Completing a goal always wins; otherwise the highest milestone does.
+ */
+export function bestShareEvent(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  if (a.type === "completed") return a;
+  if (b.type === "completed") return b;
+  return Number(b.milestone || 0) > Number(a.milestone || 0) ? b : a;
 }

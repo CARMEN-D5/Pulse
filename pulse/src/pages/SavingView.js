@@ -24,9 +24,14 @@ import SavingDetailsModal from "./SavingDetailsModal";
 import SavingModalShell from "./SavingModalShell";
 import CompletedPlansHistory from "./CompletedPlansHistory";
 import SavingMilestoneModal from "./SavingMilestoneModal";
-import { getSavingProgressEvent } from "./savingMilestones";
+import {
+  bestShareEvent,
+  getSavingProgressEvent,
+  savingsSharePayload,
+} from "./savingMilestones";
 import SegmentedField from "../components/SegmentedField";
 import { PrimaryButton } from "../components/ui";
+import { useSharePrompt } from "../components/share";
 import { confirm } from "../utils/dialogs";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
@@ -40,8 +45,12 @@ export default function SavingView({ uid, totalBudget, onError }) {
   const [detailsDay, setDetailsDay] = useState(null);
   const [surplus, setSurplus] = useState(null);
   const [progressQueue, setProgressQueue] = useState([]);
+  // The one event worth offering to share once the queue has drained.
+  const [pendingShare, setPendingShare] = useState(null);
   const currentMonth = useMemo(() => monthBounds().monthStart, []);
   const [viewMonth, setViewMonth] = useState(currentMonth);
+
+  const { openSharePrompt } = useSharePrompt();
 
   const savingOverviewTutorial = useTutorial("savingOverview", {
     enabled: Boolean(uid),
@@ -56,8 +65,8 @@ export default function SavingView({ uid, totalBudget, onError }) {
     if (!planResponse.ok) return onError(planResponse.error);
     setPlans(planResponse.data);
     const totalResponse = await getSavingTotalsByPlan(
-      uid,
-      planResponse.data.map((plan) => plan.id)
+        uid,
+        planResponse.data.map((plan) => plan.id)
     );
     if (!totalResponse.ok) return onError(totalResponse.error);
     setSavedByPlan(totalResponse.data);
@@ -86,30 +95,55 @@ export default function SavingView({ uid, totalBudget, onError }) {
   const active = useMemo(() => plans.filter((p) => p.status === "active"), [plans]);
   const progressEventsForDaySave = (dayKey, rows) => {
     const oldDayAmounts = calendarEntries
-      .filter((entry) => entry.dayKey === dayKey)
-      .reduce((out, entry) => {
-        out[entry.planId] = (out[entry.planId] || 0) + Number(entry.amount || 0);
-        return out;
-      }, {});
+        .filter((entry) => entry.dayKey === dayKey)
+        .reduce((out, entry) => {
+          out[entry.planId] = (out[entry.planId] || 0) + Number(entry.amount || 0);
+          return out;
+        }, {});
     const newDayAmounts = rows.reduce((out, row) => {
       out[row.planId] = (out[row.planId] || 0) + Number(row.amount || 0);
       return out;
     }, {});
     const orderedPlanIds = [...new Set(rows.map((row) => row.planId))];
     return orderedPlanIds
-      .map((planId) => {
-        const plan = active.find((item) => item.id === planId);
-        const oldSavedAmount = Number(savedByPlan[planId] || 0);
-        const newSavedAmount =
-          oldSavedAmount - Number(oldDayAmounts[planId] || 0) + Number(newDayAmounts[planId] || 0);
-        return getSavingProgressEvent(plan, oldSavedAmount, newSavedAmount);
-      })
-      .filter(Boolean);
+        .map((planId) => {
+          const plan = active.find((item) => item.id === planId);
+          const oldSavedAmount = Number(savedByPlan[planId] || 0);
+          const newSavedAmount =
+              oldSavedAmount - Number(oldDayAmounts[planId] || 0) + Number(newDayAmounts[planId] || 0);
+          return getSavingProgressEvent(plan, oldSavedAmount, newSavedAmount);
+        })
+        .filter(Boolean);
   };
 
   const enqueueProgressEvents = (events) => {
     if (events.length) setProgressQueue((current) => [...current, ...events]);
   };
+
+  /**
+   * Dismissing a milestone modal both advances the queue and remembers the
+   * event as a share candidate.
+   *
+   * The share prompt is deliberately NOT opened here. SavingMilestoneModal and
+   * SharingPromptPopUp are both <Modal>s, and stacking two of them is unreliable
+   * on iOS — the second can present behind the first, or not at all. So the
+   * candidate is held and the prompt is raised by the effect below, once the
+   * queue has drained and no milestone modal is mounted.
+   */
+  const dismissTopEvent = (event) => {
+    setPendingShare((current) => bestShareEvent(current, event));
+    setProgressQueue((current) => current.slice(1));
+  };
+
+  useEffect(() => {
+    if (progressQueue.length || !pendingShare) return;
+    const plan = plans.find((item) => item.id === pendingShare.planId);
+    const payload = savingsSharePayload(pendingShare, plan);
+    // Clear first: openSharePrompt sets state in the provider, and leaving the
+    // candidate in place would re-run this effect on the next render.
+    setPendingShare(null);
+    openSharePrompt("finance", payload, { source: "auto" });
+  }, [progressQueue.length, pendingShare, plans, openSharePrompt]);
 
   useEffect(() => {
     if (
@@ -148,8 +182,8 @@ export default function SavingView({ uid, totalBudget, onError }) {
 
   const handleDeletePlan = async (plan) => {
     const confirmed = await confirm(
-      `Delete “${plan.name}” and all of its saving records? This cannot be undone.`,
-      { title: "Delete saving plan", confirmLabel: "Delete", destructive: true }
+        `Delete “${plan.name}” and all of its saving records? This cannot be undone.`,
+        { title: "Delete saving plan", confirmLabel: "Delete", destructive: true }
     );
     if (!confirmed) return;
     const response = await deleteSavingPlan(uid, plan.id);
@@ -214,141 +248,141 @@ export default function SavingView({ uid, totalBudget, onError }) {
       </View>
       </TutorialTarget>
 
-      <CompletedPlansHistory
-        plans={plans}
-        savedByPlan={savedByPlan}
-        onEdit={setPlanModal}
-        onRestore={async (plan) => {
-          const response = await restoreSavingPlan(uid, plan.id);
-          if (!response.ok) return onError(response.error);
-          refresh();
-        }}
-        onDelete={handleDeletePlan}
-      />
-
-      {planModal && (
-        <SavingPlanModal
-          plan={planModal.id ? planModal : null}
-          onClose={() => setPlanModal(null)}
-          onSave={async (p) => {
-            const r = await saveSavingPlan(uid, p);
-            if (!r.ok) return onError(r.error);
-            setPlanModal(null);
-            refresh();
-          }}
+        <CompletedPlansHistory
+            plans={plans}
+            savedByPlan={savedByPlan}
+            onEdit={setPlanModal}
+            onRestore={async (plan) => {
+              const response = await restoreSavingPlan(uid, plan.id);
+              if (!response.ok) return onError(response.error);
+              refresh();
+            }}
+            onDelete={handleDeletePlan}
         />
-      )}
 
-      {detailsDay && (
-        <SavingDetailsModal
-          dayKey={detailsDay}
-          plans={plans}
-          entries={calendarEntries.filter((entry) => entry.dayKey === detailsDay)}
-          onClose={() => setDetailsDay(null)}
-        />
-      )}
-
-      {entryDay && (
-        <SavingEntryModal
-          dayKey={entryDay}
-          plans={active}
-          entries={calendarEntries.filter((e) => e.dayKey === entryDay)}
-          onClose={() => setEntryDay(null)}
-          onCreatePlan={() => {
-            setEntryDay(null);
-            setPlanModal({});
-          }}
-          onSave={async (rows) => {
-            const events = progressEventsForDaySave(entryDay, rows);
-            const r = await replaceSavingEntriesForDay(uid, entryDay, rows);
-            if (!r.ok) return onError(r.error);
-            enqueueProgressEvents(events);
-            setEntryDay(null);
-            refresh();
-          }}
-        />
-      )}
-
-      {surplus && (
-        <SavingModalShell
-          title="Save yesterday's unused budget?"
-          onClose={() => setSurplus(null)}
-          footer={
-            <>
-              <PrimaryButton
-                label="Cancel"
-                variant="danger"
-                onPress={() => setSurplus(null)}
-                style={styles.flex}
-              />
-              <PrimaryButton
-                label="Add to plan"
-                style={styles.flex}
-                onPress={async () => {
-                  const plan = active.find((item) => item.id === surplus.planId);
-                  const oldSavedAmount = Number(savedByPlan[surplus.planId] || 0);
-                  const event = getSavingProgressEvent(
-                    plan,
-                    oldSavedAmount,
-                    oldSavedAmount + Number(surplus.amount || 0)
-                  );
-                  const r = await addSavingEntry(uid, { ...surplus, source: "unused-daily-budget" });
+        {planModal && (
+            <SavingPlanModal
+                plan={planModal.id ? planModal : null}
+                onClose={() => setPlanModal(null)}
+                onSave={async (p) => {
+                  const r = await saveSavingPlan(uid, p);
                   if (!r.ok) return onError(r.error);
-                  enqueueProgressEvents(event ? [event] : []);
-                  setSurplus(null);
+                  setPlanModal(null);
                   refresh();
                 }}
+            />
+        )}
+
+        {detailsDay && (
+            <SavingDetailsModal
+                dayKey={detailsDay}
+                plans={plans}
+                entries={calendarEntries.filter((entry) => entry.dayKey === detailsDay)}
+                onClose={() => setDetailsDay(null)}
+            />
+        )}
+
+        {entryDay && (
+            <SavingEntryModal
+                dayKey={entryDay}
+                plans={active}
+                entries={calendarEntries.filter((e) => e.dayKey === entryDay)}
+                onClose={() => setEntryDay(null)}
+                onCreatePlan={() => {
+                  setEntryDay(null);
+                  setPlanModal({});
+                }}
+                onSave={async (rows) => {
+                  const events = progressEventsForDaySave(entryDay, rows);
+                  const r = await replaceSavingEntriesForDay(uid, entryDay, rows);
+                  if (!r.ok) return onError(r.error);
+                  enqueueProgressEvents(events);
+                  setEntryDay(null);
+                  refresh();
+                }}
+            />
+        )}
+
+        {surplus && (
+            <SavingModalShell
+                title="Save yesterday's unused budget?"
+                onClose={() => setSurplus(null)}
+                footer={
+                  <>
+                    <PrimaryButton
+                        label="Cancel"
+                        variant="danger"
+                        onPress={() => setSurplus(null)}
+                        style={styles.flex}
+                    />
+                    <PrimaryButton
+                        label="Add to plan"
+                        style={styles.flex}
+                        onPress={async () => {
+                          const plan = active.find((item) => item.id === surplus.planId);
+                          const oldSavedAmount = Number(savedByPlan[surplus.planId] || 0);
+                          const event = getSavingProgressEvent(
+                              plan,
+                              oldSavedAmount,
+                              oldSavedAmount + Number(surplus.amount || 0)
+                          );
+                          const r = await addSavingEntry(uid, { ...surplus, source: "unused-daily-budget" });
+                          if (!r.ok) return onError(r.error);
+                          enqueueProgressEvents(event ? [event] : []);
+                          setSurplus(null);
+                          refresh();
+                        }}
+                    />
+                  </>
+                }
+            >
+              <View style={styles.breakdown}>
+                <BreakdownRow label="Yesterday's budget" value={surplus.dailyBudget} />
+                <BreakdownRow label="Yesterday's spending" value={surplus.spent} />
+                <BreakdownRow label="Available to save" value={surplus.amount} strong />
+              </View>
+
+              <Text style={styles.fieldLabel}>Saving plan</Text>
+              <SegmentedField
+                  options={surplusPlanOptions}
+                  value={surplus.planId}
+                  onChange={(value) => setSurplus((s) => ({ ...s, planId: value }))}
+                  scrollable
               />
-            </>
-          }
-        >
-          <View style={styles.breakdown}>
-            <BreakdownRow label="Yesterday's budget" value={surplus.dailyBudget} />
-            <BreakdownRow label="Yesterday's spending" value={surplus.spent} />
-            <BreakdownRow label="Available to save" value={surplus.amount} strong />
-          </View>
+            </SavingModalShell>
+        )}
 
-          <Text style={styles.fieldLabel}>Saving plan</Text>
-          <SegmentedField
-            options={surplusPlanOptions}
-            value={surplus.planId}
-            onChange={(value) => setSurplus((s) => ({ ...s, planId: value }))}
-            scrollable
-          />
-        </SavingModalShell>
-      )}
-
-      {progressQueue.length > 0 && (
-        <SavingMilestoneModal
-          key={`${progressQueue[0].type}-${progressQueue[0].planId}-${
-            progressQueue[0].milestone || 100
-          }`}
-          event={progressQueue[0]}
-          onClose={() => setProgressQueue((current) => current.slice(1))}
-          onComplete={async (event) => {
-            const response = await completeSavingPlan(uid, event.planId);
-            if (!response.ok) {
-              onError("Could not complete this saving plan.");
-              return false;
-            }
-            await loadPlanData();
-            setProgressQueue((current) => current.slice(1));
-            return true;
-          }}
-        />
-      )}
-    </>
+        {progressQueue.length > 0 && (
+            <SavingMilestoneModal
+                key={`${progressQueue[0].type}-${progressQueue[0].planId}-${
+                    progressQueue[0].milestone || 100
+                }`}
+                event={progressQueue[0]}
+                onClose={() => dismissTopEvent(progressQueue[0])}
+                onComplete={async (event) => {
+                  const response = await completeSavingPlan(uid, event.planId);
+                  if (!response.ok) {
+                    onError("Could not complete this saving plan.");
+                    return false;
+                  }
+                  await loadPlanData();
+                  dismissTopEvent(event);
+                  return true;
+                }}
+            />
+        )}
+      </>
   );
 }
 
 function BreakdownRow({ label, value, strong = false }) {
   return (
-    <View style={styles.breakdownRow}>
-      <Text style={styles.breakdownLabel}>{label}</Text>
-      <Text style={[styles.breakdownValue, strong && styles.breakdownStrong]}>
-        ${Number(value || 0).toFixed(2)}
-      </Text>
-    </View>
+      <View style={styles.breakdownRow}>
+        <Text style={styles.breakdownLabel}>{label}</Text>
+        <Text style={[styles.breakdownValue, strong && styles.breakdownStrong]}>
+          ${Number(value || 0).toFixed(2)}
+        </Text>
+      </View>
   );
 }
 

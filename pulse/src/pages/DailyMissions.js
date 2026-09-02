@@ -1,5 +1,5 @@
 /**
-  * Displays today's 3 daily missions with a checklist UI.
+ * Displays today's 3 daily missions with a checklist UI.
  * Renders a "History" button that opens MissionHistory.
  *
  * Props:
@@ -7,10 +7,11 @@
  *   domainScores  { spirituality, relationships, productivity, health, finance }
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import Icon from '../components/Icon';
+import { ShareButton, useAutoSharePrompt } from '../components/share';
 import { logAction } from '../firestore/scoring';
 import {
     analyseScores,
@@ -97,6 +98,34 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
         initMissions();
     }, [initMissions]);
 
+    // ── Sharing ───────────────────────────────────────────────────────────────
+
+    const sharePayload = useMemo(() => ({
+        dayKey:         getDayKey(),
+        completedCount: progress,
+        totalCount:     missions.length,
+        missions:       missions.map(m => ({
+            domain:    m.domain,
+            text:      m.text,
+            completed: Boolean(m.completed),
+        })),
+    }), [missions, progress]);
+
+    const sawIncomplete = useRef(false);
+    useEffect(() => {
+        if (!loading && missions.length > 0 && progress < missions.length) {
+            sawIncomplete.current = true;
+        }
+    }, [loading, progress, missions.length]);
+
+    useAutoSharePrompt({
+        when:    missions.length > 0 && progress === missions.length,
+        domain:  'missions',
+        payload: sharePayload,
+        key:     getDayKey(),
+        enabled: !loading && sawIncomplete.current,
+    });
+
     // ── Toggle completion ─────────────────────────────────────────────────────
 
     const toggleComplete = async (idx) => {
@@ -160,6 +189,9 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
                 </View>
                 <View style={styles.headerRight}>
                     <Text style={styles.progressLabel}>{progress}/3 done</Text>
+                    {/* Manual share. Hides itself while nothing is ticked, so
+                        the user never taps into an empty prompt. */}
+                    <ShareButton domain="missions" payload={sharePayload} />
                     <TutorialTarget id={TUTORIAL_TARGETS.missions.history}>
                     <Pressable
                         onPress={() => setShowHistory(true)}

@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
-import { MoodFace, MOODS } from "./adapters";
+import { DOMAIN_META, MoodFace, MOODS } from "./adapters";
 import { colors, fonts, radius, spacing, type } from "../../theme";
 
 /**
@@ -10,7 +10,7 @@ import { colors, fonts, radius, spacing, type } from "../../theme";
  *
  * each template:
  *   id          unique key, stored on the post as `templateId`
- *   domain      journal | fitness | todo | finance
+ *   domain      journal | fitness | todo | finance | missions
  *   label       shown under the carousel
  *   isAvailable (payload) => bool   hide templates the payload can't fill
  *   title       (payload) => string pre-filled reflection text
@@ -20,6 +20,12 @@ import { colors, fonts, radius, spacing, type } from "../../theme";
  *
  *   journal   moodData[dateKey] plus its key:
  *             { key, moodId, journalText, emotions }
+ *
+ *   missions  { dayKey, completedCount, totalCount,
+ *               missions: [{ domain, text, completed }] }
+ *             `missions` carries all three of the day's missions, not just
+ *             the finished ones — the list template filters. Keeping the
+ *             whole set means a post shared at 2/3 still knows there were 3.
  *
  *   fitness   a physicalActivities doc:
  *             { text, description, type: "cardio" | "strength",
@@ -31,8 +37,17 @@ import { colors, fonts, radius, spacing, type } from "../../theme";
  *
  *   todo      { completedCount, totalCount, date }
  *
- *   finance   { kind: "month-under" | "category-under", … }
+ *   finance   { kind: "month-under" | "category-under"
+ *                   | "savings-milestone" | "savings-goal", … }
  *             see the finance section for each kind's fields
+ *
+ * ADDING A DOMAIN — read this before you do
+ *
+ *   A template in TEMPLATES is only half the job. `serialisePayload` throws
+ *   on a domain with no entry in SERIALISERS, and it is called inside
+ *   SharingPromptPopUp's handlePost — so a missing serialiser does not fail
+ *   at build time, and does not fail in the carousel. It fails at the moment
+ *   someone taps Post. Add both, together.
  */
 
 /* ---------- helpers ---------- */
@@ -94,6 +109,22 @@ const hasRealSets = (activity) =>
     (activity?.exercises ?? []).some((ex) =>
         (ex.sets ?? []).some((s) => num(s.reps) > 0 || num(s.weight) > 0)
     );
+
+/** Tint trio built from a saving plan's colour, matching the mood tint shape. */
+const planTint = (color) =>
+    color ? { bg: `${color}1a`, color, textColor: colors.text } : null;
+
+/**
+ * Same defensive reasoning as UNKNOWN_MOOD. DailyMissions falls back to this
+ * shape when DOMAIN_META has no entry, and the feed renders whatever was
+ * saved with no isAvailable gate — so a mission stored under a domain key
+ * that has since been renamed must not take the feed down on `meta.icon`.
+ */
+const UNKNOWN_DOMAIN = { label: "Mission", icon: "⭐", color: "#8a8a96" };
+
+const domainMeta = (key) => DOMAIN_META?.[key] ?? UNKNOWN_DOMAIN;
+
+const doneMissions = (p) => (p?.missions ?? []).filter((m) => m?.completed);
 
 /* ---------- shared card chrome ---------- */
 
@@ -318,6 +349,76 @@ export const TEMPLATES = [
         ),
     },
 
+    /* ============ DAILY MISSIONS ============
+         { dayKey, completedCount, totalCount,
+           missions: [{ domain, text, completed }] }
+
+       Auto-prompted from DailyMissions only when the last of the day's three
+       is ticked, never per mission — see the useAutoSharePrompt call there.
+       The manual ShareButton still works at 1/3 or 2/3, which is why the list
+       template gates on completedCount rather than on a full house.          */
+    {
+        id: "missions-complete",
+        domain: "missions",
+        label: "All done",
+        isAvailable: (p) =>
+            num(p?.completedCount) > 0 && num(p?.completedCount) >= num(p?.totalCount),
+        title: () => "All my daily missions done!",
+        render: (p, ctx) => (
+            <Card username={ctx.username}>
+                <Text style={styles.caption}>Today's missions</Text>
+                <Text style={styles.headline}>
+                    {num(p.completedCount)}/{num(p.totalCount)} complete
+                </Text>
+                <View style={styles.tags}>
+                    {(p.missions ?? []).map((m, i) => {
+                        const meta = domainMeta(m.domain);
+                        return (
+                            <Text
+                                key={`${m.domain}-${i}`}
+                                style={[styles.tag, { borderColor: `${meta.color}44`, color: meta.color }]}
+                            >
+                                {meta.icon} {meta.label}
+                            </Text>
+                        );
+                    })}
+                </View>
+            </Card>
+        ),
+    },
+    {
+        id: "missions-list",
+        domain: "missions",
+        label: "Missions",
+        isAvailable: (p) => doneMissions(p).length > 0,
+        title: (p) => {
+            const n = doneMissions(p).length;
+            return n >= num(p?.totalCount)
+                ? "Finished every mission today"
+                : `${plural(n, "mission", "missions")} down today`;
+        },
+        render: (p, ctx) => {
+            const done = doneMissions(p);
+            return (
+                <Card username={ctx.username}>
+                    <Text style={styles.captionStrong}>
+                        {plural(done.length, "mission", "missions")} done
+                    </Text>
+                    <View style={styles.exerciseList}>
+                        {done.slice(0, 3).map((m, i) => {
+                            const meta = domainMeta(m.domain);
+                            return (
+                                <Text key={`${m.domain}-${i}`} style={styles.exerciseRow}>
+                                    <Text style={{ color: meta.color }}>{meta.icon}</Text> {m.text}
+                                </Text>
+                            );
+                        })}
+                    </View>
+                </Card>
+            );
+        },
+    },
+
     /* ============ FINANCE — BUDGET ============
          month-under     { kind, monthLabel, totalSpent, totalBudget }
          category-under  { kind, categoryLabel, categoryIcon, categoryColor,
@@ -369,6 +470,66 @@ export const TEMPLATES = [
             );
         },
     },
+
+    /* ============ FINANCE — SAVING PLANS ============
+         savings-goal       { kind, planName, planIcon, planColor,
+                              savedAmount, targetAmount, actualProgress }
+         savings-milestone  same fields plus { milestone }
+
+       These sit in the `finance` domain rather than one of their own because
+       that is what the design already assumed — see the finance line in
+       SharePromptProvider's useAutoSharePrompt docstring. Payloads come from
+       savingsSharePayload() in pages/savingMilestones.js, which is fed by the
+       same getSavingProgressEvent() that drives SavingMilestoneModal.        */
+    {
+        id: "finance-savings-goal",
+        domain: "finance",
+        label: "Goal reached",
+        isAvailable: (p) => p?.kind === "savings-goal" && num(p.targetAmount) > 0,
+        title: (p) => `I reached my saving goal for ${p.planName}`,
+        render: (p, ctx) => (
+            <Card username={ctx.username} tint={planTint(p.planColor)}>
+                <Text style={styles.caption}>Saving goal reached</Text>
+                <Text style={styles.headlineSm}>
+                    {p.planIcon ? `${p.planIcon} ` : ""}
+                    {p.planName}
+                </Text>
+                <Ring pct={100} stroke={p.planColor}>
+                    100%
+                </Ring>
+                <Text style={styles.caption}>
+                    {money(p.savedAmount)} of {money(p.targetAmount)} saved
+                </Text>
+            </Card>
+        ),
+    },
+    {
+        id: "finance-savings-milestone",
+        domain: "finance",
+        label: "Progress",
+        // actualProgress, not milestone: a payload rebuilt from an older post
+        // may have lost the milestone field, and the ring only needs progress.
+        isAvailable: (p) =>
+            p?.kind === "savings-milestone" &&
+            num(p.targetAmount) > 0 &&
+            num(p.actualProgress) > 0,
+        title: (p) => `${num(p.actualProgress)}% of the way to ${p.planName}`,
+        render: (p, ctx) => (
+            <Card username={ctx.username} tint={planTint(p.planColor)}>
+                <Text style={styles.caption}>Saving towards</Text>
+                <Text style={styles.headlineSm}>
+                    {p.planIcon ? `${p.planIcon} ` : ""}
+                    {p.planName}
+                </Text>
+                <Ring pct={num(p.actualProgress)} stroke={p.planColor}>
+                    {num(p.actualProgress)}%
+                </Ring>
+                <Text style={styles.caption}>
+                    {money(p.savedAmount)} of {money(p.targetAmount)}
+                </Text>
+            </Card>
+        ),
+    },
 ];
 
 /** Templates for a domain that the given payload can actually fill. */
@@ -406,8 +567,19 @@ const SERIALISERS = {
         totalCount: num(p.totalCount),
         date: p.date ?? null,
     }),
+    missions: (p) => ({
+        dayKey: p.dayKey ?? null,
+        completedCount: num(p.completedCount),
+        totalCount: num(p.totalCount),
+        missions: (p.missions ?? []).slice(0, 5).map((m) => ({
+            domain: m.domain ?? "",
+            text: m.text ?? "",
+            completed: Boolean(m.completed),
+        })),
+    }),
     finance: (p) => ({
         kind: p.kind ?? "month-under",
+        // budget
         monthLabel: p.monthLabel ?? "",
         totalSpent: num(p.totalSpent),
         totalBudget: num(p.totalBudget),
@@ -416,6 +588,16 @@ const SERIALISERS = {
         categoryColor: p.categoryColor ?? "",
         spent: num(p.spent),
         cap: num(p.cap),
+        // saving plans. Every field is written on every finance post rather
+        // than conditionally, so the feed never has to guard for a missing
+        // key when rendering an older post.
+        planName: p.planName ?? "",
+        planIcon: p.planIcon ?? "",
+        planColor: p.planColor ?? "",
+        savedAmount: num(p.savedAmount),
+        targetAmount: num(p.targetAmount),
+        actualProgress: num(p.actualProgress),
+        milestone: num(p.milestone),
     }),
 };
 
