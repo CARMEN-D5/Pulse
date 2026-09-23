@@ -62,9 +62,9 @@ test('Features lists every tool and reports the tapped id', () => {
   const onOpen = jest.fn();
   render(<Features onOpen={onOpen} />);
   expect(screen.getByText('Tools')).toBeOnTheScreen();
-  ['Journal', 'To-do List', 'Budget Tracker', 'Physical Activity Tracker', 'Daily Missions']
+  ['Journal', 'To-do List', 'Finance Tracker', 'Physical Activity Tracker', 'Daily Missions']
     .forEach((l) => expect(screen.getByText(l)).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Budget Tracker'));
+  fireEvent.press(screen.getByText('Finance Tracker'));
   expect(onOpen).toHaveBeenCalledWith('finance');
 });
 
@@ -81,18 +81,16 @@ test('Home shows the quote, missions and the Details/Diagram overview', async ()
 
   await waitFor(() => expect(screen.getByText("Today's Daily Missions")).toBeOnTheScreen());
 
-  // Details tab is the default and lists every domain with its status label.
+  // Diagram tab is the default: the enlarged radar with the balance score
+  // centered inside it, so the dashboard fits without scrolling.
+  expect(screen.getByText('62')).toBeOnTheScreen();
+
+  // Details tab lists every domain with its status label. Domain rows are
+  // static (no tap-through) in the redesigned Home.
+  fireEvent.press(screen.getByText('Details'));
   expect(screen.getByText('Spirituality')).toBeOnTheScreen();
   expect(screen.getByText('Financial Wellbeing')).toBeOnTheScreen();
   expect(screen.getByText('Building')).toBeOnTheScreen();
-
-  fireEvent.press(screen.getByText('Spirituality'));
-  expect(onDomainSelect).toHaveBeenCalledWith('spirituality');
-
-  // Diagram tab swaps in the balance ring + radar.
-  fireEvent.press(screen.getByText('Diagram'));
-  expect(screen.getByText('LIFE BALANCE')).toBeOnTheScreen();
-  expect(screen.getByText('62')).toBeOnTheScreen();
 });
 
 test('Profile shows the account header and opens the settings menu', async () => {

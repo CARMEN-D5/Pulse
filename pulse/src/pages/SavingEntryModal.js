@@ -158,5 +158,5 @@ const styles = StyleSheet.create({
   },
 
   addRow: { paddingVertical: spacing.sm },
-  addRowText: { ...type.label, color: colors.blPrimary },
+  addRowText: { ...type.label, color: colors.pulsePrimaryDark },
 });

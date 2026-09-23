@@ -36,7 +36,7 @@ function SettingsMenu({ visible, seeding, onSeed, onLogout, onOpenHelp, onClose 
             accessibilityRole="button"
             style={({ pressed }) => [styles.sheetRow, pressed && styles.pressed]}
           >
-            <Icon name="help_outline" size={20} color={colors.blPrimary} />
+            <Icon name="help_outline" size={20} color={colors.pulsePrimaryDark} />
             <Text style={styles.sheetRowText}>Help & tutorials</Text>
           </Pressable>
 
@@ -51,7 +51,7 @@ function SettingsMenu({ visible, seeding, onSeed, onLogout, onOpenHelp, onClose 
             <Icon
               name={seeding ? "hourglass_top" : "science"}
               size={20}
-              color={colors.blPrimary}
+              color={colors.pulsePrimaryDark}
             />
             <Text style={styles.sheetRowText}>
               {seeding ? "Generating sample data…" : "Generate sample data"}
@@ -116,7 +116,7 @@ function HelpTutorials({ visible, onClose, onReplayTutorial }) {
                   <Text style={styles.tutorialName}>{TUTORIALS[id].title}</Text>
                   <Text style={styles.tutorialMeta}>{TUTORIALS[id].steps.length} steps</Text>
                 </View>
-                <Icon name="play_arrow" size={21} color={colors.blPrimary} />
+                <Icon name="play_arrow" size={21} color={colors.pulsePrimaryDark} />
               </Pressable>
             ))}
           </ScrollView>

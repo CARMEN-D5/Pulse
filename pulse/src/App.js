@@ -68,13 +68,14 @@ const DOMAIN_PAGE_MAP = {
   health:        PhysicalActivity,
 };
 
-// The four root destinations behind the bottom tab bar. These render inside
-// <AppShell>; every other authed view is a stacked page with its own back
-// affordance and no tab bar.
+// The four root destinations behind the bottom tab bar.
 const TAB_VIEWS = ["home", "features", "social", "profile"];
 
 // Stacked pages: reached from a domain row on Home or from the Features menu,
 // and dismissed back to whichever tab opened them (tracked in `tabReturn`).
+// These also render inside <AppShell> — the PULSE bar and tab bar stay on
+// screen everywhere in the authed app — with their own ScreenHeader back
+// affordance layered on top for the actual dismiss action.
 const STACKED_VIEWS = ["finance", "domain", "todo", "missions"];
 
 // Auth screens whose back button returns to the splash screen.
@@ -538,17 +539,20 @@ function App() {
     }
   };
 
-  // The four tabs share the PULSE app bar and the bottom tab bar; every other
-  // view (auth, consent, entry quiz, stacked pages) fills the screen on its own.
+  // The four tabs and every stacked page share the PULSE app bar and the
+  // bottom tab bar; only auth, consent, and entry quiz fill the screen on
+  // their own. While on a stacked page the tab bar highlights whichever tab
+  // it was opened from (tabReturn), not a tab of its own.
   const screen = () => {
     const body = content();
-    if (!TAB_VIEWS.includes(view)) return body;
+    if (!TAB_VIEWS.includes(view) && !STACKED_VIEWS.includes(view)) return body;
 
     const displayName =
         user?.displayName || user?.name || user?.email || "";
+    const shellTab = TAB_VIEWS.includes(view) ? view : tabReturn;
     return (
         <AppShell
-            tab={view}
+            tab={shellTab}
             onTabChange={setView}
             initials={displayName ? displayName.charAt(0).toUpperCase() : null}
         >

@@ -80,7 +80,7 @@ export default StyleSheet.create({
     gap: spacing.xs,
   },
   footerText: { ...type.small, color: colors.blOnSurfaceVariant },
-  footerLink: { ...type.label, color: colors.blPrimary },
+  footerLink: { ...type.label, color: colors.pulsePrimaryDark },
 
   badge: {
     flexDirection: "row",

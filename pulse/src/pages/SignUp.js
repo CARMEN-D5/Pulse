@@ -66,7 +66,7 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconBox}>
-            <Icon name="potted_plant" size={40} color={colors.blPrimary} />
+            <Icon name="potted_plant" size={40} color={colors.pulsePrimaryDark} />
           </View>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Start your journey to a Balanced Life</Text>

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import Icon from "../components/Icon";
 import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
 import { logAction, logReflection } from "../firestore/scoring";
 import { DOMAINS } from "../scoring/scoringEngine";
-import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { colors, domains, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 const RATING_LABELS = ["", "Poor", "Fair", "Okay", "Good", "Great"];
@@ -78,12 +79,14 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
   };
 
   return (
-    <Screen contentContainerStyle={styles.screen}>
+    <Screen contentContainerStyle={styles.screen} gradient={false} safeArea={false}>
       <ScreenHeader title={domain.label} onBack={onBack} />
 
       {/* Domain identity */}
       <View style={styles.titleRow}>
-        <Text style={styles.domainIcon}>{domain.icon}</Text>
+        <View style={[styles.domainIconTile, { backgroundColor: domains[domainKey].light }]}>
+          <Icon name={domains[domainKey].icon} size={26} color={domains[domainKey].text} />
+        </View>
         <View style={styles.flex}>
           <Text style={styles.domainName}>{domain.label}</Text>
           {domainScore != null ? (
@@ -167,7 +170,13 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
 
   titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  domainIcon: { fontSize: 34 },
+  domainIconTile: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   domainName: { ...type.h2, color: colors.text },
   domainScore: { ...type.small, color: colors.textMuted },
   domainScoreValue: { fontFamily: fonts.bold, color: colors.text },
@@ -175,8 +184,6 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },

@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   segmentFlex: { flex: 1 },
   segmentAuto: { flexGrow: 0 },
-  segmentActive: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+  segmentActive: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
   segmentText: { ...type.small, color: colors.text },
   segmentTextActive: { color: "#fff", fontFamily: fonts.semibold },
   pressed: { opacity: 0.7 },

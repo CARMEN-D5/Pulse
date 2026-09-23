@@ -79,8 +79,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -113,6 +111,6 @@ const styles = StyleSheet.create({
 
   actions: { flexDirection: "row", gap: spacing.md, marginTop: spacing.xs },
   action: { paddingVertical: spacing.xs },
-  actionText: { ...type.label, color: colors.blPrimary },
+  actionText: { ...type.label, color: colors.pulsePrimaryDark },
   actionDanger: { color: colors.error },
 });

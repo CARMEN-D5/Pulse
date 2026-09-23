@@ -60,13 +60,13 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                                     style={[
                                         styles.row,
                                         {
-                                            borderColor: on ? `${colors.blPrimary}55` : colors.border,
-                                            backgroundColor: on ? `${colors.blPrimary}12` : "rgba(255,255,255,0.5)",
+                                            borderColor: on ? `${colors.pulsePrimary}55` : colors.border,
+                                            backgroundColor: on ? `${colors.pulsePrimary}12` : "rgba(255,255,255,0.5)",
                                         },
                                     ]}
                                 >
                                     <View style={styles.rowText}>
-                                        <Text style={[styles.rowLabel, on && { color: colors.blPrimary }]}>
+                                        <Text style={[styles.rowLabel, on && { color: colors.pulsePrimaryDark }]}>
                                             {o.label}
                                         </Text>
                                         <Text style={styles.rowDescription}>{o.description}</Text>
@@ -75,7 +75,7 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                                         value={on}
                                         onValueChange={() => toggle(o.key)}
                                         accessibilityLabel={o.label}
-                                        trackColor={{ false: colors.blOutlineVariant, true: colors.blPrimary }}
+                                        trackColor={{ false: colors.blOutlineVariant, true: colors.pulsePrimary }}
                                         thumbColor={colors.card}
                                     />
                                 </View>

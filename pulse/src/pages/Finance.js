@@ -301,9 +301,9 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
 
   // ---- render ------------------------------------------------------------
   return (
-      <Screen contentContainerStyle={styles.screen}>
+      <Screen contentContainerStyle={styles.screen} gradient={false} safeArea={false}>
         <ScreenHeader
-            title="Budget"
+            title="Finance"
             subtitle={monthName}
             onBack={onBack}
             right={
@@ -418,7 +418,8 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
               <View style={styles.legendRow} key={c.id}>
                 <View style={[styles.legendSwatch, { backgroundColor: c.color }]} />
                 <Text style={styles.legendLabel} numberOfLines={1}>
-                  {c.icon} {c.label}
+                  <Icon name={c.icon} size={13} color={c.color} />{" "}
+                  {c.label}
                 </Text>
                 <Text style={styles.legendAmount}>${spentByCategory[c.id].toFixed(0)}</Text>
               </View>
@@ -451,7 +452,8 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
                         <View key={c.id} style={styles.budgetRow}>
                           <View style={styles.budgetRowHead}>
                             <Text style={styles.budgetRowName}>
-                              {c.icon} {c.label}
+                              <Icon name={c.icon} size={13} color={c.color} />{" "}
+                              {c.label}
                             </Text>
                             <Text style={styles.budgetRowAmount}>
                               ${spent.toFixed(0)}
@@ -489,7 +491,7 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
                         return (
                             <View key={e.id} style={styles.txRow}>
                               <View style={[styles.txIcon, { backgroundColor: `${cat.color}22` }]}>
-                                <Text style={styles.txIconText}>{cat.icon}</Text>
+                                <Icon name={cat.icon} size={16} color={cat.color} />
                               </View>
 
                               <View style={styles.flex}>
@@ -627,7 +629,8 @@ function AddExpenseForm({ accounts, defaultAccount, initialDate, onSubmit }) {
                     ]}
                 >
                   <Text style={[styles.chipText, selected && { color: c.color, fontFamily: fonts.semibold }]}>
-                    {c.icon} {c.label}
+                    <Icon name={c.icon} size={13} color={selected ? c.color : colors.text} />{" "}
+                    {c.label}
                   </Text>
                 </Pressable>
             );
@@ -853,7 +856,8 @@ function SettingsModal({
               {DEFAULT_CATEGORIES.map((c) => (
                 <View key={c.id} style={styles.budgetEditRow}>
                   <Text style={styles.budgetEditLabel} numberOfLines={1}>
-                    {c.icon} {c.label}
+                    <Icon name={c.icon} size={13} color={c.color} />{" "}
+                    {c.label}
                   </Text>
                   <Text style={styles.currency}>$</Text>
                   <TextInput
@@ -980,8 +984,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -1064,7 +1066,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  txIconText: { fontSize: 16 },
   txCatRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   txAccountIcon: {
     width: 18,
@@ -1134,7 +1135,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  tabActive: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+  tabActive: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
   tabText: { ...type.small, color: colors.text },
   tabTextActive: { color: "#fff", fontFamily: fonts.semibold },
 
@@ -1176,9 +1177,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: colors.blPrimary,
+    borderColor: colors.pulsePrimary,
   },
-  addAccountText: { ...type.label, color: colors.blPrimary },
+  addAccountText: { ...type.label, color: colors.pulsePrimaryDark },
 
   modalActions: { flexDirection: "row", gap: 10, marginTop: 6 },
   ghostBtn: {

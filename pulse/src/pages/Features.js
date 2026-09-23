@@ -10,15 +10,15 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import Icon from "../components/Icon";
 import { Screen } from "../components/ui";
-import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { colors, domains, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 // `id` is what App.js switches on to pick the destination view.
 export const TOOLS = [
-  { id: "journal",  icon: "sentiment_satisfied", label: "Journal",                   sub: "Spirituality",          gradient: ["#2A7A6A", "#4AA898"] },
-  { id: "todo",     icon: "event_note",          label: "To-do List",                sub: "Work & Productivity",   gradient: ["#5A6550", "#7D8A72"] },
-  { id: "finance",  icon: "savings",             label: "Budget Tracker",            sub: "Financial Wellbeing",   gradient: ["#8E4570", "#B46098"] },
-  { id: "activity", icon: "directions_run",      label: "Physical Activity Tracker", sub: "Health",                gradient: ["#B33D54", "#E0546E"] },
+  { id: "journal",  icon: "sentiment_satisfied", label: "Journal",                   sub: "Spirituality",          gradient: domains.spirituality.gradient },
+  { id: "todo",     icon: "event_note",          label: "To-do List",                sub: "Work & Productivity",   gradient: domains.productivity.gradient },
+  { id: "finance",  icon: "savings",             label: "Finance Tracker",           sub: "Financial Wellbeing",   gradient: domains.finance.gradient },
+  { id: "activity", icon: "directions_run",      label: "Physical Activity Tracker", sub: "Health",                gradient: domains.health.gradient },
   { id: "missions", icon: "check_box",           label: "Daily Missions",            sub: "Today's three missions", gradient: ["#4A6D98", "#6A8DB8"] },
 ];
 
@@ -87,8 +87,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.md,
   },

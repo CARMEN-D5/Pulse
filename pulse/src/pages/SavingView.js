@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { daysInMonth, listExpenses, monthBounds } from "../firestore/finance";
 import {
@@ -36,7 +36,13 @@ import { confirm } from "../utils/dialogs";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
+// Above this width there's room for two (compact) saving-plan cards side by
+// side — low enough that it applies to ordinary phone widths, not just tablets.
+const WIDE_BREAKPOINT = 350;
+
 export default function SavingView({ uid, totalBudget, onError }) {
+  const { width } = useWindowDimensions();
+  const isWide = width >= WIDE_BREAKPOINT;
   const [plans, setPlans] = useState([]);
   const [calendarEntries, setCalendarEntries] = useState([]);
   const [savedByPlan, setSavedByPlan] = useState({});
@@ -201,14 +207,16 @@ export default function SavingView({ uid, totalBudget, onError }) {
       <TutorialTarget id={TUTORIAL_TARGETS.saving.planArea}>
       <View style={[styles.card, shadow("sm")]}>
         {active.length ? (
-          <View style={styles.planList}>
+          <View style={[styles.planList, isWide && styles.planListWide]}>
             {active.map((plan) => (
-              <SavingPlanCard
-                key={plan.id}
-                plan={plan}
-                savedAmount={savedByPlan[plan.id] || 0}
-                onEdit={setPlanModal}
-              />
+              <View key={plan.id} style={isWide && styles.planCol}>
+                <SavingPlanCard
+                  plan={plan}
+                  savedAmount={savedByPlan[plan.id] || 0}
+                  onEdit={setPlanModal}
+                  compact={isWide}
+                />
+              </View>
             ))}
           </View>
         ) : (
@@ -392,12 +400,12 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
   planList: { gap: spacing.md },
+  planListWide: { flexDirection: "row", flexWrap: "wrap" },
+  planCol: { width: "48%" },
 
   emptyState: { gap: spacing.sm, alignItems: "stretch" },
   emptyTitle: { ...type.title, fontFamily: fonts.bold, color: colors.text },

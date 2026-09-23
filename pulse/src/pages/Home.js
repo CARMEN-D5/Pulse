@@ -1,12 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, {
   Circle,
   Defs,
   G,
   Line,
-  LinearGradient as SvgLinearGradient,
   Polygon,
   RadialGradient,
   Stop,
@@ -17,20 +16,12 @@ import Icon from "../components/Icon";
 import { Screen } from "../components/ui";
 import { computeCurrentScores } from "../firestore/scoring";
 import { DOMAINS, DOMAIN_KEYS } from "../scoring/scoringEngine";
-import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { colors, domains as DOMAIN_META, fonts, radius, shadow, spacing, type } from "../theme";
 import DailyMissions from "./DailyMissions";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
-/* ── Domain visual config ──────────────────────────────────────
-   The web build stored `gradient` as a CSS string. React Native takes the
-   stops as an array instead, which expo-linear-gradient renders natively. */
-const DOMAIN_META = {
-  spirituality:  { icon: "auto_awesome",   gradient: ["#2A7A6A", "#4AA898"], light: "#E6F5F0", text: "#2A7A6A", accent: "#4AA898" },
-  relationships: { icon: "groups",          gradient: ["#586880", "#8294AA"], light: "#ECF0F5", text: "#586880", accent: "#8294AA" },
-  productivity:  { icon: "business_center", gradient: ["#5A6550", "#7D8A72"], light: "#EEF0EB", text: "#5A6550", accent: "#7D8A72" },
-  health:        { icon: "favorite",        gradient: ["#B33D54", "#E0546E"], light: "#FAE8EC", text: "#B33D54", accent: "#E0546E" },
-  finance:       { icon: "payments",        gradient: ["#8E4570", "#B46098"], light: "#F5E6EF", text: "#8E4570", accent: "#B46098" },
-};
+/* Domain visual config now lives in theme.js (`domains`), aliased here as
+   DOMAIN_META so the rest of this file didn't need to change shape. */
 
 const GRID_ORDER = ["spirituality", "health", "relationships", "finance", "productivity"];
 
@@ -91,7 +82,7 @@ function getStatusColor(score) {
 }
 
 /* ── Radar geometry ────────────────────────────────────────── */
-const CX = 60, CY = 56, MAX_R = 38;
+const CX = 78, CY = 73, MAX_R = 55;
 
 function radarPt(i, pct) {
   const a = (2 * Math.PI * i) / 5 - Math.PI / 2;
@@ -112,7 +103,7 @@ function RadarChart({ domainScores }) {
   const gridRings = [25, 50, 75, 100];
 
   return (
-    <Svg width="100%" height={200} viewBox="0 0 120 112">
+    <Svg width="100%" height={300} viewBox="0 0 156 146">
       <Defs>
         <RadialGradient id="radarFill" cx="50%" cy="50%" r="50%">
           <Stop offset="0%" stopColor="#E0546E" stopOpacity="0.22" />
@@ -127,14 +118,14 @@ function RadarChart({ domainScores }) {
           points={RADAR_ORDER.map((_, i) => radarPt(i, pct).join(",")).join(" ")}
           fill="none"
           stroke="#E6DCD6"
-          strokeWidth="0.3"
+          strokeWidth="0.35"
         />
       ))}
 
       {/* Axis lines */}
       {RADAR_ORDER.map((_, i) => {
         const [x, y] = radarPt(i, 100);
-        return <Line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="#E6DCD6" strokeWidth="0.3" />;
+        return <Line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="#E6DCD6" strokeWidth="0.35" />;
       })}
 
       {/* Data polygon */}
@@ -142,15 +133,15 @@ function RadarChart({ domainScores }) {
         points={poly}
         fill="url(#radarFill)"
         stroke="#B33D54"
-        strokeWidth="0.8"
+        strokeWidth="0.9"
         strokeLinejoin="round"
       />
 
       {/* Data dots */}
       {pts.map(([x, y], i) => (
         <G key={i}>
-          <Circle cx={x} cy={y} r="2.2" fill="#fff" stroke="#B33D54" strokeWidth="0.8" />
-          <Circle cx={x} cy={y} r="1" fill="#B33D54" />
+          <Circle cx={x} cy={y} r="2.5" fill="#fff" stroke="#B33D54" strokeWidth="0.9" />
+          <Circle cx={x} cy={y} r="1.15" fill="#B33D54" />
         </G>
       ))}
 
@@ -166,17 +157,17 @@ function RadarChart({ domainScores }) {
               y={y - 1.5}
               textAnchor={anchor}
               fill="#2A2523"
-              fontSize="3.8"
+              fontSize="4.3"
               fontFamily={fonts.bold}
             >
               {RADAR_LABELS[key]}
             </SvgText>
             <SvgText
               x={x}
-              y={y + 3.2}
+              y={y + 3.6}
               textAnchor={anchor}
               fill="#7D756F"
-              fontSize="3.2"
+              fontSize="3.6"
               fontFamily={fonts.semibold}
             >
               {`${score}%`}
@@ -185,69 +176,6 @@ function RadarChart({ domainScores }) {
         );
       })}
     </Svg>
-  );
-}
-
-/* ── Hero score ring ───────────────────────────────────────────
-   The web version animated `stroke-dashoffset` with a CSS transition.
-   Animated.Value drives the same property here; the SVG stroke is not a
-   layout prop, so it cannot use the native driver. */
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-const RING_R = 78;
-const RING_CIRC = 2 * Math.PI * RING_R;
-
-function ScoreRing({ score }) {
-  const progress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: score / 100,
-      duration: 1200,
-      easing: Easing.bezier(0.4, 0, 0.2, 1),
-      useNativeDriver: false,
-    }).start();
-  }, [score, progress]);
-
-  const dashOffset = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [RING_CIRC, 0],
-  });
-
-  return (
-    <View style={styles.ringWrap}>
-      <Svg width="100%" height="100%" viewBox="0 0 180 180">
-        <Defs>
-          <SvgLinearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#B33D54" />
-            <Stop offset="50%" stopColor="#E0546E" />
-            <Stop offset="100%" stopColor="#E8889A" />
-          </SvgLinearGradient>
-        </Defs>
-
-        {/* Track */}
-        <Circle cx="90" cy="90" r={RING_R} fill="none" stroke="#E8DDD8" strokeWidth="7" />
-
-        {/* Progress */}
-        <AnimatedCircle
-          cx="90"
-          cy="90"
-          r={RING_R}
-          fill="none"
-          stroke="url(#scoreGrad)"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={RING_CIRC}
-          strokeDashoffset={dashOffset}
-          transform="rotate(-90 90 90)"
-        />
-      </Svg>
-
-      <View style={styles.ringCenter} pointerEvents="none">
-        <Text style={styles.ringNum}>{score}</Text>
-        <Text style={styles.ringLabel}>LIFE BALANCE</Text>
-      </View>
-    </View>
   );
 }
 
@@ -282,7 +210,7 @@ function Home({
 }) {
   const [scores, setScores] = useState(null);
   const [scoresLoading, setScoresLoading] = useState(true);
-  const [overviewTab, setOverviewTab] = useState("details");
+  const [overviewTab, setOverviewTab] = useState("diagram");
 
   useTutorial("appOverview", { enabled: Boolean(user?.uid && scores) });
 
@@ -339,7 +267,7 @@ function Home({
           <>
             {/* ── Daily missions ─────────────────────── */}
             <TutorialTarget id={TUTORIAL_TARGETS.home.dailyMissions}>
-              <DailyMissions user={user} domainScores={scores.domainScores} />
+              <DailyMissions user={user} domainScores={scores.domainScores} historyPlacement="hidden" compact />
             </TutorialTarget>
 
             {/* ── Overview: per-domain detail or radar ─ */}
@@ -368,12 +296,10 @@ function Home({
                     const score = Math.round(scores.domainScores[key] ?? 0);
                     const meta = DOMAIN_META[key];
                     return (
-                      <Pressable
+                      <View
                         key={key}
-                        onPress={() => openDomain(key)}
-                        accessibilityRole="button"
                         accessibilityLabel={`${DOMAINS[key].label}, score ${score}`}
-                        style={({ pressed }) => [styles.domainRow, pressed && styles.pressed]}
+                        style={styles.domainRow}
                       >
                         <LinearGradient
                           colors={meta.gradient}
@@ -381,40 +307,41 @@ function Home({
                           end={{ x: 1, y: 1 }}
                           style={styles.domainIconTile}
                         >
-                          <Icon name={meta.icon} size={18} color="#fff" />
+                          <Icon name={meta.icon} size={16} color="#fff" />
                         </LinearGradient>
 
                         <View style={styles.domainDetail}>
                           <View style={styles.domainTopRow}>
                             <Text style={styles.domainName}>{DOMAINS[key].label}</Text>
-                            <Text style={[styles.domainScore, { color: meta.text }]}>{score}</Text>
+                            <View style={styles.domainScoreGroup}>
+                              <Text style={[styles.domainBadge, { color: meta.text }]}>
+                                {getScoreLabel(score)}
+                              </Text>
+                              <Text style={[styles.domainScore, { color: meta.text }]}>{score}</Text>
+                            </View>
                           </View>
                           <MiniBar value={score} color={meta.accent} />
-                          <Text style={[styles.domainBadge, { color: meta.text }]}>
-                            {getScoreLabel(score)}
-                          </Text>
                         </View>
-
-                        <Icon name="chevron_right" size={20} color={colors.textMuted} />
-                      </Pressable>
+                      </View>
                     );
                   })}
                 </View>
               ) : (
                 <View style={styles.diagram}>
-                  <View style={styles.hero}>
-                    <ScoreRing score={balanceScore} />
-                    <View style={[styles.statusBadge, shadow("sm")]}>
-                      <View
-                        style={[styles.statusDot, { backgroundColor: getStatusColor(balanceScore) }]}
-                      />
-                      <Text style={[styles.statusText, { color: getStatusColor(balanceScore) }]}>
-                        {getStatusLabel(balanceScore)}
-                      </Text>
+                  <View style={styles.radarWrap}>
+                    <RadarChart domainScores={scores.domainScores} />
+                    <View style={styles.radarCenter} pointerEvents="none">
+                      <Text style={styles.radarScore}>{balanceScore}</Text>
+                      <View style={[styles.statusBadge, shadow("sm")]}>
+                        <View
+                          style={[styles.statusDot, { backgroundColor: getStatusColor(balanceScore) }]}
+                        />
+                        <Text style={[styles.statusText, { color: getStatusColor(balanceScore) }]}>
+                          {getStatusLabel(balanceScore)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-
-                  <RadarChart domainScores={scores.domainScores} />
                 </View>
               )}
             </View>
@@ -439,7 +366,7 @@ function Home({
                   end={{ x: 1, y: 1 }}
                   style={styles.focusIconWrap}
                 >
-                  <Icon name={focusSuggestion.icon} size={20} color="#fff" />
+                  <Icon name={focusSuggestion.icon} size={18} color="#fff" />
                 </LinearGradient>
 
                 <View style={styles.focusTextBlock}>
@@ -467,8 +394,8 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    gap: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
 
   quote: {
@@ -485,7 +412,7 @@ const styles = StyleSheet.create({
   },
   quoteBody: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   quoteText: { ...type.bodyMedium, fontStyle: "italic", color: colors.textMuted },
@@ -499,26 +426,22 @@ const styles = StyleSheet.create({
   },
   loadingText: { ...type.label, color: colors.textMuted, textAlign: "center", paddingTop: spacing.md },
 
-  ringWrap: { width: 172, height: 172 },
-  ringCenter: {
-    ...StyleSheet.absoluteFillObject,
+  radarWrap: { width: "100%", position: "relative", alignItems: "center", justifyContent: "center" },
+  radarCenter: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: "center",
     justifyContent: "center",
   },
-  ringNum: {
+  radarScore: {
     fontFamily: fonts.extrabold,
-    fontSize: 44,
-    lineHeight: 48,
-    letterSpacing: -2,
+    fontSize: 42,
+    lineHeight: 46,
+    letterSpacing: -1.5,
     color: colors.pulsePrimaryDark,
-  },
-  ringLabel: {
-    ...type.caption,
-    fontFamily: fonts.bold,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
   },
 
   statusBadge: {
@@ -526,20 +449,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     marginTop: spacing.md,
-    paddingVertical: 5,
-    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
     backgroundColor: colors.card,
     borderRadius: 20,
   },
-  statusDot: { width: 7, height: 7, borderRadius: radius.pill },
-  statusText: { ...type.caption, fontFamily: fonts.bold, fontSize: 12 },
+  statusDot: { width: 8, height: 8, borderRadius: radius.pill },
+  statusText: { ...type.caption, fontFamily: fonts.bold, fontSize: 13 },
 
   card: {
     backgroundColor: colors.card,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 20,
+    padding: spacing.lg,
   },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.lg },
   cardTitle: { ...type.label, fontFamily: fonts.bold, fontSize: 14, letterSpacing: -0.2, color: colors.text },
@@ -549,7 +470,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   overviewTab: {
     flexDirection: "row",
@@ -567,29 +488,30 @@ const styles = StyleSheet.create({
 
   diagram: { gap: spacing.sm },
 
-  domainList: { gap: spacing.lg },
+  domainList: { gap: spacing.sm },
   domainRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingVertical: spacing.xs,
   },
   domainIconTile: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
     alignItems: "center",
     justifyContent: "center",
   },
-  domainDetail: { flex: 1, gap: 5 },
+  domainDetail: { flex: 1, gap: 4 },
   domainTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   domainName: { ...type.label, fontFamily: fonts.bold, fontSize: 14, color: colors.text },
-  domainScore: { ...type.h3, fontFamily: fonts.extrabold, fontSize: 18, lineHeight: 22 },
+  domainScoreGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+  domainScore: { ...type.h3, fontFamily: fonts.extrabold, fontSize: 16, lineHeight: 20 },
   domainBadge: {
     ...type.caption,
     fontFamily: fonts.bold,
     fontSize: 10,
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
     textTransform: "uppercase",
   },
 
@@ -605,8 +527,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: "hidden",
   },
   focusAccent: { width: 4 },
@@ -615,11 +535,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   focusIconWrap: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",

@@ -1,9 +1,20 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import Icon from "../components/Icon";
 import { Card, PrimaryButton, Screen } from "../components/ui";
 import { DOMAINS } from "../data/quizData";
-import { colors, radius, spacing, type } from "../theme";
+import { colors, domains, radius, spacing, type } from "../theme";
+
+// quizData.js's domain ids intentionally don't match the canonical domain
+// keys used elsewhere in the app (see theme.js's `domains`) — this table
+// routes the mismatched ones to their canonical icon without touching the
+// quiz's own ids.
+const QUIZ_ID_TO_DOMAIN = {
+  family_friends: "relationships",
+  work_productivity: "productivity",
+  financial: "finance",
+};
 
 const SCALE = [
   { value: 1, label: "Never" },
@@ -64,13 +75,15 @@ function EntryQuiz({ onComplete, loading = false }) {
             const val = answers[d.id];
             const color = getScaleColor(val);
             const isLast = i === DOMAINS.length - 1;
+            const domainKey = QUIZ_ID_TO_DOMAIN[d.id] ?? d.id;
+            const domainIcon = domains[domainKey]?.icon ?? "star";
 
             return (
                 <View key={d.id} style={[styles.domain, !isLast && styles.domainDivider]}>
                   <View style={styles.domainHead}>
                     <View style={styles.domainHeadText}>
                       <Text style={styles.domainName}>
-                        {d.icon ? `${d.icon} ` : ""}
+                        <Icon name={domainIcon} size={15} color={colors.text} />{" "}
                         {d.name}
                       </Text>
                       <Text style={styles.domainFocus}>{d.focus}</Text>

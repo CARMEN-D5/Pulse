@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Icon from "../components/Icon";
-import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
+import { Alert, Screen, ScreenHeader } from "../components/ui";
 import {
   acceptFriendRequest,
   declineFriendRequest,
@@ -30,35 +30,33 @@ import {
   subscribeToConversations,
   subscribeToMessages,
 } from "../firestore/messaging";
-import { logAction } from "../firestore/scoring";
 import {
   addComment,
-  createPost,
   deleteComment,
   deletePost,
-  getMyTodayPost,
   subscribeToComments,
   subscribeToFeed,
   subscribeToLikes,
   toggleLike,
 } from "../firestore/social";
 import { searchUserByEmail } from "../firestore/users";
-import { deletePostImage, pickImage, uploadPostImage } from "../storage/uploads";
+import { deletePostImage } from "../storage/uploads";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { confirm } from "../utils/dialogs";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
 /**
- * Social — feed of daily posts, your own daily post composer, and DMs.
+ * Social — feed of daily posts and DMs.
  *
  * Layout:
- *   Tabs: Feed | Today | Messages
- *   - Feed     : every user's post for the day, with likes + comments
- *   - Today    : compose / edit / view your own post for today
+ *   Tabs: Feed | Messages
+ *   - Feed     : every user's post for the day (including your own), with
+ *                likes + comments — posting happens via the shared
+ *                ShareButton, not a dedicated compose tab
  *   - Messages : list of conversations + ability to start a new one,
  *                opens a thread overlay
  */
-function Social({ user, onBack, onActivityLogged }) {
+function Social({ user, onBack }) {
   const [tab, setTab] = useState("feed");
   useTutorial("social", { enabled: Boolean(user?.uid) });
 
@@ -189,7 +187,6 @@ function Social({ user, onBack, onActivityLogged }) {
       <View style={styles.tabs} accessibilityRole="tablist">
         {[
           { id: "feed", label: "Feed" },
-          { id: "today", label: "Today" },
           {
             id: "messages",
             label: messagesBadge > 0 ? `Messages (${messagesBadge})` : "Messages",
@@ -224,7 +221,6 @@ function Social({ user, onBack, onActivityLogged }) {
           onStartConversation={startConversation}
         />
       )}
-      {tab === "today" && <TodayTab user={user} onActivityLogged={onActivityLogged} />}
       {tab === "messages" && (
         <MessagesTab
           user={user}
@@ -403,11 +399,11 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
     );
   }
   return (
-    <>
+    <View style={styles.feedList}>
       {posts.map((p) => (
         <PostCard key={p.id} post={p} user={user} onStartConversation={onStartConversation} />
       ))}
-    </>
+    </View>
   );
 }
 
@@ -416,7 +412,9 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
 // ============================================================================
 
 function PostCard({ post, user, onStartConversation, onDeleted }) {
-  const [slide, setSlide] = useState(post.imageUrl ? 0 : 1);
+  const [slide, setSlide] = useState(0);
+  const [slideWidth, setSlideWidth] = useState(0);
+  const slidesRef = useRef(null);
   const [likeSummary, setLikeSummary] = useState({ count: 0, likedByMe: false });
   const [comments, setComments] = useState([]);
   const [showComments, setShowComments] = useState(false);
@@ -474,9 +472,8 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
       destructive: true,
     });
     if (!ok) return;
-    // Best-effort image cleanup, then doc. The feed subscription drops it
-    // from the list automatically; the Today tab uses onDeleted to swap
-    // back to the compose form.
+    // Best-effort image cleanup, then doc — the feed subscription drops it
+    // from the list automatically.
     if (post.imagePath) await deletePostImage(post.imagePath);
     await deletePost(post.id);
     if (onDeleted) onDeleted();
@@ -495,6 +492,19 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
   const hasImage = Boolean(post.imageUrl);
   const slidesCount = hasImage ? 2 : 1;
 
+  const onSlidesLayout = (e) => setSlideWidth(e.nativeEvent.layout.width);
+
+  const onSlidesScrollEnd = (e) => {
+    if (!slideWidth) return;
+    const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
+    setSlide(idx);
+  };
+
+  const goToSlide = (i) => {
+    setSlide(i);
+    slidesRef.current?.scrollTo({ x: i * slideWidth, animated: true });
+  };
+
   return (
     <View style={[styles.card, shadow("sm")]}>
       {/* Author */}
@@ -504,24 +514,48 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
           <Text style={styles.postName}>{post.authorName}</Text>
           <Text style={styles.postWhen}>{timeAgo(post.createdAt)}</Text>
         </View>
-        {!isMine ? <SmallButton label="💬 Message" onPress={onMessageAuthor} tone="ghost" /> : null}
-      </View>
-
-      {/* Slides */}
-      <View style={styles.postSlides}>
-        {hasImage && slide === 0 ? (
-          <Image
-            source={{ uri: post.imageUrl }}
-            style={styles.postImage}
-            resizeMode="cover"
-            accessibilityLabel="Post image"
+        {!isMine ? (
+          <SmallButton
+            label={
+              <>
+                <Icon name="chat" size={13} color={colors.text} /> Message
+              </>
+            }
+            onPress={onMessageAuthor}
+            tone="ghost"
           />
         ) : null}
-        {slide === 1 || !hasImage ? (
-          <View style={styles.reflection}>
-            <Text style={styles.reflectionLabel}>What I did to improve</Text>
-            <Text style={styles.reflectionText}>{post.reflection}</Text>
-          </View>
+      </View>
+
+      {/* Slides — a fixed-height container so switching slides never
+          reflows the card; real horizontal swipe, dots stay in sync. */}
+      <View style={styles.postSlides} onLayout={onSlidesLayout}>
+        {slideWidth > 0 ? (
+          <ScrollView
+            ref={slidesRef}
+            horizontal
+            pagingEnabled
+            scrollEnabled={slidesCount > 1}
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onSlidesScrollEnd}
+          >
+            {hasImage ? (
+              <View style={{ width: slideWidth, height: "100%" }}>
+                <Image
+                  source={{ uri: post.imageUrl }}
+                  style={styles.postImage}
+                  resizeMode="cover"
+                  accessibilityLabel="Post image"
+                />
+              </View>
+            ) : null}
+            <View style={{ width: slideWidth, height: "100%" }}>
+              <View style={styles.reflection}>
+                <Text style={styles.reflectionLabel}>What I did to improve</Text>
+                <Text style={styles.reflectionText}>{post.reflection}</Text>
+              </View>
+            </View>
+          </ScrollView>
         ) : null}
       </View>
 
@@ -530,7 +564,7 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
           {[0, 1].map((i) => (
             <Pressable
               key={i}
-              onPress={() => setSlide(i)}
+              onPress={() => goToSlide(i)}
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel={`Show slide ${i + 1}`}
@@ -550,7 +584,12 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
           style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
         >
           <Text style={[styles.actionText, likeSummary.likedByMe && styles.actionTextLiked]}>
-            {likeSummary.likedByMe ? "♥" : "♡"} {likeSummary.count}
+            <Icon
+              name={likeSummary.likedByMe ? "favorite" : "favorite_border"}
+              size={14}
+              color={likeSummary.likedByMe ? colors.pulsePrimary : colors.textMuted}
+            />{" "}
+            {likeSummary.count}
           </Text>
         </Pressable>
 
@@ -560,7 +599,9 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
           accessibilityLabel="Show comments"
           style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.actionText}>💬 {commentCount}</Text>
+          <Text style={styles.actionText}>
+            <Icon name="chat_bubble" size={14} color={colors.textMuted} /> {commentCount}
+          </Text>
         </Pressable>
 
         {isMine ? (
@@ -623,156 +664,6 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
           </View>
         </View>
       ) : null}
-    </View>
-  );
-}
-
-// ============================================================================
-// Today tab — compose or view your own post for today
-// ============================================================================
-
-function TodayTab({ user, onActivityLogged }) {
-  const [myPost, setMyPost] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // On the web this held a DOM File plus an object-URL preview. In React
-  // Native the picker returns an asset whose `uri` doubles as the preview
-  // source, so one piece of state covers both.
-  const [imageAsset, setImageAsset] = useState(null);
-  const [reflection, setReflection] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  const refresh = async () => {
-    setLoading(true);
-    const res = await getMyTodayPost(user.uid);
-    if (res.ok) setMyPost(res.data);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.uid]);
-
-  const onPickImage = async () => {
-    setError("");
-    const res = await pickImage();
-    if (res.ok) setImageAsset(res.asset);
-    else if (!res.canceled && res.error) setError(res.error);
-  };
-
-  const onSubmit = async () => {
-    setError("");
-    if (!reflection.trim()) {
-      setError("Tell us what you did to improve today.");
-      return;
-    }
-
-    setSubmitting(true);
-    let uploaded = null;
-    if (imageAsset) {
-      const up = await uploadPostImage(user.uid, imageAsset);
-      if (!up.ok) {
-        setError(up.error || "Image upload failed.");
-        setSubmitting(false);
-        return;
-      }
-      uploaded = up;
-    }
-
-    const res = await createPost({
-      authorUid: user.uid,
-      authorName: displayNameFor(user),
-      imageUrl: uploaded?.url || null,
-      imagePath: uploaded?.path || null,
-      reflection,
-    });
-    setSubmitting(false);
-
-    if (!res.ok) {
-      setError(res.error || "Couldn't save your post.");
-      return;
-    }
-
-    // Score: posting counts as a meaningful connection for relationships
-    logAction(user.uid, "relationships", "connection");
-    if (onActivityLogged) onActivityLogged();
-
-    setImageAsset(null);
-    setReflection("");
-    refresh();
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.empty}>Loading…</Text>
-      </View>
-    );
-  }
-
-  if (myPost) {
-    // Already posted today — show their post inline.
-    return (
-      <>
-        <View style={[styles.card, shadow("sm")]}>
-          <Text style={styles.composerTitle}>You've checked in today ✨</Text>
-          <Text style={styles.composerHint}>Come back tomorrow to share another moment.</Text>
-        </View>
-        <PostCard post={myPost} user={user} onDeleted={refresh} />
-      </>
-    );
-  }
-
-  return (
-    <View style={[styles.card, shadow("sm")]}>
-      <Text style={styles.composerTitle}>Today's check-in</Text>
-      <Text style={styles.composerHint}>
-        Share one thing you did to improve today — a photo and a short note.
-      </Text>
-
-      <Alert message={error} />
-
-      <Pressable
-        onPress={onPickImage}
-        accessibilityRole="button"
-        accessibilityLabel="Add a photo"
-        style={({ pressed }) => [styles.imagePicker, pressed && styles.pressed]}
-      >
-        {imageAsset ? (
-          <>
-            <Image
-              source={{ uri: imageAsset.uri }}
-              style={styles.imagePreview}
-              resizeMode="cover"
-            />
-            <Text style={styles.imagePickerMeta}>Tap to choose a different image</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.imagePickerIcon}>📷</Text>
-            <Text style={styles.imagePickerLabel}>Add a photo (optional)</Text>
-            <Text style={styles.imagePickerMeta}>JPG / PNG, up to 5 MB</Text>
-          </>
-        )}
-      </Pressable>
-
-      <TextInput
-        style={[styles.input, styles.reflectionInput]}
-        placeholder="What did you do to improve today?"
-        placeholderTextColor={colors.textMuted}
-        value={reflection}
-        onChangeText={setReflection}
-        multiline
-        textAlignVertical="top"
-      />
-
-      <PrimaryButton
-        label={submitting ? "Posting…" : "Share today's check-in"}
-        onPress={onSubmit}
-        loading={submitting}
-      />
     </View>
   );
 }
@@ -1280,11 +1171,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
+  feedList: { gap: spacing.xl },
   empty: { ...type.small, color: colors.textMuted, textAlign: "center", paddingVertical: spacing.sm },
 
   errorCard: {
@@ -1320,18 +1210,23 @@ const styles = StyleSheet.create({
   postName: { ...type.label, fontSize: 14, color: colors.text },
   postWhen: { ...type.caption, fontSize: 11, color: colors.textMuted },
 
-  postSlides: { minHeight: 120 },
+  postSlides: {
+    height: 220,
+    borderRadius: radius.md,
+    overflow: "hidden",
+  },
   postImage: {
     width: "100%",
-    aspectRatio: 1,
-    borderRadius: radius.md,
+    height: "100%",
     backgroundColor: colors.pulseBg,
   },
   reflection: {
+    height: "100%",
     padding: spacing.lg,
     borderRadius: radius.md,
     backgroundColor: colors.pulseBg,
     gap: 6,
+    justifyContent: "center",
   },
   reflectionLabel: {
     ...type.caption,
@@ -1383,26 +1278,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: "rgba(255,255,255,0.7)",
   },
-  reflectionInput: { minHeight: 96 },
-
   composerTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   composerHint: { ...type.small, color: colors.textMuted },
-
-  imagePicker: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.border,
-    backgroundColor: colors.pulseBg,
-  },
-  imagePreview: { width: "100%", aspectRatio: 1, borderRadius: radius.md },
-  imagePickerIcon: { fontSize: 22 },
-  imagePickerLabel: { ...type.label, fontSize: 13, color: colors.text, marginTop: 4 },
-  imagePickerMeta: { ...type.caption, fontSize: 11, color: colors.textMuted, marginTop: 4 },
 
   sectionLabel: {
     ...type.label,

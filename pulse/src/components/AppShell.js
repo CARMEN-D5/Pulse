@@ -39,7 +39,7 @@ export function AppBar({ initials, onOpenProfile }) {
         {initials ? (
           <Text style={styles.avatarText}>{initials}</Text>
         ) : (
-          <Icon name="person" size={22} color="#6B5A78" />
+          <Icon name="person" size={18} color="#6B5A78" />
         )}
       </Pressable>
     </View>
@@ -111,23 +111,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    height: 56,
+    paddingHorizontal: 16,
+    height: 44,
     backgroundColor: colors.appBar,
   },
   wordmark: {
     fontFamily: fonts.extrabold,
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: 2,
+    fontSize: 20,
+    lineHeight: 24,
+    letterSpacing: 1.5,
     color: colors.pulsePrimaryDark,
     textShadowColor: "rgba(179, 61, 84, 0.15)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   avatarBtn: {
-    width: 38,
-    height: 38,
+    width: 32,
+    height: 32,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(226, 221, 236, 0.6)",
   },
-  avatarText: { ...type.label, fontFamily: fonts.extrabold, fontSize: 15, color: "#6B5A78" },
+  avatarText: { ...type.label, fontFamily: fonts.extrabold, fontSize: 13, color: "#6B5A78" },
 
   tabBar: {
     flexDirection: "row",

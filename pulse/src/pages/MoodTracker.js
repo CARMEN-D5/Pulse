@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
 
+import Icon from "../components/Icon";
 import { PrimaryButton, Screen, ScreenHeader } from "../components/ui";
 import {
   buildWeekData,
@@ -69,7 +70,7 @@ export function MoodCheckInOverlay({ onSelect, onSkip }) {
   const m = selected ? MOODS.find((x) => x.id === selected) : null;
 
   return (
-    <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false}>
+    <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false} gradient={false} safeArea={false}>
       <ScreenHeader title="Spirituality" subtitle="Daily check-in" onBack={onSkip} />
 
       <View style={[styles.card, styles.checkinCard, shadow("sm")]}>
@@ -159,7 +160,7 @@ export function JournalPromptOverlay({ moodId, onSave, onSkip }) {
   const hasContent = Boolean(text.trim() || emotions.length > 0);
 
   return (
-    <Screen contentContainerStyle={styles.screen}>
+    <Screen contentContainerStyle={styles.screen} gradient={false} safeArea={false}>
       <ScreenHeader title="Journal" onBack={onSkip} />
 
       <View style={[styles.card, shadow("sm")]}>
@@ -426,8 +427,20 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
     <Screen
       contentContainerStyle={styles.screen}
       keyboardAvoiding={false}
+      gradient={false}
+      safeArea={false}
     >
-      <ScreenHeader title="Spirituality" subtitle={dateStr} onBack={onBack} />
+      <ScreenHeader
+        title="Spirituality"
+        subtitle={dateStr}
+        onBack={onBack}
+        right={
+          <ShareButton
+            domain="journal"
+            payload={todayData ? { key: todayKey(), ...todayData } : null}
+          />
+        }
+      />
 
       {/* Today card */}
       <TutorialTarget id={TUTORIAL_TARGETS.journal.today}>
@@ -443,22 +456,17 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
             Today's mood
           </Text>
           {todayMood ? (
-            <View style={styles.todayActions}>
-              {/* Manual share. Hides itself if today's entry
-                  has nothing shareable. */}
-              <ShareButton domain="journal" payload={{ key: todayKey(), ...todayData }} />
-              <Pressable
-                onPress={onLogNewMood}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.updateBtn,
-                  { borderColor: `${todayMood.color}66` },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={[styles.updateBtnText, { color: todayMood.textColor }]}>Update</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={onLogNewMood}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.updateBtn,
+                { backgroundColor: "rgba(255,255,255,0.55)" },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.updateBtnText, { color: todayMood.textColor }]}>Update</Text>
+            </Pressable>
           ) : null}
         </View>
 
@@ -529,7 +537,11 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
                   <View
                     style={[styles.journalIcon, { backgroundColor: m ? m.bg : colors.pulseBg }]}
                   >
-                    {m ? <MoodFace moodId={m.id} size={28} selected /> : <Text>📓</Text>}
+                    {m ? (
+                      <MoodFace moodId={m.id} size={28} selected />
+                    ) : (
+                      <Icon name="book" size={20} color={colors.textMuted} />
+                    )}
                   </View>
 
                   <View style={styles.flex}>
@@ -596,8 +608,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -671,12 +681,10 @@ const styles = StyleSheet.create({
   sectionTitle: { ...type.title, fontFamily: fonts.semibold, color: colors.text },
 
   todayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  todayActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   updateBtn: {
     paddingVertical: 4,
     paddingHorizontal: 11,
     borderRadius: 20,
-    borderWidth: 1.5,
   },
   updateBtnText: { ...type.caption, fontSize: 12 },
 

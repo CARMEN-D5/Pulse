@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  iconOptionSelected: { borderColor: colors.blPrimary, backgroundColor: colors.accentSoft },
+  iconOptionSelected: { borderColor: colors.pulsePrimary, backgroundColor: colors.accentSoft },
   iconText: { fontSize: 20 },
 
   colourRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },

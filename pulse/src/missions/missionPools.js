@@ -83,13 +83,21 @@ export const MISSION_POOLS = {
     ],
 };
 
-/** Human-readable metadata for each domain. */
+/**
+ * Human-readable metadata for each domain. `color` is kept in sync with the
+ * canonical `domains` tokens in theme.js so a domain reads the same accent
+ * color everywhere in the app. `icon` stays an emoji here for any consumer
+ * that still wants a plain-text glyph, but UI chrome (DailyMissions.js,
+ * MissionHistory.js, share/shareTemplates.js) renders the domain icon via the
+ * shared Icon component using theme.js's `domains[key].icon` instead, for
+ * cross-platform consistency.
+ */
 export const DOMAIN_META = {
-    spirituality:  { label: 'Spirituality',        icon: '🧘', color: '#7c3aed' },
-    relationships: { label: 'Family & Friends',     icon: '🤝', color: '#f59e0b' },
-    productivity:  { label: 'Work / Productivity',  icon: '💼', color: '#3b82f6' },
-    health:        { label: 'Health',               icon: '💪', color: '#10b981' },
-    finance:       { label: 'Financial Wellbeing',  icon: '💰', color: '#ef4444' },
+    spirituality:  { label: 'Spirituality',        icon: '🧘', color: '#C9971F' },
+    relationships: { label: 'Family & Friends',     icon: '🤝', color: '#7A4FA3' },
+    productivity:  { label: 'Work / Productivity',  icon: '💼', color: '#3A72B8' },
+    health:        { label: 'Health',               icon: '💪', color: '#D1435E' },
+    finance:       { label: 'Financial Wellbeing',  icon: '💰', color: '#2F8F63' },
 };
 
 /** Ordered list of all domain keys. */

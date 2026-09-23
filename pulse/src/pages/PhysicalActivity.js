@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import DateField from '../components/DateField';
+import Icon from '../components/Icon';
 import SegmentedField from '../components/SegmentedField';
 import { Alert, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { db } from '../firebase';
@@ -82,6 +83,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
     const [activityDate, setActivityDate] = useState('');
     const [tab, setTab] = useState('cardio');
     const [pageTab, setPageTab] = useState('new');
+    const [templateType, setTemplateType] = useState('cardio');
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [editDesc, setEditDesc] = useState('');
@@ -288,10 +290,12 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
         }
     };
 
-    const templateActivities = activities.filter(activity => activity.isTemplate === true);
+    const templateActivities = activities.filter(
+        activity => activity.isTemplate === true && activity.type === templateType
+    );
 
     return (
-        <Screen contentContainerStyle={styles.screen}>
+        <Screen contentContainerStyle={styles.screen} gradient={false} safeArea={false}>
             <ScreenHeader
                 title="My Physical Activities"
                 onBack={onBack}
@@ -436,6 +440,8 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
             {/* Saved templates */}
             {pageTab === 'templates' ? (
                 <View style={styles.list}>
+                    <SegmentedField options={TYPE_OPTIONS} value={templateType} onChange={setTemplateType} />
+
                     {templateActivities.length === 0 ? (
                         <Text style={styles.metaText}>
                             No templates yet. Tap 🤍 on an activity to save it as one.
@@ -655,9 +661,11 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                     }
                                     style={({ pressed }) => [styles.heartBtn, pressed && { opacity: 0.7 }]}
                                 >
-                                    <Text style={styles.heartText}>
-                                        {activity.isTemplate ? '❤️' : '🤍'}
-                                    </Text>
+                                    <Icon
+                                        name={activity.isTemplate ? 'favorite' : 'favorite_border'}
+                                        size={20}
+                                        color={activity.isTemplate ? colors.pulsePrimaryDark : colors.textMuted}
+                                    />
                                 </Pressable>
                             )}
                         </View>
@@ -690,8 +698,6 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: colors.card,
         borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
         padding: spacing.lg,
         gap: spacing.md,
     },
@@ -725,23 +731,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: colors.blPrimary,
+        borderColor: colors.pulsePrimary,
     },
-    smallBtnText: { ...type.small, color: colors.blPrimary },
+    smallBtnText: { ...type.small, color: colors.pulsePrimaryDark },
 
     list: { gap: spacing.sm },
     item: {
         padding: spacing.lg,
         backgroundColor: colors.card,
         borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     editBox: { gap: spacing.sm },
     editSection: { gap: spacing.sm },
 
     heartBtn: { alignSelf: 'flex-end', paddingTop: spacing.sm },
-    heartText: { fontSize: 20 },
 
     itemText: { ...type.title, fontFamily: fonts.semibold, color: colors.text },
     itemDescription: { ...type.small, color: '#666', marginVertical: 4 },

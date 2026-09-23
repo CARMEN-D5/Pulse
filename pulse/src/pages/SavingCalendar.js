@@ -14,6 +14,17 @@ import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
+// Perceptual luminance of a hex colour, used to pick readable text over an
+// arbitrary saving-plan colour band.
+function luminance(hex) {
+  const clean = (hex || "").replace("#", "");
+  const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
+  const r = parseInt(full.substring(0, 2), 16) || 0;
+  const g = parseInt(full.substring(2, 4), 16) || 0;
+  const b = parseInt(full.substring(4, 6), 16) || 0;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
 export default function SavingCalendar({
   monthStart,
   entries,
@@ -136,6 +147,11 @@ export default function SavingCalendar({
 
           const future = cell.date > todayEnd;
           const total = cell.entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
+          const bandColors = cell.entries.map((entry) => planMap[entry.planId]?.color || "#aaa");
+          const avgLuminance = bandColors.length
+            ? bandColors.reduce((sum, hex) => sum + luminance(hex), 0) / bandColors.length
+            : 1;
+          const onBand = avgLuminance < 0.55 ? "#fff" : colors.text;
 
           return (
             <Pressable
@@ -154,23 +170,19 @@ export default function SavingCalendar({
                 pressed && styles.pressed,
               ]}
             >
-              {cell.entries.length ? (
+              {bandColors.length ? (
                 <View style={styles.stripe}>
-                  {cell.entries.map((entry, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.stripeSegment,
-                        { backgroundColor: planMap[entry.planId]?.color || "#aaa" },
-                      ]}
-                    />
+                  {bandColors.map((color, index) => (
+                    <View key={index} style={[styles.stripeSegment, { backgroundColor: color }]} />
                   ))}
                 </View>
               ) : null}
 
-              <Text style={styles.dayText}>{cell.date.getDate()}</Text>
-              {cell.entries.length ? (
-                <Text style={styles.amountText} numberOfLines={1}>
+              <Text style={[styles.dayText, bandColors.length && { color: onBand }]}>
+                {cell.date.getDate()}
+              </Text>
+              {bandColors.length ? (
+                <Text style={[styles.amountText, { color: onBand }]} numberOfLines={1}>
                   ${total.toFixed(0)}
                 </Text>
               ) : null}
@@ -228,8 +240,8 @@ const styles = StyleSheet.create({
   cellFuture: { backgroundColor: colors.card },
   cellPast: { backgroundColor: colors.rowTint },
 
-  stripe: { position: "absolute", top: 0, left: 0, right: 0, height: 4, flexDirection: "row" },
-  stripeSegment: { flex: 1 },
+  stripe: { ...StyleSheet.absoluteFillObject, flexDirection: "row" },
+  stripeSegment: { flex: 1, height: "100%" },
 
   dayText: { ...type.small, color: colors.text },
   amountText: { ...type.caption, fontFamily: fonts.semibold, color: colors.textMuted },

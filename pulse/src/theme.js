@@ -54,6 +54,54 @@ export const domainColors = {
   finance: "#C48030",
 };
 
+// Canonical per-domain design tokens — single source of truth for the color
+// and icon shown for a domain anywhere in the app (Home, missions, analytics,
+// Features, etc.). Shades are deliberately kept away from `colors.error`
+// (#C94040) and `colors.success` (#3A8F70) so a domain accent is never
+// mistaken for a status color.
+export const domains = {
+  spirituality: {
+    icon: "auto_awesome",
+    color: "#C9971F",
+    light: "#FBF2DE",
+    text: "#8A6A15",
+    accent: "#E0B23F",
+    gradient: ["#B3841A", "#DDA82F"],
+  },
+  relationships: {
+    icon: "groups",
+    color: "#7A4FA3",
+    light: "#F1EAF7",
+    text: "#5E3B80",
+    accent: "#9A6FC0",
+    gradient: ["#6A4090", "#8E5FB8"],
+  },
+  productivity: {
+    icon: "business_center",
+    color: "#3A72B8",
+    light: "#E7F0FA",
+    text: "#2C588F",
+    accent: "#5B8FCC",
+    gradient: ["#2C588F", "#4A82C0"],
+  },
+  health: {
+    icon: "favorite",
+    color: "#D1435E",
+    light: "#FAE6EA",
+    text: "#A82F46",
+    accent: "#DE6B82",
+    gradient: ["#A82F46", "#D1435E"],
+  },
+  finance: {
+    icon: "payments",
+    color: "#2F8F63",
+    light: "#E6F5EE",
+    text: "#236B4A",
+    accent: "#4EAB80",
+    gradient: ["#236B4A", "#3AA070"],
+  },
+};
+
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -117,4 +165,4 @@ export const bgGradient = {
   stops: [0, 0.35, 0.7, 1],
 };
 
-export default { colors, domainColors, spacing, radius, fonts, type, shadow, bgGradient };
+export default { colors, domainColors, domains, spacing, radius, fonts, type, shadow, bgGradient };

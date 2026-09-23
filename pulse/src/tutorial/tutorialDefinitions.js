@@ -68,7 +68,7 @@ export const TUTORIALS = {
         route: { view: "features" },
         target: TARGET.features.list,
         title: "Everything in one place",
-        body: "Each card opens a focused tool. Journal supports spirituality, To-do supports productivity, Budget supports finance and Activity supports health.",
+        body: "Each card opens a focused tool. Journal supports spirituality, To-do supports productivity, Finance supports your money and Activity supports health.",
       },
       {
         route: { view: "features" },
@@ -82,7 +82,7 @@ export const TUTORIALS = {
 
   financeSpending: {
     version: 1,
-    title: "Budget Tracker",
+    title: "Finance Tracker",
     steps: onRoute(ROUTES.finance, [
       {
         route: { view: "finance" },
@@ -277,8 +277,7 @@ export const TUTORIALS = {
         route: { view: "social" },
         target: TARGET.missions.history,
         title: "Review your history",
-        body: "History summarises this week, progress by domain and all-time mission completion.",
-        ctaLabel: "Try it now",
+        body: "Scroll down to see your history — this week, progress by domain and all-time mission completion.",
       },
     ]),
   },
@@ -290,8 +289,8 @@ export const TUTORIALS = {
       {
         route: { view: "social" },
         target: TARGET.social.tabs,
-        title: "Feed, Today and Messages",
-        body: "Feed contains posts from you and your friends. Today is your daily check-in. Messages contains friends, requests and conversations.",
+        title: "Feed and Messages",
+        body: "Feed contains daily check-in posts from you and your friends. Messages contains friends, requests and conversations.",
       },
       {
         route: { view: "profile" },

@@ -147,7 +147,7 @@ export default function FriendPicker({
                                     </View>
                                     {isSelected ? (
                                         <View style={styles.check}>
-                                            <Text style={styles.checkText}>✓</Text>
+                                            <Icon name="check" size={14} color="#fff" />
                                         </View>
                                     ) : (
                                         <View style={styles.checkPlaceholder} />
@@ -230,7 +230,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    checkText: { color: "#fff", fontWeight: "800", fontSize: 14 },
     checkPlaceholder: { width: 24, height: 24 },
 
     loadingBlock: { paddingVertical: spacing.xl, alignItems: "center", gap: spacing.sm },

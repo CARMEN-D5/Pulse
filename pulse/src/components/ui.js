@@ -142,7 +142,7 @@ export function PrimaryButton({
 }) {
   const isDisabled = disabled || loading;
   const variantStyle = variant === "danger" ? styles.ctaDanger : styles.ctaPrimary;
-  const labelColor = variant === "danger" ? "#fff" : colors.blOnPrimary;
+  const labelColor = "#fff";
 
   return (
     <Pressable
@@ -229,7 +229,7 @@ export const TextField = forwardRef(function TextField(
           <Icon
             name={icon}
             size={20}
-            color={focused ? colors.blPrimary : colors.blOutline}
+            color={focused ? colors.pulsePrimaryDark : colors.blOutline}
             style={styles.inputIcon}
           />
         ) : null}
@@ -298,7 +298,7 @@ export function Divider({ label, style }) {
 export function Loading({ label, style }) {
   return (
     <View style={[styles.loading, style]}>
-      <ActivityIndicator size="large" color={colors.blPrimary} />
+      <ActivityIndicator size="large" color={colors.pulsePrimary} />
       {label ? <Text style={styles.loadingText}>{label}</Text> : null}
     </View>
   );
@@ -365,13 +365,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     borderRadius: 14,
   },
-  ctaPrimary: { backgroundColor: colors.blPrimary },
+  ctaPrimary: { backgroundColor: colors.pulsePrimary },
   ctaDanger: { backgroundColor: colors.blError },
   ctaPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
   ctaDisabled: { opacity: 0.6 },
   ctaText: { ...type.title, fontSize: 16 },
 
-  linkText: { ...type.label, color: colors.blPrimary },
+  linkText: { ...type.label, color: colors.pulsePrimaryDark },
 
   field: { gap: 6 },
   fieldLabel: {
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   // keeps the extra pixel from nudging the field's height.
   inputWrapFocused: {
     borderWidth: 2,
-    borderColor: colors.blPrimary,
+    borderColor: colors.pulsePrimaryDark,
     backgroundColor: "#fff",
     margin: -1,
   },

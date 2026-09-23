@@ -20,7 +20,7 @@ function Splash({ onLogin, onSignUp }) {
       {/* Brand bar. The web version pinned this to the viewport; on a phone it
           just sits at the top of the scroll content. */}
       <View style={styles.brand}>
-        <Icon name="spa" size={24} color={colors.blPrimary} />
+        <Icon name="spa" size={24} color={colors.pulsePrimaryDark} />
         <Text style={styles.brandName}>Pulse</Text>
       </View>
 
@@ -28,7 +28,7 @@ function Splash({ onLogin, onSignUp }) {
         {/* Hero visual */}
         <View style={styles.heroWrap}>
           <View style={styles.heroCard}>
-            <Icon name="self_improvement" size={96} color={colors.blPrimary} />
+            <Icon name="self_improvement" size={96} color={colors.pulsePrimaryDark} />
             <View style={styles.heroSubIcons}>
               <Icon name="favorite" size={26} color={colors.blOnSurfaceVariant} />
               <Icon name="psychology" size={26} color={colors.blOnSurfaceVariant} />
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
 
   brand: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  brandName: { ...type.h3, letterSpacing: -0.3, color: colors.blPrimaryDim },
+  brandName: { ...type.h3, letterSpacing: -0.3, color: colors.pulsePrimaryDark },
 
   main: { width: "100%", maxWidth: 420, alignItems: "center", gap: spacing.xxxl },
 
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
 
   content: { alignItems: "center", gap: spacing.md },
   title: { ...type.h1, textAlign: "center", color: colors.blOnSurface },
-  titleAccent: { color: colors.blPrimary },
+  titleAccent: { color: colors.pulsePrimaryDark },
   subtitle: {
     ...type.body,
     textAlign: "center",

@@ -33,7 +33,7 @@ function DailyMissionsPage({ user, userDoc, scoreVersion, onBack }) {
   }, [user?.uid, userDoc, scoreVersion]);
 
   return (
-    <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false}>
+    <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false} gradient={false} safeArea={false}>
       <ScreenHeader title="Daily Missions" onBack={onBack} />
 
       {loading ? (
@@ -43,6 +43,7 @@ function DailyMissionsPage({ user, userDoc, scoreVersion, onBack }) {
           user={user}
           domainScores={scores?.domainScores ?? {}}
           tutorialEnabled
+          historyPlacement="below"
         />
       )}
     </Screen>

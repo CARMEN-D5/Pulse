@@ -11,10 +11,8 @@ import { savingPlanSharePayload } from "./savingMilestones";
 import { colors, fonts, radius, spacing, type } from "../theme";
 
 const money = (value, decimals = 0) => `$${Number(value || 0).toFixed(decimals)}`;
-const formatDate = (value) =>
-    value.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 
-export default function SavingPlanCard({ plan, savedAmount, onEdit }) {
+export default function SavingPlanCard({ plan, savedAmount, onEdit, compact = false }) {
   const target = Number(plan.targetAmount || 0);
   const remaining = Math.max(0, target - savedAmount);
   const due = new Date(`${plan.dueDate}T23:59:59`);
@@ -22,7 +20,6 @@ export default function SavingPlanCard({ plan, savedAmount, onEdit }) {
   const rawDays = Math.ceil((due - now) / 86400000);
   const expiredDays = rawDays < 0 ? Math.max(1, Math.floor((now - due) / 86400000)) : 0;
   const percentage = target ? Math.min(100, (savedAmount / target) * 100) : 0;
-  const created = plan.createdAt?.toDate?.() || (plan.createdAt ? new Date(plan.createdAt) : null);
 
   // Manual share, available at any progress rather than only on a milestone.
   // Returns null below 1% or with no target set, and ShareButton hides itself
@@ -37,20 +34,23 @@ export default function SavingPlanCard({ plan, savedAmount, onEdit }) {
           accessibilityLabel={`${plan.name} saving plan. Tap to edit.`}
           style={({ pressed }) => [
             styles.card,
+            compact && styles.cardCompact,
             { borderLeftColor: plan.color || colors.border },
             pressed && styles.pressed,
           ]}
       >
         <View style={styles.titleRow}>
           <View style={styles.identity}>
-            <Text style={styles.icon}>{plan.icon}</Text>
-            <Text style={styles.name} numberOfLines={1}>
+            <Text style={[styles.icon, compact && styles.iconCompact]}>{plan.icon}</Text>
+            <Text style={[styles.name, compact && styles.nameCompact]} numberOfLines={1}>
               {plan.name}
             </Text>
           </View>
           <View style={styles.titleEnd}>
-            <Text style={styles.goal}>{money(target)}</Text>
-            <Text style={styles.percentage}>{percentage.toFixed(0)}%</Text>
+            <Text style={[styles.goal, compact && styles.goalCompact]}>{money(target)}</Text>
+            <Text style={[styles.percentage, compact && styles.percentageCompact]}>
+              {percentage.toFixed(0)}%
+            </Text>
           </View>
 
           {/*
@@ -69,32 +69,27 @@ export default function SavingPlanCard({ plan, savedAmount, onEdit }) {
           <View
               style={[
                 styles.progressFill,
-                { width: `${percentage}%`, backgroundColor: plan.color || colors.blPrimary },
+                { width: `${percentage}%`, backgroundColor: plan.color || colors.pulsePrimary },
               ]}
           />
         </View>
 
         <View style={styles.balanceRow}>
-          <Text style={styles.balanceText}>Saved {money(savedAmount)}</Text>
-          <Text style={styles.balanceText}>{money(remaining)} left</Text>
+          <Text style={[styles.balanceText, compact && styles.balanceTextCompact]} numberOfLines={1}>
+            Saved {money(savedAmount)}
+          </Text>
+          <Text style={[styles.balanceText, compact && styles.balanceTextCompact]} numberOfLines={1}>
+            {money(remaining)} left
+          </Text>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText} numberOfLines={1}>
-            {created ? formatDate(created) : "Start date unavailable"} – {formatDate(due)}
-          </Text>
-
           {expiredDays ? (
-              <Text style={[styles.footerText, styles.expired]}>
+              <Text style={[styles.footerText, styles.expired]} numberOfLines={1}>
                 Expired {expiredDays} day{expiredDays === 1 ? "" : "s"} ago
               </Text>
           ) : (
-              <View style={styles.timing}>
-                {rawDays > 0 ? (
-                    <Text style={styles.footerText}>{money(remaining / rawDays, 2)}/day needed</Text>
-                ) : null}
-                <Text style={styles.daysLeft}>{Math.max(0, rawDays)} days left</Text>
-              </View>
+              <Text style={styles.daysLeft} numberOfLines={1}>{Math.max(0, rawDays)} days left</Text>
           )}
         </View>
       </Pressable>
@@ -111,15 +106,24 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
   },
+  cardCompact: {
+    padding: spacing.md,
+    borderLeftWidth: 3,
+    gap: spacing.xs,
+  },
   pressed: { opacity: 0.7 },
 
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   identity: { flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 },
   icon: { fontSize: 20 },
+  iconCompact: { fontSize: 16 },
   name: { ...type.title, color: colors.text, flexShrink: 1 },
+  nameCompact: { fontSize: 14, lineHeight: 18 },
   titleEnd: { alignItems: "flex-end" },
   goal: { ...type.label, color: colors.textMuted },
+  goalCompact: { fontSize: 11, lineHeight: 14 },
   percentage: { ...type.title, fontFamily: fonts.bold, color: colors.text },
+  percentageCompact: { fontSize: 14, lineHeight: 18 },
   share: { marginLeft: spacing.xs },
 
   progressTrack: {
@@ -130,12 +134,12 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: "100%", borderRadius: radius.pill },
 
-  balanceRow: { flexDirection: "row", justifyContent: "space-between" },
-  balanceText: { ...type.small, color: colors.textMuted },
+  balanceRow: { flexDirection: "row", justifyContent: "space-between", gap: spacing.xs },
+  balanceText: { ...type.small, color: colors.textMuted, flexShrink: 1 },
+  balanceTextCompact: { fontSize: 11, lineHeight: 14 },
 
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: spacing.sm },
+  footer: { flexDirection: "row", justifyContent: "flex-end" },
   footerText: { ...type.caption, color: colors.textMuted, flexShrink: 1 },
   expired: { color: colors.error, fontFamily: fonts.semibold },
-  timing: { alignItems: "flex-end" },
   daysLeft: { ...type.caption, fontFamily: fonts.semibold, color: colors.text },
 });

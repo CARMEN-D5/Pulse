@@ -873,12 +873,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   backButton: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  backText: { ...type.label, color: colors.blPrimary },
+  backText: { ...type.label, color: colors.pulsePrimaryDark },
   nextButton: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
-    backgroundColor: colors.blPrimary,
+    backgroundColor: colors.pulsePrimary,
   },
   nextText: { ...type.label, color: colors.blOnPrimary },
 });

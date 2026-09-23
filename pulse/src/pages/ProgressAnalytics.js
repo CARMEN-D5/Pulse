@@ -9,17 +9,26 @@ import { EmptyState, Loading, Screen, ScreenHeader } from "../components/ui";
 import { db } from "../firebase";
 import { seedDummyWeeklyScores, SEED_PROFILES, SEED_PERIODS } from "../firestore/seedDummyScores";
 import { DOMAINS, DOMAIN_KEYS } from "../scoring/scoringEngine";
-import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { colors, domains, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 /* ── Domain config ─────────────────────────────────────────── */
-const DOMAIN_META = {
-  spirituality:  { icon: "auto_awesome", color: "#2A7A6A", label: "Spirit" },
-  relationships: { icon: "groups",       color: "#586880", label: "Social" },
-  productivity:  { icon: "work",         color: "#5A6550", label: "Work" },
-  health:        { icon: "favorite",     color: "#B33D54", label: "Health" },
-  finance:       { icon: "payments",     color: "#8E4570", label: "Finance" },
+/* Color/icon come from the shared theme.js `domains` tokens; short labels
+   here are this screen's own condensed chip text, distinct from the full
+   DOMAINS[key].label used elsewhere. */
+const SHORT_LABELS = {
+  spirituality: "Spirit",
+  relationships: "Social",
+  productivity: "Work",
+  health: "Health",
+  finance: "Finance",
 };
+const DOMAIN_META = Object.fromEntries(
+  DOMAIN_KEYS.map((key) => [
+    key,
+    { icon: domains[key].icon, color: domains[key].color, label: SHORT_LABELS[key] },
+  ])
+);
 
 const RANGE_OPTIONS = [
   { label: "4 Weeks", value: 4 },
@@ -254,7 +263,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
   }, [filtered]);
 
   const chartColor =
-    selectedDomain === "overall" ? "#2A7A6A" : DOMAIN_META[selectedDomain]?.color ?? "#2A7A6A";
+    selectedDomain === "overall" ? "#B33D54" : DOMAIN_META[selectedDomain]?.color ?? "#B33D54";
   const activeLabel =
     selectedDomain === "overall" ? "Overall Balance Score" : DOMAIN_META[selectedDomain]?.label;
 
@@ -283,7 +292,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
               <Icon
                 name={seeding ? "hourglass_top" : "science"}
                 size={20}
-                color={colors.blPrimary}
+                color={colors.pulsePrimaryDark}
               />
             </Pressable>
           }
@@ -323,9 +332,9 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
         />
       ) : (
         <>
-          {/* ── Overall score card (teal gradient) ── */}
+          {/* ── Overall score card (pink gradient) ── */}
           <LinearGradient
-            colors={["#2A7A6A", "#1D665A"]}
+            colors={["#E0546E", "#B33D54"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.scoreCard, shadow("lg")]}
@@ -380,7 +389,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
                 </View>
                 {avgGrowthPts !== null ? (
                   <View style={styles.trendBadge}>
-                    <Icon name="arrow_upward" size={14} color={colors.blPrimary} />
+                    <Icon name="arrow_upward" size={14} color={colors.pulsePrimaryDark} />
                     <Text style={styles.trendBadgeText}>{avgGrowthPts} pts avg.</Text>
                   </View>
                 ) : null}
@@ -595,7 +604,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
-  rangeOptionActive: { backgroundColor: colors.blPrimary },
+  rangeOptionActive: { backgroundColor: colors.pulsePrimary },
   rangeText: { ...type.label, fontSize: 12, color: colors.textMuted },
   rangeTextActive: { color: "#fff" },
 
@@ -635,8 +644,6 @@ const styles = StyleSheet.create({
   trendCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -650,9 +657,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: "rgba(8, 106, 105, 0.08)",
+    backgroundColor: "rgba(179, 61, 84, 0.08)",
   },
-  trendBadgeText: { ...type.caption, fontSize: 11, color: colors.blPrimary },
+  trendBadgeText: { ...type.caption, fontSize: 11, color: colors.pulsePrimaryDark },
 
   chartArea: { position: "relative" },
   gridline: {
@@ -677,7 +684,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  domainChipActive: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+  domainChipActive: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
   domainChipText: { ...type.caption, fontSize: 12, color: colors.textMuted },
   domainChipTextActive: { color: "#fff" },
 
@@ -685,8 +692,6 @@ const styles = StyleSheet.create({
   insightCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: "hidden",
   },
   insightBody: { flexDirection: "row", gap: spacing.md, padding: spacing.lg },
@@ -748,8 +753,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   modalOptionActive: {
-    backgroundColor: colors.blPrimary,
-    borderColor: colors.blPrimary,
+    backgroundColor: colors.pulsePrimary,
+    borderColor: colors.pulsePrimary,
   },
   modalOptionText: { ...type.caption, fontSize: 12, color: colors.textMuted },
   modalOptionTextActive: { color: "#fff" },
@@ -773,7 +778,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   modalBtnCancelText: { ...type.label, fontSize: 14, color: colors.textMuted },
-  modalBtnConfirm: { backgroundColor: colors.blPrimary },
+  modalBtnConfirm: { backgroundColor: colors.pulsePrimary },
   modalBtnConfirmText: { ...type.label, fontSize: 14, color: "#fff", fontFamily: fonts.bold },
 });
 

@@ -13,8 +13,9 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import Icon from '../components/Icon';
 import { Loading, Screen, ScreenHeader } from '../components/ui';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, domains, fonts, radius, shadow, spacing, type } from '../theme';
 import { getWeekKey, getWeekRange, loadDailyDoc, loadHistory } from './missionEngine';
 import { ALL_DOMAINS, DOMAIN_META } from './missionPools';
 
@@ -99,7 +100,8 @@ function DayRow({ record }) {
             {open ? (
                 <View style={styles.missionList}>
                     {(record.missions ?? []).map((m, i) => {
-                        const meta = DOMAIN_META[m.domain] ?? { label: m.domain, icon: '⭐', color: '#888' };
+                        const meta = DOMAIN_META[m.domain] ?? { label: m.domain, color: '#888' };
+                        const domainIcon = domains[m.domain]?.icon ?? 'star';
                         return (
                             <View key={i} style={[styles.missionItem, m.completed && styles.missionItemDone]}>
                                 <View
@@ -110,9 +112,12 @@ function DayRow({ record }) {
                                 />
                                 <View style={styles.missionBody}>
                                     <Text style={styles.missionText}>{m.text}</Text>
-                                    <Text style={[styles.missionDomain, { color: meta.color }]}>
-                                        {meta.icon} {meta.label}
-                                    </Text>
+                                    <View style={styles.missionDomainRow}>
+                                        <Icon name={domainIcon} size={12} color={meta.color} />
+                                        <Text style={[styles.missionDomain, { color: meta.color }]}>
+                                            {meta.label}
+                                        </Text>
+                                    </View>
                                 </View>
                                 <Text
                                     style={[
@@ -207,7 +212,7 @@ function TabByDomain({ history }) {
                 return (
                     <View key={key} style={[styles.domainCard, shadow('sm')]}>
                         <View style={styles.domainCardHeader}>
-                            <Text style={styles.domainIcon}>{meta.icon}</Text>
+                            <Icon name={domains[key]?.icon ?? 'star'} size={16} color={meta.color} />
                             <Text style={styles.domainName}>{meta.label}</Text>
                             <Text style={[styles.domainPct, { color: meta.color }]}>{pct}%</Text>
                         </View>
@@ -284,7 +289,8 @@ function TabAllTime({ history }) {
                     return (
                         <View key={key} style={styles.legendItem}>
                             <View style={[styles.legendDot, { backgroundColor: meta.color }]} />
-                            <Text style={styles.legendLabel}>{meta.icon} {meta.label}</Text>
+                            <Icon name={domains[key]?.icon ?? 'star'} size={12} color={meta.color} />
+                            <Text style={styles.legendLabel}>{meta.label}</Text>
                             <Text style={styles.legendPct}>{share}%</Text>
                         </View>
                     );
@@ -300,11 +306,13 @@ function TabAllTime({ history }) {
     );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Body (tab bar + tab content, no page chrome) ────────────────────────────
+// Shared by the full-screen MissionHistory below and by any caller that wants
+// history rendered inline (e.g. DailyMissions' "below" placement).
 
 const TABS = ['This Week', 'By Domain', 'All Time'];
 
-export default function MissionHistory({ user, onBack }) {
+export function MissionHistoryBody({ user }) {
     const [activeTab, setActiveTab] = useState(0);
     const [history, setHistory]     = useState([]);
     const [loading, setLoading]     = useState(true);
@@ -325,9 +333,7 @@ export default function MissionHistory({ user, onBack }) {
     }, [user?.uid]);
 
     return (
-        <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false}>
-            <ScreenHeader title="Mission History" onBack={onBack} />
-
+        <View style={styles.body}>
             {/* Tabs */}
             <View style={styles.tabBar}>
                 {TABS.map((label, i) => (
@@ -359,12 +365,24 @@ export default function MissionHistory({ user, onBack }) {
                     {activeTab === 2 && <TabAllTime  history={history} />}
                 </>
             )}
+        </View>
+    );
+}
+
+// ─── Main component (full-screen, used by the "header" placement's modal) ───
+
+export default function MissionHistory({ user, onBack }) {
+    return (
+        <Screen contentContainerStyle={styles.screen} keyboardAvoiding={false}>
+            <ScreenHeader title="Mission History" onBack={onBack} />
+            <MissionHistoryBody user={user} />
         </Screen>
     );
 }
 
 const styles = StyleSheet.create({
     screen: { gap: spacing.md, paddingBottom: 40 },
+    body: { gap: spacing.md },
     pressed: { opacity: 0.7 },
     loading: { paddingVertical: 60 },
 
@@ -393,8 +411,6 @@ const styles = StyleSheet.create({
     summary: {
         backgroundColor: colors.card,
         borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
         padding: spacing.lg,
         gap: spacing.sm,
     },
@@ -446,6 +462,7 @@ const styles = StyleSheet.create({
     missionDot: { width: 8, height: 8, borderRadius: radius.pill, marginTop: 5 },
     missionBody: { flex: 1, gap: 1 },
     missionText: { ...type.small, fontSize: 12, color: colors.text },
+    missionDomainRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     missionDomain: { ...type.caption, fontSize: 10 },
     missionStatus: { ...type.caption, fontSize: 10, color: '#B33D54' },
     missionStatusDone: { color: colors.success },
@@ -453,13 +470,10 @@ const styles = StyleSheet.create({
     domainCard: {
         backgroundColor: colors.card,
         borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
         padding: spacing.md,
         gap: 6,
     },
     domainCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    domainIcon: { fontSize: 15 },
     domainName: { ...type.label, fontSize: 13, flex: 1, color: colors.text },
     domainPct: { ...type.label, fontFamily: fonts.bold, fontSize: 13 },
     domainMeta: { flexDirection: 'row', justifyContent: 'space-between' },
