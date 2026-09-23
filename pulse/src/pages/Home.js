@@ -1,6 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import Svg, {
   Circle,
   Defs,
@@ -97,13 +103,26 @@ function labelPt(i) {
 }
 
 /* ── Radar Chart ───────────────────────────────────────────── */
-function RadarChart({ domainScores }) {
+export function getOverviewMetrics(windowWidth) {
+  const safeWidth = Number.isFinite(windowWidth) ? windowWidth : 360;
+  const boundedWidth = Math.max(320, Math.min(480, safeWidth));
+  const contentHeight = Math.round(
+    260 + ((boundedWidth - 320) / 160) * 20,
+  );
+
+  return {
+    contentHeight,
+    radarHeight: contentHeight - 28,
+  };
+}
+
+function RadarChart({ domainScores, height }) {
   const pts = RADAR_ORDER.map((k, i) => radarPt(i, domainScores[k] ?? 0));
   const poly = pts.map((p) => p.join(",")).join(" ");
   const gridRings = [25, 50, 75, 100];
 
   return (
-    <Svg width="100%" height={300} viewBox="0 0 156 146">
+    <Svg width="100%" height={height} viewBox="0 0 156 146">
       <Defs>
         <RadialGradient id="radarFill" cx="50%" cy="50%" r="50%">
           <Stop offset="0%" stopColor="#E0546E" stopOpacity="0.22" />
@@ -138,26 +157,30 @@ function RadarChart({ domainScores }) {
       />
 
       {/* Data dots */}
-      {pts.map(([x, y], i) => (
-        <G key={i}>
-          <Circle cx={x} cy={y} r="2.5" fill="#fff" stroke="#B33D54" strokeWidth="0.9" />
-          <Circle cx={x} cy={y} r="1.15" fill="#B33D54" />
-        </G>
-      ))}
+      {pts.map(([x, y], i) => {
+        const domainColor = DOMAIN_META[RADAR_ORDER[i]].color;
+        return (
+          <G key={RADAR_ORDER[i]}>
+            <Circle cx={x} cy={y} r="2.5" fill="#fff" stroke={domainColor} strokeWidth="0.9" />
+            <Circle cx={x} cy={y} r="1.15" fill={domainColor} />
+          </G>
+        );
+      })}
 
       {/* Labels + scores */}
       {RADAR_ORDER.map((key, i) => {
         const [x, y] = labelPt(i);
         const anchor = x < 50 ? "end" : x > 70 ? "start" : "middle";
         const score = Math.round(domainScores[key] ?? 0);
+        const meta = DOMAIN_META[key];
         return (
           <G key={key}>
             <SvgText
               x={x}
               y={y - 1.5}
               textAnchor={anchor}
-              fill="#2A2523"
-              fontSize="4.3"
+              fill={meta.text}
+              fontSize="5.2"
               fontFamily={fonts.bold}
             >
               {RADAR_LABELS[key]}
@@ -166,7 +189,7 @@ function RadarChart({ domainScores }) {
               x={x}
               y={y + 3.6}
               textAnchor={anchor}
-              fill="#7D756F"
+              fill={meta.color}
               fontSize="3.6"
               fontFamily={fonts.semibold}
             >
@@ -192,6 +215,7 @@ function MiniBar({ value, color }) {
 function OverviewTab({ id, label, icon, active, onPress }) {
   return (
     <Pressable
+      testID={`home-overview-tab-${id}`}
       onPress={() => onPress(id)}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
@@ -208,6 +232,11 @@ function Home({
   user, userDoc, scoreVersion,
   onDomainSelect, onOpenDomain, onNevigate,
 }) {
+  const { width: windowWidth } = useWindowDimensions();
+  const {
+    contentHeight: overviewContentHeight,
+    radarHeight,
+  } = getOverviewMetrics(windowWidth);
   const [scores, setScores] = useState(null);
   const [scoresLoading, setScoresLoading] = useState(true);
   const [overviewTab, setOverviewTab] = useState("diagram");
@@ -273,14 +302,7 @@ function Home({
             {/* ── Overview: per-domain detail or radar ─ */}
             <TutorialTarget id={TUTORIAL_TARGETS.home.domainCard}>
             <View style={[styles.card, shadow("md")]}>
-              <View style={styles.overviewTabs} accessibilityRole="tablist">
-                <OverviewTab
-                  id="details"
-                  label="Details"
-                  icon="format_list_bulleted"
-                  active={overviewTab === "details"}
-                  onPress={setOverviewTab}
-                />
+              <View testID="home-overview-tabs" style={styles.overviewTabs} accessibilityRole="tablist">
                 <OverviewTab
                   id="diagram"
                   label="Diagram"
@@ -288,10 +310,21 @@ function Home({
                   active={overviewTab === "diagram"}
                   onPress={setOverviewTab}
                 />
+                <OverviewTab
+                  id="details"
+                  label="Details"
+                  icon="format_list_bulleted"
+                  active={overviewTab === "details"}
+                  onPress={setOverviewTab}
+                />
               </View>
 
+              <View
+                testID="home-overview-content"
+                style={[styles.overviewContent, { height: overviewContentHeight }]}
+              >
               {overviewTab === "details" ? (
-                <View style={styles.domainList}>
+                <View testID="home-details" style={styles.domainList}>
                   {GRID_ORDER.map((key) => {
                     const score = Math.round(scores.domainScores[key] ?? 0);
                     const meta = DOMAIN_META[key];
@@ -327,23 +360,27 @@ function Home({
                   })}
                 </View>
               ) : (
-                <View style={styles.diagram}>
-                  <View style={styles.radarWrap}>
-                    <RadarChart domainScores={scores.domainScores} />
+                <View testID="home-diagram" style={styles.diagram}>
+                  <View testID="home-radar-chart" style={styles.radarWrap}>
+                    <RadarChart domainScores={scores.domainScores} height={radarHeight} />
                     <View style={styles.radarCenter} pointerEvents="none">
                       <Text style={styles.radarScore}>{balanceScore}</Text>
-                      <View style={[styles.statusBadge, shadow("sm")]}>
-                        <View
-                          style={[styles.statusDot, { backgroundColor: getStatusColor(balanceScore) }]}
-                        />
-                        <Text style={[styles.statusText, { color: getStatusColor(balanceScore) }]}>
-                          {getStatusLabel(balanceScore)}
-                        </Text>
-                      </View>
                     </View>
+                  </View>
+                  <View
+                    testID="home-balance-status"
+                    style={[styles.statusBadge, shadow("sm")]}
+                  >
+                    <View
+                      style={[styles.statusDot, { backgroundColor: getStatusColor(balanceScore) }]}
+                    />
+                    <Text style={[styles.statusText, { color: getStatusColor(balanceScore) }]}>
+                      {getStatusLabel(balanceScore)}
+                    </Text>
                   </View>
                 </View>
               )}
+              </View>
             </View>
             </TutorialTarget>
 
@@ -390,12 +427,14 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
 
   main: {
+    flexGrow: 1,
     maxWidth: 480,
     width: "100%",
     alignSelf: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     gap: spacing.sm,
+    justifyContent: "space-between",
   },
 
   quote: {
@@ -447,8 +486,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "center",
     gap: 6,
-    marginTop: spacing.md,
+    marginTop: -spacing.sm,
     paddingVertical: 6,
     paddingHorizontal: 16,
     backgroundColor: colors.card,
@@ -486,7 +526,8 @@ const styles = StyleSheet.create({
   overviewTabText: { ...type.label, fontFamily: fonts.medium, fontSize: 14, color: colors.textMuted },
   overviewTabTextActive: { fontFamily: fonts.bold, color: colors.pulsePrimaryDark },
 
-  diagram: { gap: spacing.sm },
+  overviewContent: { width: "100%" },
+  diagram: { flex: 1, gap: spacing.xs, alignItems: "stretch" },
 
   domainList: { gap: spacing.sm },
   domainRow: {

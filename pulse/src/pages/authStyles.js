@@ -36,7 +36,7 @@ export default StyleSheet.create({
 
   form: { gap: spacing.xl },
 
-  forgotRow: { alignItems: "flex-end", paddingRight: spacing.xs, marginTop: -spacing.xs },
+  forgotRow: { alignItems: "flex-end", paddingRight: spacing.xs, marginTop: spacing.sm },
 
   // Circular social buttons (sign-in variant)
   socialCircles: {

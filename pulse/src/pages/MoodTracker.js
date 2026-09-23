@@ -447,7 +447,7 @@ export function MoodDashboard({ uid, moodData, onLogNewMood, onBack }) {
       <View
         style={[
           styles.card,
-          shadow("sm"),
+          styles.todayCard,
           todayMood && { backgroundColor: todayMood.bg, borderColor: `${todayMood.color}33` },
         ]}
       >
@@ -610,6 +610,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.lg,
     gap: spacing.md,
+  },
+  todayCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   checkinCard: { alignItems: "center", paddingVertical: spacing.xxl },
 

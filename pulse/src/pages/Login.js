@@ -67,7 +67,7 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
         </View>
 
         {/* Form card */}
-        <Card>
+        <Card subtle>
           <Alert message={loginError} />
 
           <View style={styles.form}>

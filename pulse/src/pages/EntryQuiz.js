@@ -24,15 +24,6 @@ const SCALE = [
   { value: 5, label: "All the time" },
 ];
 
-function getScaleColor(val) {
-  if (!val) return colors.border;
-  if (val === 1) return "#d64545";
-  if (val === 2) return "#e08a3c";
-  if (val === 3) return "#e0c23c";
-  if (val === 4) return "#5aac6e";
-  return "#3A8F70";
-}
-
 function getScaleLabel(val) {
   return SCALE.find((s) => s.value === val)?.label ?? "";
 }
@@ -62,7 +53,7 @@ function EntryQuiz({ onComplete, loading = false }) {
 
   return (
       <Screen contentContainerStyle={styles.screen}>
-        <Card style={styles.card}>
+        <Card subtle style={styles.card}>
           <View style={styles.brand}>
             <View style={styles.brandRow}>
               <View style={styles.logoDot} />
@@ -73,17 +64,18 @@ function EntryQuiz({ onComplete, loading = false }) {
 
           {DOMAINS.map((d, i) => {
             const val = answers[d.id];
-            const color = getScaleColor(val);
             const isLast = i === DOMAINS.length - 1;
             const domainKey = QUIZ_ID_TO_DOMAIN[d.id] ?? d.id;
-            const domainIcon = domains[domainKey]?.icon ?? "star";
+            const domainMeta = domains[domainKey];
+            const domainIcon = domainMeta?.icon ?? "star";
+            const domainColor = domainMeta?.color ?? colors.pulsePrimary;
 
             return (
                 <View key={d.id} style={[styles.domain, !isLast && styles.domainDivider]}>
                   <View style={styles.domainHead}>
                     <View style={styles.domainHeadText}>
                       <Text style={styles.domainName}>
-                        <Icon name={domainIcon} size={15} color={colors.text} />{" "}
+                        <Icon name={domainIcon} size={15} color={domainColor} />{" "}
                         {d.name}
                       </Text>
                       <Text style={styles.domainFocus}>{d.focus}</Text>
@@ -93,13 +85,13 @@ function EntryQuiz({ onComplete, loading = false }) {
                         style={[
                           styles.valueBadge,
                           {
-                            backgroundColor: val ? `${color}22` : colors.pulseBg,
-                            borderColor: val ? `${color}55` : colors.border,
+                            backgroundColor: val ? `${domainColor}22` : colors.pulseBg,
+                            borderColor: val ? `${domainColor}55` : colors.border,
                           },
                         ]}
                     >
                       <Text
-                          style={[styles.valueBadgeText, { color: val ? color : colors.textMuted }]}
+                          style={[styles.valueBadgeText, { color: val ? domainColor : colors.textMuted }]}
                           numberOfLines={1}
                       >
                         {val ? `${val} — ${getScaleLabel(val)}` : "Not set"}
@@ -131,14 +123,14 @@ function EntryQuiz({ onComplete, loading = false }) {
                               accessibilityLabel={`${s.value}, ${s.label}`}
                               style={({ pressed }) => [
                                 styles.scaleItem,
-                                selected && { backgroundColor: `${color}1f`, borderColor: color },
+                                selected && { backgroundColor: `${domainColor}1f`, borderColor: domainColor },
                                 pressed && styles.pressed,
                               ]}
                           >
                             <Text
                                 style={[
                                   styles.scaleValue,
-                                  { color: selected ? color : colors.textMuted },
+                                  { color: selected ? domainColor : colors.textMuted },
                                 ]}
                             >
                               {s.value}
@@ -146,7 +138,7 @@ function EntryQuiz({ onComplete, loading = false }) {
                             <Text
                                 style={[
                                   styles.scaleLabel,
-                                  selected && { color, fontFamily: type.label.fontFamily },
+                                  selected && { color: domainColor, fontFamily: type.label.fontFamily },
                                 ]}
                                 numberOfLines={2}
                             >
@@ -178,7 +170,10 @@ function EntryQuiz({ onComplete, loading = false }) {
 
 const styles = StyleSheet.create({
   screen: { paddingVertical: spacing.xl },
-  card: { maxWidth: 520, alignSelf: "center" },
+  card: {
+    maxWidth: 520,
+    alignSelf: "center",
+  },
 
   brand: { alignItems: "center", gap: spacing.xs, marginBottom: spacing.lg },
   brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

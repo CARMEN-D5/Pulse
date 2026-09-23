@@ -5,9 +5,9 @@ import SavingModalShell from "./SavingModalShell";
 import DateField from "../components/DateField";
 import SegmentedField from "../components/SegmentedField";
 import { PrimaryButton } from "../components/ui";
-import { colors, fonts, radius, spacing, type } from "../theme";
+import { colors, radius, spacing, type } from "../theme";
+import SavingPlanIcon, { SAVING_PLAN_ICON_OPTIONS } from "./SavingPlanIcon";
 
-const ICONS = ["✈️", "🏠", "🚗", "💻", "📱", "🎓", "💍", "🎁", "🏖️", "💰", "🐶", "🎮"];
 const COLOURS = ["#4A6D98", "#E0546E", "#8E4570", "#D4A94C", "#5A8A4A", "#2A7A6A", "#B33D54", "#C48030"];
 
 const STATUS_OPTIONS = [
@@ -68,26 +68,26 @@ export default function SavingPlanModal({ plan, onClose, onSave }) {
       <View style={styles.field}>
         <Text style={styles.label}>Icon</Text>
         <View style={styles.iconGrid}>
-          {ICONS.map((icon) => (
+          {SAVING_PLAN_ICON_OPTIONS.map((option) => (
             <Pressable
-              key={icon}
-              onPress={() => change("icon", icon)}
+              key={option.value}
+              onPress={() => change("icon", option.value)}
               accessibilityRole="button"
-              accessibilityLabel={`Choose ${icon}`}
-              accessibilityState={{ selected: draft.icon === icon }}
+              accessibilityLabel={`Choose ${option.label} icon`}
+              accessibilityState={{ selected: draft.icon === option.value }}
               style={({ pressed }) => [
                 styles.iconOption,
-                draft.icon === icon && styles.iconOptionSelected,
+                draft.icon === option.value && styles.iconOptionSelected,
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.iconText}>{icon}</Text>
+              <SavingPlanIcon value={option.value} size={21} />
             </Pressable>
           ))}
         </View>
         <TextInput
           style={styles.input}
-          value={ICONS.includes(draft.icon) ? "" : draft.icon}
+          value={SAVING_PLAN_ICON_OPTIONS.some((option) => option.value === draft.icon) ? "" : draft.icon}
           onChangeText={(value) => change("icon", value)}
           maxLength={4}
           placeholder="Custom icon ✨"
@@ -193,8 +193,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   iconOptionSelected: { borderColor: colors.pulsePrimary, backgroundColor: colors.accentSoft },
-  iconText: { fontSize: 20 },
-
   colourRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   swatch: { width: 32, height: 32, borderRadius: radius.pill, borderWidth: 2, borderColor: "transparent" },
   swatchSelected: { borderColor: colors.text },

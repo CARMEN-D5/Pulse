@@ -6,6 +6,13 @@
 // that each one mounts under the native renderer, which is exactly what the
 // web versions could not do.
 jest.mock('../firebase', () => ({ app: {}, auth: {}, db: {}, storage: {} }));
+jest.mock('firebase/storage', () => ({
+  ref: jest.fn(), uploadBytes: jest.fn(), getDownloadURL: jest.fn(), deleteObject: jest.fn(),
+}));
+jest.mock('../components/share', () => ({
+  ShareButton: () => null,
+  useSharePrompt: () => ({ openSharePrompt: jest.fn() }),
+}));
 jest.mock('firebase/firestore', () => ({
   doc: jest.fn(), getDoc: jest.fn(), setDoc: jest.fn(), updateDoc: jest.fn(),
   addDoc: jest.fn(), deleteDoc: jest.fn(), collection: jest.fn(),
@@ -38,16 +45,24 @@ jest.mock('../firestore/savings', () => ({
 }));
 
 jest.mock('../firestore/finance', () => ({
+  dayKey: jest.fn((value = new Date()) => {
+    const date = value instanceof Date ? value : new Date(value);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }),
   monthBounds: jest.fn(() => ({ monthStart: new Date(2026, 7, 1), monthEnd: new Date(2026, 8, 1) })),
   daysInMonth: jest.fn(() => 31),
   listExpenses: jest.fn(async () => ({ ok: true, data: [] })),
 }));
 
 import React from 'react';
-import { act, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
-import SavingPlanCard from './SavingPlanCard';
-import SavingCalendar from './SavingCalendar';
+import SavingPlanCard, { getSavingPlanDisplay } from './SavingPlanCard';
+import SavingPlanIcon, { isSafeCustomSavingIcon } from './SavingPlanIcon';
+import SavingCalendar, { SAVING_EDIT_LIMIT_MESSAGE } from './SavingCalendar';
+import SpendingCalendar from './SpendingCalendar';
 import SavingPlanModal from './SavingPlanModal';
 import SavingEntryModal from './SavingEntryModal';
 import SavingDetailsModal from './SavingDetailsModal';
@@ -72,11 +87,44 @@ const noop = () => {};
 
 describe('saving UI renders under React Native', () => {
   it('SavingPlanCard', () => {
-    const { getByText } = render(
-      <SavingPlanCard plan={PLAN} savedAmount={1000} onEdit={noop} />
+    const onEdit = jest.fn();
+    const { getByLabelText, getByText, queryByText } = render(
+      <SavingPlanCard plan={PLAN} savedAmount={1000} onEdit={onEdit} />
     );
     expect(getByText('Japan trip')).toBeTruthy();
     expect(getByText('25%')).toBeTruthy();
+    expect(queryByText('1 Jan 2026 – 1 Dec 2026')).toBeNull();
+    fireEvent.press(getByLabelText('Japan trip saving plan. Tap to edit.'));
+    expect(onEdit).toHaveBeenCalledWith(PLAN);
+  });
+
+  it('calculates plan timing for active and expired rows without changing stored data', () => {
+    const active = getSavingPlanDisplay(PLAN, 1000, new Date(2026, 10, 1, 12));
+    expect(active.rawDays).toBeGreaterThan(0);
+    expect(active.dailyNeeded).toBeCloseTo(active.remaining / active.rawDays);
+
+    const expired = getSavingPlanDisplay(PLAN, 1000, new Date(2026, 11, 5, 12));
+    expect(expired.expiredDays).toBeGreaterThan(0);
+    expect(expired.dailyNeeded).toBeNull();
+  });
+
+  it('shows only a red expired message after the saved/remaining row', () => {
+    const { getByText, queryByText } = render(
+      <SavingPlanCard
+        plan={{ ...PLAN, dueDate: '2020-01-01' }}
+        savedAmount={1000}
+        onEdit={noop}
+      />
+    );
+    expect(getByText(/Expired \d+ days ago/)).toHaveStyle({ color: '#C94040' });
+    expect(queryByText(/day needed/)).toBeNull();
+    expect(queryByText(/days left/)).toBeNull();
+  });
+
+  it('uses a safe fallback for invalid saving plan icons', () => {
+    expect(isSafeCustomSavingIcon('\uFFFD')).toBe(false);
+    const { toJSON } = render(<SavingPlanIcon value="\uFFFD" />);
+    expect(JSON.stringify(toJSON())).not.toContain('\uFFFD');
   });
 
   it('SavingCalendar', () => {
@@ -223,5 +271,85 @@ describe('saving UI renders under React Native', () => {
     // Empty-state heading plus the calendar's own call to action.
     expect(getAllByText('Create a saving plan').length).toBeGreaterThan(0);
     expect(getByText('History')).toBeTruthy();
+  });
+
+  it('SavingCalendar explains the edit limit for old and future dates', () => {
+    const onInvalidEdit = jest.fn();
+    const onEditDay = jest.fn();
+    const onViewDay = jest.fn();
+    const now = new Date();
+    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const common = {
+      entries: [], plans: [], hasActivePlans: false, canViewNextMonth: false,
+      onPreviousMonth: noop, onNextMonth: noop, onViewDay, onEditDay,
+      onInvalidEdit, onAddPlan: noop,
+    };
+
+    const previous = render(<SavingCalendar {...common} monthStart={previousMonth} />);
+    fireEvent(previous.getByLabelText('1'), 'longPress');
+    fireEvent.press(previous.getByLabelText('1'));
+    previous.unmount();
+
+    const future = render(<SavingCalendar {...common} monthStart={nextMonth} />);
+    fireEvent(future.getByLabelText('1'), 'longPress');
+
+    expect(onInvalidEdit).toHaveBeenNthCalledWith(1, SAVING_EDIT_LIMIT_MESSAGE);
+    expect(onInvalidEdit).toHaveBeenNthCalledWith(2, SAVING_EDIT_LIMIT_MESSAGE);
+    expect(onEditDay).not.toHaveBeenCalled();
+    expect(onViewDay).toHaveBeenCalledTimes(1);
+  });
+
+  it('SpendingCalendar owns month navigation and the add expense action', () => {
+    const onPreviousMonth = jest.fn();
+    const onNextMonth = jest.fn();
+    const onAddExpense = jest.fn();
+    const { getByLabelText, getByText } = render(
+      <SpendingCalendar
+        expenses={[]}
+        monthStart={new Date(2026, 7, 1)}
+        monthLabel="August 2026"
+        dailyAllowance={58.33}
+        canViewNextMonth
+        onPreviousMonth={onPreviousMonth}
+        onNextMonth={onNextMonth}
+        onJumpToCurrentMonth={noop}
+        onAddExpense={onAddExpense}
+      />
+    );
+
+    expect(getByText('Allowance: $58.33 / day')).toBeTruthy();
+    fireEvent.press(getByLabelText('Previous month'));
+    fireEvent.press(getByLabelText('Next month'));
+    fireEvent.press(getByText('＋  Add an expense'));
+    expect(onPreviousMonth).toHaveBeenCalledTimes(1);
+    expect(onNextMonth).toHaveBeenCalledTimes(1);
+    expect(onAddExpense).toHaveBeenCalledTimes(1);
+  });
+
+  it('SavingView keeps active plans in one vertical scroll area', async () => {
+    const { listSavingPlans, getSavingTotalsByPlan } = require('../firestore/savings');
+    const plans = [
+      PLAN,
+      { ...PLAN, id: 'plan-2', name: 'Emergency fund', icon: '💰' },
+      { ...PLAN, id: 'plan-3', name: 'New laptop', icon: '💻' },
+    ];
+    listSavingPlans.mockResolvedValueOnce({ ok: true, data: plans });
+    getSavingTotalsByPlan.mockResolvedValueOnce({
+      ok: true,
+      data: { 'plan-1': 1000, 'plan-2': 500, 'plan-3': 250 },
+    });
+
+    const { getByTestId, getByText } = render(
+      <SavingView uid="u1" totalBudget={1000} onError={noop} />
+    );
+    await act(async () => {});
+
+    expect(getByTestId('active-saving-plans-scroll')).toBeTruthy();
+    expect(StyleSheet.flatten(getByTestId('active-saving-plans-card').props.style).height)
+      .toBeLessThanOrEqual(250);
+    expect(getByText('Active saving plans')).toBeTruthy();
+    expect(getByText('Emergency fund')).toBeTruthy();
+    expect(getByText('New laptop')).toBeTruthy();
   });
 });

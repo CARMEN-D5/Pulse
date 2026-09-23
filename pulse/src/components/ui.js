@@ -86,9 +86,19 @@ export function Screen({
 }
 
 /** Frosted card — the `.auth-glass-card` / `.dash-card` surface. */
-export function Card({ children, style, strong = false }) {
+export function Card({ children, style, strong = false, subtle = false }) {
   return (
-    <View style={[styles.card, strong && styles.cardStrong, shadow("md"), style]}>{children}</View>
+    <View
+      style={[
+        styles.card,
+        strong && styles.cardStrong,
+        shadow("md"),
+        subtle && styles.cardSubtle,
+        style,
+      ]}
+    >
+      {children}
+    </View>
   );
 }
 
@@ -336,6 +346,16 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   cardStrong: { backgroundColor: colors.glassStrong },
+  cardSubtle: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    elevation: 1,
+    shadowOpacity: 0.035,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
 
   header: {
     flexDirection: "row",

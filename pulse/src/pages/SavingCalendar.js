@@ -5,7 +5,7 @@
 // `conic-gradient` that split a day's cell between plans becomes a stripe of
 // equal-flex bars — one per entry, in that plan's colour.
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { localDayKey } from "../firestore/savings";
 import { PrimaryButton } from "../components/ui";
@@ -13,6 +13,8 @@ import { colors, fonts, radius, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+export const SAVING_EDIT_LIMIT_MESSAGE =
+  "Saving records can only be added or edited for today and the previous 7 days.";
 
 // Perceptual luminance of a hex colour, used to pick readable text over an
 // arbitrary saving-plan colour band.
@@ -35,6 +37,7 @@ export default function SavingCalendar({
   onNextMonth,
   onViewDay,
   onEditDay,
+  onInvalidEdit,
   onAddPlan,
 }) {
   const planMap = useMemo(
@@ -92,6 +95,17 @@ export default function SavingCalendar({
   earliest.setHours(0, 0, 0, 0);
 
   const editable = (cell) => !cell.blank && cell.date <= todayEnd && cell.date >= earliest;
+  const handleLongPress = (cell) => {
+    if (editable(cell)) {
+      onEditDay(cell.key);
+      return;
+    }
+    if (onInvalidEdit) {
+      onInvalidEdit(SAVING_EDIT_LIMIT_MESSAGE);
+      return;
+    }
+    Alert.alert("Saving records", SAVING_EDIT_LIMIT_MESSAGE);
+  };
 
   return (
     <View style={styles.wrap}>
@@ -157,12 +171,16 @@ export default function SavingCalendar({
             <Pressable
               key={cell.key}
               onPress={() => onViewDay(cell.key)}
-              onLongPress={() => editable(cell) && onEditDay(cell.key)}
+              onLongPress={() => handleLongPress(cell)}
               accessibilityRole="button"
               accessibilityLabel={`${cell.date.getDate()}${
                 cell.entries.length ? `, $${total.toFixed(0)} saved` : ""
               }`}
-              accessibilityHint={editable(cell) ? "Long press to edit" : undefined}
+              accessibilityHint={
+                editable(cell)
+                  ? "Long press to edit"
+                  : "Long press to hear which dates can be edited"
+              }
               style={({ pressed }) => [
                 styles.cell,
                 styles.cellFilled,

@@ -1,3 +1,5 @@
+import { domains } from '../theme';
+
 /**
  * Central repository of all daily mission text pools, keyed by domain.
  * Edit this file to add, remove, or update missions without touching any logic.
@@ -93,11 +95,11 @@ export const MISSION_POOLS = {
  * cross-platform consistency.
  */
 export const DOMAIN_META = {
-    spirituality:  { label: 'Spirituality',        icon: '🧘', color: '#C9971F' },
-    relationships: { label: 'Family & Friends',     icon: '🤝', color: '#7A4FA3' },
-    productivity:  { label: 'Work / Productivity',  icon: '💼', color: '#3A72B8' },
-    health:        { label: 'Health',               icon: '💪', color: '#D1435E' },
-    finance:       { label: 'Financial Wellbeing',  icon: '💰', color: '#2F8F63' },
+    spirituality:  { label: 'Spirituality',        icon: '🧘', color: domains.spirituality.color },
+    relationships: { label: 'Family & Friends',     icon: '🤝', color: domains.relationships.color },
+    productivity:  { label: 'Work / Productivity',  icon: '💼', color: domains.productivity.color },
+    health:        { label: 'Health',               icon: '💪', color: domains.health.color },
+    finance:       { label: 'Financial Wellbeing',  icon: '💰', color: domains.finance.color },
 };
 
 /** Ordered list of all domain keys. */

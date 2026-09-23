@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import Icon from "../components/Icon";
+import { PrimaryButton } from "../components/ui";
 import { dayKey } from "../firestore/finance";
 import { colors, fonts, radius, spacing, type } from "../theme";
 
@@ -29,8 +31,22 @@ const TINTS = {
  *   monthStart: Date — first day of the month being shown.
  *   dailyAllowance: number — monthly budget / days in month. 0 = unset.
  */
-function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
+function SpendingCalendar({
+  expenses = [],
+  monthStart,
+  monthLabel,
+  dailyAllowance = 0,
+  canViewNextMonth = false,
+  onPreviousMonth,
+  onNextMonth,
+  onJumpToCurrentMonth,
+  onAddExpense,
+}) {
   const [selectedKey, setSelectedKey] = useState(null);
+  const displayMonthLabel =
+    monthLabel ||
+    monthStart?.toLocaleDateString("en-AU", { month: "long", year: "numeric" }) ||
+    "";
 
   const monthGrid = useMemo(() => {
     if (!monthStart) return { cells: [], totalsByDay: {}, monthLength: 0 };
@@ -103,14 +119,7 @@ function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
   return (
     <View style={styles.root}>
       <View style={styles.head}>
-        <View style={styles.flex}>
-          <Text style={styles.title}>Daily spending</Text>
-          <Text style={styles.sub}>
-            {dailyAllowance > 0
-              ? `Allowance: $${dailyAllowance.toFixed(2)} / day`
-              : "Set a budget to see your daily allowance"}
-          </Text>
-        </View>
+        <Text style={[styles.title, styles.flex]}>Daily spending</Text>
 
         <View style={styles.legend}>
           <View style={styles.legendItem}>
@@ -123,6 +132,57 @@ function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
           </View>
         </View>
       </View>
+
+      <View style={styles.monthNav}>
+        <Pressable
+          onPress={onPreviousMonth}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Previous month"
+          style={({ pressed }) => [styles.monthArrow, pressed && styles.pressed]}
+        >
+          <Icon name="chevron-left" size={22} color={colors.text} />
+        </Pressable>
+
+        <Pressable
+          onPress={onJumpToCurrentMonth}
+          disabled={canViewNextMonth === false}
+          accessibilityRole="button"
+          accessibilityLabel={
+            canViewNextMonth ? "Jump to this month" : `Viewing ${displayMonthLabel}`
+          }
+          style={styles.monthLabelButton}
+        >
+          <Text style={styles.monthLabel}>{displayMonthLabel}</Text>
+          {canViewNextMonth ? <Text style={styles.monthHint}>tap to jump to this month</Text> : null}
+        </Pressable>
+
+        <Pressable
+          onPress={onNextMonth}
+          disabled={!canViewNextMonth}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Next month"
+          accessibilityState={{ disabled: !canViewNextMonth }}
+          style={({ pressed }) => [
+            styles.monthArrow,
+            !canViewNextMonth && styles.monthArrowDisabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Icon
+            name="chevron-right"
+            size={22}
+            color={canViewNextMonth ? colors.text : colors.textMuted}
+          />
+        </Pressable>
+      </View>
+
+      <Text style={styles.sub}>
+        {dailyAllowance > 0
+          ? `Allowance: $${dailyAllowance.toFixed(2)} / day`
+          : "Set a budget to see your daily allowance"}
+      </Text>
 
       <View style={styles.weekdays}>
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
@@ -184,6 +244,8 @@ function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
           </Text>
         </View>
       ) : null}
+
+      <PrimaryButton label="＋  Add an expense" onPress={onAddExpense} />
     </View>
   );
 }
@@ -191,10 +253,25 @@ function SpendingCalendar({ expenses = [], monthStart, dailyAllowance = 0 }) {
 const styles = StyleSheet.create({
   root: { gap: spacing.md },
   flex: { flex: 1 },
+  pressed: { opacity: 0.7 },
 
   head: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm },
   title: { ...type.title, fontFamily: fonts.bold, fontSize: 15, color: colors.text },
   sub: { ...type.caption, fontSize: 12, color: colors.textMuted },
+
+  monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  monthArrow: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.rowTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthArrowDisabled: { opacity: 0.35, backgroundColor: "transparent" },
+  monthLabelButton: { flex: 1, alignItems: "center" },
+  monthLabel: { ...type.title, fontFamily: fonts.semibold, color: colors.text },
+  monthHint: { ...type.caption, fontSize: 9, color: colors.textMuted, marginTop: 1 },
 
   legend: { gap: 2 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },

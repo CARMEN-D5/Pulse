@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { daysInMonth, listExpenses, monthBounds } from "../firestore/finance";
 import {
@@ -36,13 +36,12 @@ import { confirm } from "../utils/dialogs";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
-// Above this width there's room for two (compact) saving-plan cards side by
-// side — low enough that it applies to ordinary phone widths, not just tablets.
-const WIDE_BREAKPOINT = 350;
-
 export default function SavingView({ uid, totalBudget, onError }) {
-  const { width } = useWindowDimensions();
-  const isWide = width >= WIDE_BREAKPOINT;
+  const { height } = useWindowDimensions();
+  // Constrain the plan area without tuning it to one emulator. Short phones
+  // still get a useful viewport, while taller screens do not let the list
+  // push the calendar indefinitely down the page.
+  const planAreaHeight = Math.min(250, Math.max(210, Math.round(height * 0.255)));
   const [plans, setPlans] = useState([]);
   const [calendarEntries, setCalendarEntries] = useState([]);
   const [savedByPlan, setSavedByPlan] = useState({});
@@ -205,20 +204,33 @@ export default function SavingView({ uid, totalBudget, onError }) {
   return (
     <>
       <TutorialTarget id={TUTORIAL_TARGETS.saving.planArea}>
-      <View style={[styles.card, shadow("sm")]}>
+      <View
+        testID="active-saving-plans-card"
+        style={[styles.planCard, shadow("sm"), { height: planAreaHeight }]}
+      >
+        <View style={styles.planHeader}>
+          <Text style={styles.planTitle}>Active saving plans</Text>
+          <Text style={styles.planCount}>{active.length}</Text>
+        </View>
         {active.length ? (
-          <View style={[styles.planList, isWide && styles.planListWide]}>
-            {active.map((plan) => (
-              <View key={plan.id} style={isWide && styles.planCol}>
-                <SavingPlanCard
-                  plan={plan}
-                  savedAmount={savedByPlan[plan.id] || 0}
-                  onEdit={setPlanModal}
-                  compact={isWide}
-                />
-              </View>
+          <ScrollView
+            testID="active-saving-plans-scroll"
+            style={styles.planScroller}
+            contentContainerStyle={styles.planList}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={active.length > 1}
+          >
+            {active.map((plan, index) => (
+              <SavingPlanCard
+                key={plan.id}
+                plan={plan}
+                savedAmount={savedByPlan[plan.id] || 0}
+                onEdit={setPlanModal}
+                showDivider={index < active.length - 1}
+              />
             ))}
-          </View>
+          </ScrollView>
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Create a saving plan</Text>
@@ -403,11 +415,42 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  planList: { gap: spacing.md },
-  planListWide: { flexDirection: "row", flexWrap: "wrap" },
-  planCol: { width: "48%" },
+  planCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+  },
+  planHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  planTitle: { ...type.title, fontFamily: fonts.bold, color: colors.text },
+  planCount: {
+    ...type.caption,
+    fontFamily: fonts.bold,
+    color: colors.textMuted,
+    backgroundColor: colors.rowTint,
+    minWidth: 24,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    textAlign: "center",
+  },
+  planScroller: { flex: 1 },
+  planList: { paddingHorizontal: spacing.lg },
 
-  emptyState: { gap: spacing.sm, alignItems: "stretch" },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    gap: spacing.sm,
+    padding: spacing.lg,
+    alignItems: "stretch",
+  },
   emptyTitle: { ...type.title, fontFamily: fonts.bold, color: colors.text },
   emptyBody: { ...type.small, color: colors.textMuted },
 

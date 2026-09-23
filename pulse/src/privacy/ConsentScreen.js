@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { Card, PrimaryButton, Screen } from "../components/ui";
-import { colors, domainColors, fonts, radius, spacing, type } from "../theme";
+import { colors, domains, fonts, radius, spacing, type } from "../theme";
 import { OPTIONAL_CONSENTS, SENSITIVE_NOTICE, SHORT_NOTICE } from "./consentNotice";
 
 export default function ConsentScreen({ onComplete, loading = false }) {
@@ -22,7 +22,7 @@ export default function ConsentScreen({ onComplete, loading = false }) {
 
     return (
         <Screen contentContainerStyle={styles.screen}>
-            <Card style={styles.card}>
+            <Card subtle style={styles.card}>
                 <View style={styles.brand}>
                     <View style={styles.brandRow}>
                         <View style={styles.logoDot} />
@@ -36,8 +36,8 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                 {/* Sensitive information — stated, not switchable. */}
                 <View style={styles.group}>
                     <View style={styles.sensitiveHead}>
-                        <View style={[styles.dot, { backgroundColor: domainColors.health }]} />
-                        <View style={[styles.dot, { backgroundColor: domainColors.spirituality }]} />
+                        <View style={[styles.dot, { backgroundColor: domains.health.color }]} />
+                        <View style={[styles.dot, { backgroundColor: domains.spirituality.color }]} />
                         <Text style={styles.groupHeading}>{SENSITIVE_NOTICE.heading}</Text>
                     </View>
                     <Text style={styles.groupBody}>{SENSITIVE_NOTICE.body}</Text>

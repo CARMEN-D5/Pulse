@@ -73,7 +73,7 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
         </View>
 
         {/* Form card */}
-        <Card>
+        <Card subtle>
           <Alert message={serverError} />
 
           <View style={styles.form}>

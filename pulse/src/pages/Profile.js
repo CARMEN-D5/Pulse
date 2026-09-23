@@ -9,7 +9,7 @@ import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import Icon from "../components/Icon";
-import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { colors, fonts, profileColors, radius, shadow, spacing, type } from "../theme";
 import ProgressAnalytics from "./ProgressAnalytics";
 import {
   TUTORIAL_ORDER,
@@ -155,7 +155,7 @@ function Profile({ user, onLogout, onReplayTutorial }) {
         <>
           <View style={styles.header}>
             <LinearGradient
-              colors={["#B33D54", "#E8889A"]}
+              colors={profileColors.gradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.avatar}
@@ -214,14 +214,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  avatarText: { fontFamily: fonts.extrabold, fontSize: 24, color: "#fff" },
+  avatarText: { fontFamily: fonts.extrabold, fontSize: 24, color: colors.text },
   name: {
     flex: 1,
     ...type.h2,
     fontFamily: fonts.extrabold,
     fontSize: 22,
-    color: colors.pulsePrimaryDark,
+    color: colors.text,
   },
   gear: { padding: spacing.xs },
 

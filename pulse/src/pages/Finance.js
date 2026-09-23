@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 import DateField from "../components/DateField";
 import Icon from "../components/Icon";
@@ -63,6 +72,8 @@ const STREAK_LOOKBACK_DAYS = 120;
  */
 function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
   const uid = user?.uid;
+  const { width } = useWindowDimensions();
+  const summaryDonutSize = Math.min(168, Math.max(138, Math.round(width * 0.37)));
 
   const [expenses, setExpenses] = useState([]);
   const [budgets, setBudgets] = useState({}); // { category: { monthlyLimit } }
@@ -349,66 +360,14 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
         <SavingView uid={uid} totalBudget={totalBudget} onError={setError} />
       ) : (
         <>
-      {/* ---------- Month navigator + primary "Add expense" button ----- */}
-      <View style={[styles.card, shadow("sm"), styles.monthBar]}>
-        <Pressable
-          onPress={goToPrevMonth}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Previous month"
-          style={({ pressed }) => [styles.monthArrow, pressed && styles.pressed]}
-        >
-          <Icon name="chevron-left" size={22} color={colors.text} />
-        </Pressable>
-
-        <Pressable
-          onPress={goToThisMonth}
-          disabled={isCurrentMonth}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isCurrentMonth ? `Viewing ${monthName}` : `Jump to this month`
-          }
-          style={styles.monthLabelBtn}
-        >
-          <Text style={styles.monthTitle}>{monthName}</Text>
-          {!isCurrentMonth ? (
-            <Text style={styles.monthJumpHint}>tap to jump to this month</Text>
-          ) : null}
-        </Pressable>
-
-        <Pressable
-          onPress={goToNextMonth}
-          disabled={isCurrentMonth}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Next month"
-          style={({ pressed }) => [
-            styles.monthArrow,
-            isCurrentMonth && styles.monthArrowDisabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Icon
-            name="chevron-right"
-            size={22}
-            color={isCurrentMonth ? colors.textMuted : colors.text}
-          />
-        </Pressable>
-      </View>
-
-      <PrimaryButton
-        label="＋  Add an expense"
-        onPress={() => setShowAddExpense(true)}
-      />
-
       {/* ---------- Chart + legend ---------- */}
       <TutorialTarget id={TUTORIAL_TARGETS.budget.summary}>
-      <View style={[styles.card, shadow("sm")]}>
+      <View testID="spending-summary-card" style={[styles.card, styles.summaryCard, shadow("sm")]}>
         <View style={styles.summary}>
           <DonutChart
             data={donutData}
-            size={220}
-            thickness={28}
+            size={summaryDonutSize}
+            thickness={22}
             centerLabel={`$${totalSpent.toFixed(0)}`}
             centerSub={totalBudget > 0 ? `of $${totalBudget.toFixed(0)}` : "spent this month"}
           />
@@ -434,7 +393,13 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
                 <SpendingCalendar
                     expenses={expenses}
                     monthStart={monthStart}
+                    monthLabel={monthName}
                     dailyAllowance={dailyAllowance}
+                    canViewNextMonth={!isCurrentMonth}
+                    onPreviousMonth={goToPrevMonth}
+                    onNextMonth={goToNextMonth}
+                    onJumpToCurrentMonth={goToThisMonth}
+                    onAddExpense={() => setShowAddExpense(true)}
                 />
               </View>
 
@@ -471,9 +436,8 @@ function Finance({ user, onBack, onActivityLogged, tutorialTab }) {
                 </View>
               </View>
 
-      {/* Add expense is now opened via the "+ Add an expense" button at
-          the top of the Spending tab (opens AddExpenseModal). The inline
-          form card that used to sit here has been removed intentionally. */}
+      {/* Add expense is opened from the Daily spending calendar card. The
+          modal/form itself remains unchanged. */}
       {/* ---------- Recent transactions ---------- */}
       <View style={[styles.card, shadow("sm")]}>
         <Text style={styles.sectionTitle}>Recent transactions</Text>
@@ -683,8 +647,8 @@ function AddExpenseForm({ accounts, defaultAccount, initialDate, onSubmit }) {
 
 // ============================================================================
 // Add expense modal — wraps AddExpenseForm in a bottom-sheet Modal so
-// users don't have to scroll to reach it. Opened from the primary
-// "Add an expense" button that sits at the top of the Spending tab.
+// users don't have to scroll to reach it. Opened from the primary action
+// inside the Daily spending calendar card.
 // ============================================================================
 
 function AddExpenseModal({
@@ -990,12 +954,13 @@ const styles = StyleSheet.create({
   sectionTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 15, color: colors.text },
   emptyState: { ...type.small, color: colors.textMuted, paddingVertical: spacing.md },
 
-  summary: { alignItems: "center", gap: spacing.lg },
-  legend: { width: "100%", gap: 6 },
+  summaryCard: { paddingVertical: spacing.md },
+  summary: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  legend: { flex: 1, minWidth: 0, gap: 4 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   legendSwatch: { width: 10, height: 10, borderRadius: radius.pill },
-  legendLabel: { ...type.small, flex: 1, color: colors.text },
-  legendAmount: { ...type.label, fontSize: 13, color: colors.text },
+  legendLabel: { ...type.small, fontSize: 12, flex: 1, color: colors.text },
+  legendAmount: { ...type.label, fontSize: 12, color: colors.text },
 
   budgetRows: { gap: spacing.md },
   budgetRow: { gap: 6 },
@@ -1099,32 +1064,6 @@ const styles = StyleSheet.create({
   modalBody: { flexGrow: 0 },
   modalBodyContent: { gap: spacing.md },
   modalHint: { ...type.small, color: colors.textMuted },
-
-  // Month navigator that sits above the donut on the Spending tab.
-  monthBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-  },
-  monthArrow: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.glass,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  monthArrowDisabled: { opacity: 0.35, backgroundColor: "transparent" },
-  monthLabelBtn: { flex: 1, alignItems: "center" },
-  monthTitle: { ...type.h3, color: colors.text, textAlign: "center" },
-  monthJumpHint: {
-    ...type.caption,
-    color: colors.textMuted,
-    marginTop: 2,
-    textAlign: "center",
-  },
 
   tabs: { flexDirection: "row", gap: 6 },
   tab: {
