@@ -60,14 +60,14 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconBox}>
-            <Icon name="self_care" size={40} color={colors.blPrimary} />
+            <Icon name="self_care" size={40} color={colors.pulsePrimaryDark} />
           </View>
           <Text style={styles.title}>Sign In</Text>
           <Text style={styles.subtitle}>Welcome back to Pulse</Text>
         </View>
 
         {/* Form card */}
-        <Card>
+        <Card subtle>
           <Alert message={loginError} />
 
           <View style={styles.form}>

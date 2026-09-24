@@ -28,7 +28,7 @@ export default function ShareButton({ domain, payload, style }) {
             accessibilityLabel="Share to feed"
             style={({ pressed }) => [styles.btn, style, pressed && styles.pressed]}
         >
-            <Icon name="share" size={20} color={colors.text} />
+            <Icon name="ios_share" size={20} color={colors.text} />
         </Pressable>
     );
 }

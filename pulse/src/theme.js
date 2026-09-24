@@ -46,13 +46,81 @@ export const colors = {
   overlay: "rgba(42, 37, 35, 0.45)",
 };
 
-export const domainColors = {
-  health: "#E0546E",
-  relationships: "#8E4570",
-  spirituality: "#2A7A6A",
-  productivity: "#4A6D98",
-  finance: "#C48030",
+// Canonical domain palette. Keep domain identity stable across onboarding,
+// Home, missions and Profile while softening saturation for Pulse's warm
+// cream/pink surfaces.
+export const DOMAIN_COLORS = Object.freeze({
+  spirituality: "#D9BE78",
+  health: "#C98692",
+  relationships: "#AA96BE",
+  finance: "#82A58E",
+  productivity: "#819CB6",
+});
+
+// Backwards-compatible alias for older imports. New UI should prefer the
+// richer `domains` tokens below.
+export const domainColors = DOMAIN_COLORS;
+
+// Canonical per-domain design tokens — single source of truth for the color
+// and icon shown for a domain anywhere in the app (Home, missions, analytics,
+// Features, etc.). Shades are deliberately kept away from `colors.error`
+// (#C94040) and `colors.success` (#3A8F70) so a domain accent is never
+// mistaken for a status color.
+export const domains = {
+  spirituality: {
+    icon: "auto_awesome",
+    color: DOMAIN_COLORS.spirituality,
+    light: "#F8F2E7",
+    text: "#705D38",
+    accent: DOMAIN_COLORS.spirituality,
+    gradient: ["#CBB174", DOMAIN_COLORS.spirituality],
+  },
+  relationships: {
+    icon: "groups",
+    color: DOMAIN_COLORS.relationships,
+    light: "#F3EFF6",
+    text: "#6E5E7C",
+    accent: DOMAIN_COLORS.relationships,
+    gradient: ["#9583A8", DOMAIN_COLORS.relationships],
+  },
+  productivity: {
+    icon: "business_center",
+    color: DOMAIN_COLORS.productivity,
+    light: "#EEF3F6",
+    text: "#556D84",
+    accent: DOMAIN_COLORS.productivity,
+    gradient: ["#718BA4", DOMAIN_COLORS.productivity],
+  },
+  health: {
+    icon: "favorite",
+    color: DOMAIN_COLORS.health,
+    light: "#F8EEF0",
+    text: "#865763",
+    accent: DOMAIN_COLORS.health,
+    gradient: ["#B57582", DOMAIN_COLORS.health],
+  },
+  finance: {
+    icon: "payments",
+    color: DOMAIN_COLORS.finance,
+    light: "#EFF5F1",
+    text: "#55705F",
+    accent: DOMAIN_COLORS.finance,
+    gradient: ["#72927D", DOMAIN_COLORS.finance],
+  },
 };
+
+// Profile analytics uses a neutral lavender/slate accent so score history is
+// visually distinct from red status messaging and the Health domain colour.
+export const profileColors = Object.freeze({
+  accent: "#B96A7E",
+  gradient: ["#FFF8F8", "#FAF3F5"],
+  soft: "rgba(185, 106, 126, 0.10)",
+  trend: Object.freeze({
+    positive: Object.freeze({ text: "#4F9B78", background: "#EEF7F2" }),
+    negative: Object.freeze({ text: "#C85F78", background: "#FBEFF2" }),
+    neutral: Object.freeze({ text: "#88827F", background: "#F4F2F1" }),
+  }),
+});
 
 export const spacing = {
   xs: 4,
@@ -117,4 +185,16 @@ export const bgGradient = {
   stops: [0, 0.35, 0.7, 1],
 };
 
-export default { colors, domainColors, spacing, radius, fonts, type, shadow, bgGradient };
+export default {
+  colors,
+  DOMAIN_COLORS,
+  domainColors,
+  domains,
+  profileColors,
+  spacing,
+  radius,
+  fonts,
+  type,
+  shadow,
+  bgGradient,
+};

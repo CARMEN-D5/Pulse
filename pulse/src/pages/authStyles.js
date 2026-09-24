@@ -36,7 +36,7 @@ export default StyleSheet.create({
 
   form: { gap: spacing.xl },
 
-  forgotRow: { alignItems: "flex-end", paddingRight: spacing.xs, marginTop: -spacing.xs },
+  forgotRow: { alignItems: "flex-end", paddingRight: spacing.xs, marginTop: spacing.sm },
 
   // Circular social buttons (sign-in variant)
   socialCircles: {
@@ -80,7 +80,7 @@ export default StyleSheet.create({
     gap: spacing.xs,
   },
   footerText: { ...type.small, color: colors.blOnSurfaceVariant },
-  footerLink: { ...type.label, color: colors.blPrimary },
+  footerLink: { ...type.label, color: colors.pulsePrimaryDark },
 
   badge: {
     flexDirection: "row",

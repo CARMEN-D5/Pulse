@@ -10,7 +10,6 @@ const ROUTES = {
   todo: { view: "todo" },
   activity: { view: "domain", domain: "health" },
   journal: { view: "domain", domain: "spirituality" },
-  relationships: { view: "domain", domain: "relationships" },
   missions: { view: "missions" },
   social: { view: "social" },
   profile: { view: "profile" },
@@ -68,7 +67,7 @@ export const TUTORIALS = {
         route: { view: "features" },
         target: TARGET.features.list,
         title: "Everything in one place",
-        body: "Each card opens a focused tool. Journal supports spirituality, To-do supports productivity, Budget supports finance and Activity supports health.",
+        body: "Each card opens a focused tool. Journal supports spirituality, To-do supports productivity, Finance supports your money and Activity supports health.",
       },
       {
         route: { view: "features" },
@@ -82,7 +81,7 @@ export const TUTORIALS = {
 
   financeSpending: {
     version: 1,
-    title: "Budget Tracker",
+    title: "Finance Tracker",
     steps: onRoute(ROUTES.finance, [
       {
         route: { view: "finance" },
@@ -227,32 +226,11 @@ export const TUTORIALS = {
         body: "The weekly chart helps you notice changes in mood instead of judging a single day in isolation.",
       },
       {
-        route: { view: "domain", activeDomain: "relationships" },
         target: TARGET.journal.entries,
         title: "Journal entries",
         body: "Add a short reflection and emotion tags after choosing a mood. Journal details stay on this device.",
         ctaLabel: "Log today's mood",
         finish: "startCheckin",
-      },
-    ]),
-  },
-
-  relationships: {
-    version: 1,
-    title: "Family & Friends",
-    steps: onRoute(ROUTES.relationships, [
-      {
-        route: { view: "domain", activeDomain: "relationships" },
-        target: TARGET.domain.reflection,
-        title: "Reflect on today",
-        body: "Rate how connected and supported you felt. Reflections contribute to this domain's weekly score.",
-      },
-      {
-        route: { view: "missions" },
-        target: TARGET.domain.actions,
-        title: "Log meaningful actions",
-        body: "Record a connection or relationship mission after you complete it. Actions and consistency help your score grow.",
-        ctaLabel: "Try it now",
       },
     ]),
   },
@@ -277,8 +255,7 @@ export const TUTORIALS = {
         route: { view: "social" },
         target: TARGET.missions.history,
         title: "Review your history",
-        body: "History summarises this week, progress by domain and all-time mission completion.",
-        ctaLabel: "Try it now",
+        body: "Scroll down to see your history — this week, progress by domain and all-time mission completion.",
       },
     ]),
   },
@@ -290,8 +267,8 @@ export const TUTORIALS = {
       {
         route: { view: "social" },
         target: TARGET.social.tabs,
-        title: "Feed, Today and Messages",
-        body: "Feed contains posts from you and your friends. Today is your daily check-in. Messages contains friends, requests and conversations.",
+        title: "Feed and Messages",
+        body: "Feed contains daily check-in posts from you and your friends. Messages contains friends, requests and conversations.",
       },
       {
         route: { view: "profile" },
@@ -331,7 +308,6 @@ export const TUTORIAL_ORDER = [
   "todo",
   "activity",
   "journal",
-  "relationships",
   "missions",
   "social",
   "profile",

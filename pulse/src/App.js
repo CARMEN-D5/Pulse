@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { BackHandler, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppShell from "./components/AppShell";
-import { Loading, Screen } from "./components/ui";
+import { Alert, Loading, PrimaryButton, Screen } from "./components/ui";
 import useAppFonts from "./hooks/useAppFonts";
 
 import Splash from "./pages/Splash";
@@ -68,13 +68,14 @@ const DOMAIN_PAGE_MAP = {
   health:        PhysicalActivity,
 };
 
-// The four root destinations behind the bottom tab bar. These render inside
-// <AppShell>; every other authed view is a stacked page with its own back
-// affordance and no tab bar.
+// The four root destinations behind the bottom tab bar.
 const TAB_VIEWS = ["home", "features", "social", "profile"];
 
 // Stacked pages: reached from a domain row on Home or from the Features menu,
 // and dismissed back to whichever tab opened them (tracked in `tabReturn`).
+// These also render inside <AppShell> — the PULSE bar and tab bar stay on
+// screen everywhere in the authed app — with their own ScreenHeader back
+// affordance layered on top for the actual dismiss action.
 const STACKED_VIEWS = ["finance", "domain", "todo", "missions"];
 
 // Auth screens whose back button returns to the splash screen.
@@ -115,6 +116,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [userDoc, setUserDoc] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [authInitError, setAuthInitError] = useState("");
+  const [authRetryNonce, setAuthRetryNonce] = useState(0);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [activeDomain, setActiveDomain] = useState(null);
   const [scoreVersion, setScoreVersion] = useState(0);
@@ -129,6 +132,7 @@ function App() {
   const [consent, setConsent] = useState(null);
   const [consentReady, setConsentReady] = useState(false);
   const [consentSaving, setConsentSaving] = useState(false);
+  const [consentError, setConsentError] = useState("");
 
   const fontsReady = useAppFonts();
 
@@ -150,45 +154,87 @@ function App() {
     };
   }, []);
 
-  // Subscribe to Firebase auth state. Runs once on mount.
+  // Subscribe to Firebase auth state on mount. A user-requested retry replaces
+  // the subscription so Firebase immediately replays the current session.
   useEffect(() => {
+    let alive = true;
     const unsubscribe = onAuthChange(async (firebaseUser) => {
+      if (!alive) return;
+      setAuthReady(false);
+      setAuthInitError("");
       setUser(firebaseUser);
-      setAuthReady(true);
 
-      if (firebaseUser) {
-        await ensureUserDoc(firebaseUser);
-        const { data } = await getUserDoc(firebaseUser.uid);
-        setUserDoc(data);
+      try {
+        if (firebaseUser) {
+          const ensured = await ensureUserDoc(firebaseUser);
+          if (!ensured?.ok) throw new Error(ensured?.error || "User profile setup failed");
 
-        // Reconcile device and account records. The profile wins for the
-        // account half, so someone who consented on another handset is not
-        // asked again here.
-        const reconciled = await syncConsent(firebaseUser.uid, data);
-        setConsent(reconciled);
-        setConsentReady(true);
+          const profile = await getUserDoc(firebaseUser.uid);
+          if (!profile?.ok) throw new Error(profile?.error || "User profile load failed");
+          const data = profile.data;
+          if (!alive) return;
+          setUserDoc(data);
 
-        // Routing rules, in order:
-        //   1. No account-level consent yet → consent view. This covers a new
-        //      sign-up, an account predating the feature, and a version bump.
-        //   2. Brand-new sign-up → entry quiz
-        //   3. Existing user without a saved baseline → entry quiz
-        //   4. Otherwise preserve any current authed view, default to home
-        const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS];
-        setView((current) => {
-          if (!accountConsented(reconciled)) return "consent";
-          if (isNewSignUp.current) return "entryQuiz";
-          if (!data?.onboardingCompletedAt) return "entryQuiz";
-          return AUTHED_VIEWS.includes(current) ? current : "home";
-        });
-      } else {
-        setUserDoc(null);
-        const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "consent", "entryQuiz"];
-        setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
+          // Reconcile device and account records. The profile wins for the
+          // account half, so someone who consented on another handset is not
+          // asked again here.
+          const syncResult = await syncConsent(firebaseUser.uid, data);
+          if (syncResult?.ok === false) {
+            throw new Error(syncResult?.error || "Consent synchronization failed");
+          }
+          const reconciled =
+            syncResult?.ok === true && Object.prototype.hasOwnProperty.call(syncResult, "data")
+              ? syncResult.data
+              : syncResult;
+          if (!reconciled || typeof reconciled !== "object") {
+            throw new Error("Consent synchronization returned an invalid record");
+          }
+          if (!alive) return;
+          setConsent(reconciled);
+          setConsentReady(true);
+
+          // Routing rules, in order:
+          //   1. No account-level consent yet → consent view. This covers a new
+          //      sign-up, an account predating the feature, and a version bump.
+          //   2. Brand-new sign-up → entry quiz
+          //   3. Existing user without a saved baseline → entry quiz
+          //   4. Otherwise preserve any current authed view, default to home
+          const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS];
+          setView((current) => {
+            if (!accountConsented(reconciled)) return "consent";
+            if (isNewSignUp.current) return "entryQuiz";
+            if (!data?.onboardingCompletedAt) return "entryQuiz";
+            return AUTHED_VIEWS.includes(current) ? current : "home";
+          });
+        } else {
+          setUserDoc(null);
+          const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "consent", "entryQuiz"];
+          setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
+        }
+      } catch (error) {
+        // Keep implementation details out of the UI, but retain a compact
+        // diagnostic for development builds and remote debugging.
+        console.debug("[Pulse] authenticated initialization failed", error?.code, error?.message);
+        if (alive) {
+          setAuthInitError(
+            "We couldn't finish loading your account. Check your connection and try again."
+          );
+        }
+      } finally {
+        if (alive) setAuthReady(true);
       }
     });
-    return unsubscribe;
-  }, []);
+    return () => {
+      alive = false;
+      unsubscribe?.();
+    };
+  }, [authRetryNonce]);
+
+  const retryAuthInitialization = () => {
+    setAuthInitError("");
+    setAuthReady(false);
+    setAuthRetryNonce((value) => value + 1);
+  };
 
   const goBack = useCallback(() => {
     setActiveDomain(null);
@@ -234,12 +280,27 @@ function App() {
   // hands off to the rest of registration.
   const handleConsentComplete = async (choices) => {
     setConsentSaving(true);
-    const record = acceptAccountConsent(consent, choices);
-    await writeLocalConsent(record);
-    if (user?.uid) await writeProfileConsent(user.uid, record);
-    setConsent(record);
-    setConsentSaving(false);
-    setView(userDoc?.onboardingCompletedAt ? "home" : "entryQuiz");
+    setConsentError("");
+
+    try {
+      const record = acceptAccountConsent(consent, choices);
+      await writeLocalConsent(record);
+
+      if (user?.uid) {
+        const result = await writeProfileConsent(user.uid, record);
+        if (!result?.ok) throw new Error(result?.error || "Consent save failed");
+      }
+
+      setConsent(record);
+      setView(userDoc?.onboardingCompletedAt ? "home" : "entryQuiz");
+    } catch (error) {
+      console.debug("[Pulse] consent save failed", error?.code, error?.message);
+      setConsentError(
+        "We couldn't save your consent choices. Check your connection and try again."
+      );
+    } finally {
+      setConsentSaving(false);
+    }
   };
 
   // Shown only while signed out, and only until this device has acknowledged
@@ -425,6 +486,15 @@ function App() {
       );
     }
 
+    if (authInitError) {
+      return (
+        <Screen scroll={false} center keyboardAvoiding={false}>
+          <Alert message={authInitError} />
+          <PrimaryButton label="Try again" onPress={retryAuthInitialization} />
+        </Screen>
+      );
+    }
+
     switch (view) {
       case "login":
         return (
@@ -454,7 +524,13 @@ function App() {
         );
 
       case "consent":
-        return <ConsentScreen onComplete={handleConsentComplete} loading={consentSaving} />;
+        return (
+          <ConsentScreen
+            onComplete={handleConsentComplete}
+            loading={consentSaving}
+            error={consentError}
+          />
+        );
 
       case "entryQuiz":
         return <EntryQuiz onComplete={handleEntryQuizComplete} loading={onboardingLoading} />;
@@ -526,9 +602,7 @@ function App() {
                 user={user}
                 userDoc={userDoc}
                 scoreVersion={scoreVersion}
-                onDomainSelect={handleDomainSelect}
-                onOpenDomain={handleDomainSelect}
-                onNevigate={handleDomainSelect}
+                onNavigate={handleDomainSelect}
             />
         );
 
@@ -538,17 +612,20 @@ function App() {
     }
   };
 
-  // The four tabs share the PULSE app bar and the bottom tab bar; every other
-  // view (auth, consent, entry quiz, stacked pages) fills the screen on its own.
+  // The four tabs and every stacked page share the PULSE app bar and the
+  // bottom tab bar; only auth, consent, and entry quiz fill the screen on
+  // their own. While on a stacked page the tab bar highlights whichever tab
+  // it was opened from (tabReturn), not a tab of its own.
   const screen = () => {
     const body = content();
-    if (!TAB_VIEWS.includes(view)) return body;
+    if (!TAB_VIEWS.includes(view) && !STACKED_VIEWS.includes(view)) return body;
 
     const displayName =
         user?.displayName || user?.name || user?.email || "";
+    const shellTab = TAB_VIEWS.includes(view) ? view : tabReturn;
     return (
         <AppShell
-            tab={view}
+            tab={shellTab}
             onTabChange={setView}
             initials={displayName ? displayName.charAt(0).toUpperCase() : null}
         >

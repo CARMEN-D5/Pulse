@@ -2,8 +2,9 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
+import Icon from "../Icon";
 import { DOMAIN_META, MoodFace, MOODS } from "./adapters";
-import { colors, fonts, radius, spacing, type } from "../../theme";
+import { colors, domains, fonts, radius, spacing, type } from "../../theme";
 
 /**
  * share card templates
@@ -173,7 +174,7 @@ const Ring = ({ pct, children, stroke }) => {
                     cx="64"
                     cy="64"
                     r={R}
-                    stroke={stroke || colors.blPrimary}
+                    stroke={stroke || colors.pulsePrimary}
                     strokeWidth={12}
                     strokeLinecap="round"
                     fill="none"
@@ -378,7 +379,8 @@ export const TEMPLATES = [
                                 key={`${m.domain}-${i}`}
                                 style={[styles.tag, { borderColor: `${meta.color}44`, color: meta.color }]}
                             >
-                                {meta.icon} {meta.label}
+                                <Icon name={domains[m.domain]?.icon ?? "star"} size={12} color={meta.color} />{" "}
+                                {meta.label}
                             </Text>
                         );
                     })}
@@ -409,7 +411,8 @@ export const TEMPLATES = [
                             const meta = domainMeta(m.domain);
                             return (
                                 <Text key={`${m.domain}-${i}`} style={styles.exerciseRow}>
-                                    <Text style={{ color: meta.color }}>{meta.icon}</Text> {m.text}
+                                    <Icon name={domains[m.domain]?.icon ?? "star"} size={12} color={meta.color} />{" "}
+                                    {m.text}
                                 </Text>
                             );
                         })}

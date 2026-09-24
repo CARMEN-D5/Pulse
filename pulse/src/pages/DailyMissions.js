@@ -22,12 +22,19 @@ import {
     loadDailyDoc,
     saveDailyDoc,
 } from '../missions/missionEngine';
-import MissionHistory from '../missions/MissionHistory';
+import MissionHistory, { MissionHistoryBody } from '../missions/MissionHistory';
 import { DOMAIN_META } from '../missions/missionPools';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, domains, fonts, radius, shadow, spacing, type } from '../theme';
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from '../tutorial';
 
-export default function DailyMissions({ user, domainScores, tutorialEnabled = false }) {
+// historyPlacement: "header" (default, pill next to the share button, opens
+// history in a modal) | "below" (the full mission history rendered inline
+// under the mission list, used on the full Daily Missions page) | "hidden"
+// (Home's inline card — checkboxes/progress stay live, no History at all).
+// compact: tighter padding/spacing and a single-line item row (icon chip
+// instead of the full domain label) — used only for Home's inline card, so
+// the whole dashboard can fit on screen without scrolling.
+export default function DailyMissions({ user, domainScores, tutorialEnabled = false, historyPlacement = 'header', compact = false }) {
     const [missions, setMissions]       = useState([]);
     const [loading, setLoading]         = useState(true);
     const [showHistory, setShowHistory] = useState(false);
@@ -171,7 +178,7 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
 
     if (loading) {
         return (
-            <View style={[styles.card, shadow('md')]}>
+            <View style={[styles.card, compact && styles.cardCompact, shadow('md')]}>
                 <Text style={styles.loadingText}>Loading your daily missions…</Text>
             </View>
         );
@@ -180,11 +187,11 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
     // ── Main render ───────────────────────────────────────────────────────────
 
     return (
-        <View style={[styles.card, shadow('md')]}>
+        <View style={[styles.card, compact && styles.cardCompact, shadow('md')]}>
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.titleRow}>
-                    <Text style={styles.headerIcon}>🎯</Text>
+                    <Icon name="target" size={16} color={colors.pulsePrimary} />
                     <Text style={styles.title}>Today's Daily Missions</Text>
                 </View>
                 <View style={styles.headerRight}>
@@ -192,6 +199,7 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
                     {/* Manual share. Hides itself while nothing is ticked, so
                         the user never taps into an empty prompt. */}
                     <ShareButton domain="missions" payload={sharePayload} />
+                    {historyPlacement === 'header' ? (
                     <TutorialTarget id={TUTORIAL_TARGETS.missions.history}>
                     <Pressable
                         onPress={() => setShowHistory(true)}
@@ -202,6 +210,7 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
                         <Text style={styles.historyBtnText}>History</Text>
                     </Pressable>
                     </TutorialTarget>
+                    ) : null}
                 </View>
             </View>
 
@@ -216,11 +225,15 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
 
             {/* Mission list */}
             <TutorialTarget id={TUTORIAL_TARGETS.missions.list}>
-            <View style={styles.list}>
+            <View style={[styles.list, compact && styles.listCompact]}>
                 {missions.map((mission, idx) => {
-                    const meta = DOMAIN_META[mission.domain] ?? { label: mission.domain, icon: '⭐', color: '#888' };
+                    const meta = DOMAIN_META[mission.domain] ?? { label: mission.domain, color: '#888' };
+                    const domainIcon = domains[mission.domain]?.icon ?? 'star';
                     return (
-                        <View key={idx} style={[styles.item, mission.completed && styles.itemDone]}>
+                        <View
+                            key={idx}
+                            style={[styles.item, compact && styles.itemCompact, mission.completed && styles.itemDone]}
+                        >
                             <Pressable
                                 onPress={() => toggleComplete(idx)}
                                 hitSlop={8}
@@ -229,22 +242,40 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
                                 accessibilityLabel={mission.completed ? 'Mark incomplete' : 'Mark complete'}
                                 style={[
                                     styles.checkbox,
+                                    compact && styles.checkboxCompact,
                                     mission.completed
                                         ? { backgroundColor: meta.color, borderColor: meta.color }
                                         : { borderColor: meta.color },
                                 ]}
                             >
-                                {mission.completed ? <Icon name="check" size={14} color="#fff" /> : null}
+                                {mission.completed ? <Icon name="check" size={compact ? 12 : 14} color="#fff" /> : null}
                             </Pressable>
 
-                            <View style={styles.content}>
-                                <Text style={[styles.text, mission.completed && styles.textDone]}>
-                                    {mission.text}
-                                </Text>
-                                <Text style={[styles.domainTag, { color: meta.color }]}>
-                                    {meta.icon} {meta.label}
-                                </Text>
-                            </View>
+                            {compact ? (
+                                <View style={styles.contentCompact}>
+                                    <Text
+                                        style={[styles.textCompact, mission.completed && styles.textDone]}
+                                        numberOfLines={1}
+                                    >
+                                        {mission.text}
+                                    </Text>
+                                    <View style={[styles.domainChip, { backgroundColor: `${meta.color}1A` }]}>
+                                        <Icon name={domainIcon} size={11} color={meta.color} />
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.content}>
+                                    <Text style={[styles.text, mission.completed && styles.textDone]}>
+                                        {mission.text}
+                                    </Text>
+                                    <View style={styles.domainTagRow}>
+                                        <Icon name={domainIcon} size={14} color={meta.color} />
+                                        <Text style={[styles.domainTag, { color: meta.color }]}>
+                                            {meta.label}
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
                         </View>
                     );
                 })}
@@ -252,14 +283,26 @@ export default function DailyMissions({ user, domainScores, tutorialEnabled = fa
             </TutorialTarget>
 
             {progress === 3 ? (
-                <View style={styles.doneBanner}>
+                <View style={[styles.doneBanner, compact && styles.doneBannerCompact]}>
                     <Text style={styles.doneBannerText}>
                         🎉 All missions complete! Great work today.
                     </Text>
                 </View>
             ) : null}
 
-            {historyOverlay}
+            {historyPlacement === 'below' ? (
+                <TutorialTarget id={TUTORIAL_TARGETS.missions.history}>
+                <View style={styles.historyBelow}>
+                    <View style={styles.historyBelowHeading}>
+                        <Icon name="history" size={14} color={colors.textMuted} />
+                        <Text style={styles.historyBelowHeadingText}>Mission History</Text>
+                    </View>
+                    <MissionHistoryBody user={user} />
+                </View>
+                </TutorialTarget>
+            ) : null}
+
+            {historyPlacement === 'header' ? historyOverlay : null}
         </View>
     );
 }
@@ -268,17 +311,19 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: colors.card,
         borderRadius: 20,
-        borderWidth: 1,
-        borderColor: colors.border,
         padding: 20,
         gap: spacing.md,
+    },
+    cardCompact: {
+        borderRadius: 16,
+        padding: spacing.md,
+        gap: spacing.sm,
     },
     pressed: { opacity: 0.7 },
     loadingText: { ...type.small, color: colors.textMuted, textAlign: 'center' },
 
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-    headerIcon: { fontSize: 16 },
     title: { ...type.title, fontFamily: fonts.bold, fontSize: 15, color: colors.text, flexShrink: 1 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     progressLabel: {
@@ -304,6 +349,25 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: colors.pulsePrimaryDark,
     },
+    historyBelow: {
+        gap: spacing.md,
+        paddingTop: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+    },
+    historyBelowHeading: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    historyBelowHeadingText: {
+        ...type.caption,
+        fontFamily: fonts.bold,
+        fontSize: 12,
+        letterSpacing: 0.4,
+        textTransform: 'uppercase',
+        color: colors.textMuted,
+    },
 
     barTrack: {
         height: 6,
@@ -314,6 +378,7 @@ const styles = StyleSheet.create({
     barFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.pulsePrimary },
 
     list: { gap: spacing.md },
+    listCompact: { gap: spacing.xs },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -322,6 +387,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         borderRadius: 14,
         backgroundColor: colors.rowTint,
+    },
+    itemCompact: {
+        gap: spacing.sm,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
     },
     itemDone: { opacity: 0.65 },
     // Circular in the refreshed design — the ring reads as "not done yet"
@@ -334,9 +405,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    checkboxCompact: { width: 20, height: 20 },
     content: { flex: 1, gap: 3 },
     text: { ...type.small, fontSize: 14, color: colors.text },
     textDone: { textDecorationLine: 'line-through', color: colors.textMuted },
+    domainTagRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     domainTag: {
         ...type.caption,
         fontFamily: fonts.bold,
@@ -345,10 +418,29 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
 
+    // Compact single-line row: text plus a small tinted domain-icon chip,
+    // in place of the two-line text/label stack used elsewhere.
+    contentCompact: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: spacing.sm,
+    },
+    textCompact: { ...type.small, fontSize: 13, color: colors.text, flex: 1 },
+    domainChip: {
+        width: 22,
+        height: 22,
+        borderRadius: radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
     doneBanner: {
         padding: spacing.md,
         borderRadius: radius.md,
         backgroundColor: 'rgba(47, 158, 122, 0.12)',
     },
+    doneBannerCompact: { padding: spacing.sm },
     doneBannerText: { ...type.small, textAlign: 'center', color: colors.success },
 });

@@ -143,5 +143,5 @@ const styles = StyleSheet.create({
     label: { ...type.label, color: colors.textMuted },
     dots: { flexDirection: "row", gap: spacing.xs },
     dot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.border },
-    dotActive: { backgroundColor: colors.blPrimary, width: 20 },
+    dotActive: { backgroundColor: colors.pulsePrimary, width: 20 },
 });

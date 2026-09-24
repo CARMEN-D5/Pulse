@@ -168,7 +168,7 @@ export async function createAchievementPost({
   }
 }
 
-/** Delete a post. The caller should clean up the Storage image first. */
+/** Delete a post document. The caller is responsible for related Storage cleanup. */
 export async function deletePost(postId) {
   try {
     await deleteDoc(doc(db, "posts", postId));

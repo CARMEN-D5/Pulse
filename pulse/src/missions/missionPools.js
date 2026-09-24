@@ -1,3 +1,5 @@
+import { domains } from '../theme';
+
 /**
  * Central repository of all daily mission text pools, keyed by domain.
  * Edit this file to add, remove, or update missions without touching any logic.
@@ -83,13 +85,21 @@ export const MISSION_POOLS = {
     ],
 };
 
-/** Human-readable metadata for each domain. */
+/**
+ * Human-readable metadata for each domain. `color` is kept in sync with the
+ * canonical `domains` tokens in theme.js so a domain reads the same accent
+ * color everywhere in the app. `icon` stays an emoji here for any consumer
+ * that still wants a plain-text glyph, but UI chrome (DailyMissions.js,
+ * MissionHistory.js, share/shareTemplates.js) renders the domain icon via the
+ * shared Icon component using theme.js's `domains[key].icon` instead, for
+ * cross-platform consistency.
+ */
 export const DOMAIN_META = {
-    spirituality:  { label: 'Spirituality',        icon: '🧘', color: '#7c3aed' },
-    relationships: { label: 'Family & Friends',     icon: '🤝', color: '#f59e0b' },
-    productivity:  { label: 'Work / Productivity',  icon: '💼', color: '#3b82f6' },
-    health:        { label: 'Health',               icon: '💪', color: '#10b981' },
-    finance:       { label: 'Financial Wellbeing',  icon: '💰', color: '#ef4444' },
+    spirituality:  { label: 'Spirituality',        icon: '🧘', color: domains.spirituality.color },
+    relationships: { label: 'Family & Friends',     icon: '🤝', color: domains.relationships.color },
+    productivity:  { label: 'Work / Productivity',  icon: '💼', color: domains.productivity.color },
+    health:        { label: 'Health',               icon: '💪', color: domains.health.color },
+    finance:       { label: 'Financial Wellbeing',  icon: '💰', color: domains.finance.color },
 };
 
 /** Ordered list of all domain keys. */

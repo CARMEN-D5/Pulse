@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: colors.border,
     },
-    disclosureText: { ...type.label, color: colors.blPrimary },
-    disclosureChevron: { ...type.h3, color: colors.blPrimary },
+    disclosureText: { ...type.label, color: colors.pulsePrimaryDark },
+    disclosureChevron: { ...type.h3, color: colors.pulsePrimaryDark },
 
     section: { paddingTop: spacing.lg, gap: spacing.xs },
     sectionHeading: { ...type.label, color: colors.text },
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
 
     link: {
         ...type.label,
-        color: colors.blPrimary,
+        color: colors.pulsePrimaryDark,
         textDecorationLine: "underline",
         marginTop: spacing.xl,
     },

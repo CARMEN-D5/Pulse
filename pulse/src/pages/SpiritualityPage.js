@@ -101,7 +101,7 @@ function SpiritualityPage({ user, onBack, onActivityLogged }) {
 
   if (phase === "loading") {
     return (
-      <Screen scroll={false} center keyboardAvoiding={false}>
+      <Screen scroll={false} center keyboardAvoiding={false} gradient={false} safeArea={false}>
         <Loading label="Loading your check-ins…" />
       </Screen>
     );

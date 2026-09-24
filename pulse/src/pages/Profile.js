@@ -9,7 +9,7 @@ import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import Icon from "../components/Icon";
-import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { colors, fonts, profileColors, radius, shadow, spacing, type } from "../theme";
 import ProgressAnalytics from "./ProgressAnalytics";
 import {
   TUTORIAL_ORDER,
@@ -36,7 +36,7 @@ function SettingsMenu({ visible, seeding, onSeed, onLogout, onOpenHelp, onClose 
             accessibilityRole="button"
             style={({ pressed }) => [styles.sheetRow, pressed && styles.pressed]}
           >
-            <Icon name="help_outline" size={20} color={colors.blPrimary} />
+            <Icon name="help_outline" size={20} color={colors.pulsePrimaryDark} />
             <Text style={styles.sheetRowText}>Help & tutorials</Text>
           </Pressable>
 
@@ -51,7 +51,7 @@ function SettingsMenu({ visible, seeding, onSeed, onLogout, onOpenHelp, onClose 
             <Icon
               name={seeding ? "hourglass_top" : "science"}
               size={20}
-              color={colors.blPrimary}
+              color={colors.pulsePrimaryDark}
             />
             <Text style={styles.sheetRowText}>
               {seeding ? "Generating sample data…" : "Generate sample data"}
@@ -116,7 +116,7 @@ function HelpTutorials({ visible, onClose, onReplayTutorial }) {
                   <Text style={styles.tutorialName}>{TUTORIALS[id].title}</Text>
                   <Text style={styles.tutorialMeta}>{TUTORIALS[id].steps.length} steps</Text>
                 </View>
-                <Icon name="play_arrow" size={21} color={colors.blPrimary} />
+                <Icon name="play_arrow" size={21} color={colors.pulsePrimaryDark} />
               </Pressable>
             ))}
           </ScrollView>
@@ -155,7 +155,7 @@ function Profile({ user, onLogout, onReplayTutorial }) {
         <>
           <View style={styles.header}>
             <LinearGradient
-              colors={["#B33D54", "#E8889A"]}
+              colors={profileColors.gradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.avatar}
@@ -214,14 +214,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  avatarText: { fontFamily: fonts.extrabold, fontSize: 24, color: "#fff" },
+  avatarText: { fontFamily: fonts.extrabold, fontSize: 24, color: colors.text },
   name: {
     flex: 1,
     ...type.h2,
     fontFamily: fonts.extrabold,
     fontSize: 22,
-    color: colors.pulsePrimaryDark,
+    color: colors.text,
   },
   gear: { padding: spacing.xs },
 

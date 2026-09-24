@@ -9,17 +9,37 @@ import { EmptyState, Loading, Screen, ScreenHeader } from "../components/ui";
 import { db } from "../firebase";
 import { seedDummyWeeklyScores, SEED_PROFILES, SEED_PERIODS } from "../firestore/seedDummyScores";
 import { DOMAINS, DOMAIN_KEYS } from "../scoring/scoringEngine";
-import { colors, fonts, radius, shadow, spacing, type } from "../theme";
+import { colors, domains, fonts, profileColors, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 /* ── Domain config ─────────────────────────────────────────── */
-const DOMAIN_META = {
-  spirituality:  { icon: "auto_awesome", color: "#2A7A6A", label: "Spirit" },
-  relationships: { icon: "groups",       color: "#586880", label: "Social" },
-  productivity:  { icon: "work",         color: "#5A6550", label: "Work" },
-  health:        { icon: "favorite",     color: "#B33D54", label: "Health" },
-  finance:       { icon: "payments",     color: "#8E4570", label: "Finance" },
+/* Color/icon come from the shared theme.js `domains` tokens; short labels
+   here are this screen's own condensed chip text, distinct from the full
+   DOMAINS[key].label used elsewhere. */
+const SHORT_LABELS = {
+  spirituality: "Spirit",
+  relationships: "Social",
+  productivity: "Work",
+  health: "Health",
+  finance: "Finance",
 };
+
+export function getTrendTone(value) {
+  const trend = Number(value);
+  if (trend > 0) {
+    return { icon: "arrow_upward", ...profileColors.trend.positive };
+  }
+  if (trend < 0) {
+    return { icon: "arrow_downward", ...profileColors.trend.negative };
+  }
+  return { icon: "remove", ...profileColors.trend.neutral };
+}
+const DOMAIN_META = Object.fromEntries(
+  DOMAIN_KEYS.map((key) => [
+    key,
+    { icon: domains[key].icon, color: domains[key].color, label: SHORT_LABELS[key] },
+  ])
+);
 
 const RANGE_OPTIONS = [
   { label: "4 Weeks", value: 4 },
@@ -76,7 +96,7 @@ function TrendChart({ data, color }) {
       <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
         <Defs>
           <SvgLinearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <Stop offset="0%" stopColor={color} stopOpacity="0.16" />
             <Stop offset="100%" stopColor={color} stopOpacity="0" />
           </SvgLinearGradient>
         </Defs>
@@ -241,6 +261,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
     const ls = selectedDomain === "overall" ? last.balancedLifeScore ?? 0 : last.domains?.[selectedDomain]?.finalScore ?? 0;
     return ((ls - fs) / (filtered.length - 1)).toFixed(1);
   }, [filtered, selectedDomain]);
+  const trendTone = avgGrowthPts === null ? null : getTrendTone(avgGrowthPts);
 
   const insights = useMemo(() => {
     if (!filtered.length) return [];
@@ -254,7 +275,9 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
   }, [filtered]);
 
   const chartColor =
-    selectedDomain === "overall" ? "#2A7A6A" : DOMAIN_META[selectedDomain]?.color ?? "#2A7A6A";
+    selectedDomain === "overall"
+      ? profileColors.accent
+      : DOMAIN_META[selectedDomain]?.color ?? profileColors.accent;
   const activeLabel =
     selectedDomain === "overall" ? "Overall Balance Score" : DOMAIN_META[selectedDomain]?.label;
 
@@ -283,7 +306,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
               <Icon
                 name={seeding ? "hourglass_top" : "science"}
                 size={20}
-                color={colors.blPrimary}
+                color={colors.pulsePrimaryDark}
               />
             </Pressable>
           }
@@ -323,12 +346,12 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
         />
       ) : (
         <>
-          {/* ── Overall score card (teal gradient) ── */}
+          {/* ── Overall score card (near-white lavender/blue-grey wash) ── */}
           <LinearGradient
-            colors={["#2A7A6A", "#1D665A"]}
+            colors={profileColors.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.scoreCard, shadow("lg")]}
+            style={[styles.scoreCard, shadow("sm")]}
           >
             <View style={styles.scoreLeft}>
               <Text style={styles.scoreTitle}>{activeLabel}</Text>
@@ -353,9 +376,14 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
                     <Icon
                       name={parseFloat(growth) >= 0 ? "trending_up" : "trending_down"}
                       size={16}
-                      color="#9cebe8"
+                      color={parseFloat(growth) >= 0 ? colors.success : colors.error}
                     />
-                    <Text style={styles.scoreGrowth}>
+                    <Text
+                      style={[
+                        styles.scoreGrowth,
+                        { color: parseFloat(growth) >= 0 ? colors.success : colors.error },
+                      ]}
+                    >
                       {parseFloat(growth) >= 0 ? "+" : ""}
                       {growth}%
                     </Text>
@@ -379,9 +407,11 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
                   <Text style={styles.trendHeading}>Balance Score History</Text>
                 </View>
                 {avgGrowthPts !== null ? (
-                  <View style={styles.trendBadge}>
-                    <Icon name="arrow_upward" size={14} color={colors.blPrimary} />
-                    <Text style={styles.trendBadgeText}>{avgGrowthPts} pts avg.</Text>
+                  <View style={[styles.trendBadge, { backgroundColor: trendTone.background }]}>
+                    <Icon name={trendTone.icon} size={14} color={trendTone.text} />
+                    <Text style={[styles.trendBadgeText, { color: trendTone.text }]}>
+                      {avgGrowthPts} pts avg.
+                    </Text>
                   </View>
                 ) : null}
               </View>
@@ -399,6 +429,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
                 <DomainChip
                   icon="dashboard"
                   label="Overall"
+                  color={profileColors.accent}
                   active={selectedDomain === "overall"}
                   onPress={() => setSelectedDomain("overall")}
                 />
@@ -407,6 +438,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
                     key={key}
                     icon={DOMAIN_META[key].icon}
                     label={DOMAIN_META[key].label}
+                    color={DOMAIN_META[key].color}
                     active={selectedDomain === key}
                     onPress={() => setSelectedDomain(key)}
                   />
@@ -551,7 +583,7 @@ function ProgressAnalytics({ user, onBack, embedded = false, renderHeader }) {
   );
 }
 
-function DomainChip({ icon, label, active, onPress }) {
+function DomainChip({ icon, label, color, active, onPress }) {
   return (
     <Pressable
       onPress={onPress}
@@ -559,7 +591,7 @@ function DomainChip({ icon, label, active, onPress }) {
       accessibilityState={{ selected: active }}
       style={({ pressed }) => [
         styles.domainChip,
-        active && styles.domainChipActive,
+        active && [styles.domainChipActive, { backgroundColor: color, borderColor: color }],
         pressed && styles.pressed,
       ]}
     >
@@ -595,7 +627,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
-  rangeOptionActive: { backgroundColor: colors.blPrimary },
+  rangeOptionActive: { backgroundColor: colors.pulsePrimary },
   rangeText: { ...type.label, fontSize: 12, color: colors.textMuted },
   rangeTextActive: { color: "#fff" },
 
@@ -606,28 +638,30 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: spacing.xl,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(112, 104, 117, 0.12)",
   },
   scoreLeft: { flex: 1, minWidth: 0 },
-  scoreTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 15, color: "rgba(255,255,255,0.95)", marginBottom: 6 },
-  scoreSub: { ...type.caption, fontSize: 12, color: "rgba(255,255,255,0.65)" },
+  scoreTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 15, color: colors.text, marginBottom: 6 },
+  scoreSub: { ...type.caption, fontSize: 12, color: colors.textMuted },
 
   scorePill: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.lg,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.88)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: colors.card,
     borderRadius: radius.lg,
     paddingVertical: 14,
     paddingHorizontal: 18,
   },
   scoreCol: { alignItems: "center", gap: 4 },
-  scoreNum: { fontFamily: fonts.extrabold, fontSize: 32, lineHeight: 34, letterSpacing: -1, color: "#fff" },
+  scoreNum: { fontFamily: fonts.extrabold, fontSize: 32, lineHeight: 34, letterSpacing: -1, color: colors.text },
   scoreGrowthRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  scoreGrowth: { ...type.title, fontFamily: fonts.bold, fontSize: 16, color: "#9cebe8" },
-  scoreLabel: { ...type.caption, fontSize: 9, letterSpacing: 1, color: "rgba(255,255,255,0.55)" },
-  scoreDivider: { width: 1, height: 36, backgroundColor: "rgba(255,255,255,0.2)" },
+  scoreGrowth: { ...type.title, fontFamily: fonts.bold, fontSize: 16, color: profileColors.accent },
+  scoreLabel: { ...type.caption, fontSize: 9, letterSpacing: 1, color: "rgba(42,37,35,0.62)" },
+  scoreDivider: { width: 1, height: 36, backgroundColor: "rgba(42,37,35,0.14)" },
 
   section: { gap: spacing.md },
   sectionTitle: { ...type.title, fontFamily: fonts.bold, fontSize: 15, color: colors.text },
@@ -635,8 +669,6 @@ const styles = StyleSheet.create({
   trendCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -650,9 +682,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: "rgba(8, 106, 105, 0.08)",
   },
-  trendBadgeText: { ...type.caption, fontSize: 11, color: colors.blPrimary },
+  trendBadgeText: { ...type.caption, fontSize: 11 },
 
   chartArea: { position: "relative" },
   gridline: {
@@ -677,7 +708,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  domainChipActive: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+  domainChipActive: {},
   domainChipText: { ...type.caption, fontSize: 12, color: colors.textMuted },
   domainChipTextActive: { color: "#fff" },
 
@@ -685,8 +716,6 @@ const styles = StyleSheet.create({
   insightCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: "hidden",
   },
   insightBody: { flexDirection: "row", gap: spacing.md, padding: spacing.lg },
@@ -748,8 +777,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   modalOptionActive: {
-    backgroundColor: colors.blPrimary,
-    borderColor: colors.blPrimary,
+    backgroundColor: colors.pulsePrimary,
+    borderColor: colors.pulsePrimary,
   },
   modalOptionText: { ...type.caption, fontSize: 12, color: colors.textMuted },
   modalOptionTextActive: { color: "#fff" },
@@ -773,7 +802,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   modalBtnCancelText: { ...type.label, fontSize: 14, color: colors.textMuted },
-  modalBtnConfirm: { backgroundColor: colors.blPrimary },
+  modalBtnConfirm: { backgroundColor: colors.pulsePrimary },
   modalBtnConfirmText: { ...type.label, fontSize: 14, color: "#fff", fontFamily: fonts.bold },
 });
 

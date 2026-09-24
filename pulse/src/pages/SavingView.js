@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { daysInMonth, listExpenses, monthBounds } from "../firestore/finance";
 import {
@@ -36,7 +36,27 @@ import { confirm } from "../utils/dialogs";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
+export function calculateYesterdaySurplus(totalBudget, dayCount, expenses = []) {
+  if (!Number.isFinite(totalBudget) || totalBudget <= 0) return null;
+  if (!Number.isFinite(dayCount) || dayCount <= 0) return null;
+
+  const amounts = expenses.map((entry) => Number(entry?.amount ?? 0));
+  if (amounts.some((amount) => !Number.isFinite(amount))) return null;
+
+  const dailyBudget = totalBudget / dayCount;
+  const spent = amounts.reduce((sum, amount) => sum + amount, 0);
+  const amount = dailyBudget - spent;
+  if (![dailyBudget, spent, amount].every(Number.isFinite) || amount <= 0) return null;
+
+  return { dailyBudget, spent, amount };
+}
+
 export default function SavingView({ uid, totalBudget, onError }) {
+  const { height } = useWindowDimensions();
+  // Constrain the plan area without tuning it to one emulator. Short phones
+  // still get a useful viewport, while taller screens do not let the list
+  // push the calendar indefinitely down the page.
+  const planAreaHeight = Math.min(250, Math.max(210, Math.round(height * 0.255)));
   const [plans, setPlans] = useState([]);
   const [calendarEntries, setCalendarEntries] = useState([]);
   const [savedByPlan, setSavedByPlan] = useState({});
@@ -149,7 +169,9 @@ export default function SavingView({ uid, totalBudget, onError }) {
     if (
       !uid ||
       !active.length ||
-      !savingOverviewTutorial.handled
+      !savingOverviewTutorial.handled ||
+      !Number.isFinite(totalBudget) ||
+      totalBudget <= 0
     ) return;
     let cancelled = false;
     (async () => {
@@ -168,11 +190,13 @@ export default function SavingView({ uid, totalBudget, onError }) {
         listExpenses(uid, { monthStart: yStart, monthEnd: yEnd }),
       ]);
       if (!saved.ok || !spent.ok || saved.data.length) return;
-      const dailyBudget = totalBudget / daysInMonth(yesterday);
-      const yesterdaySpent = spent.data.reduce((s, e) => s + Number(e.amount || 0), 0);
-      const amount = dailyBudget - yesterdaySpent;
-      if (!cancelled && amount > 0) {
-        setSurplus({ dayKey: yKey, dailyBudget, spent: yesterdaySpent, amount, planId: active[0].id });
+      const calculation = calculateYesterdaySurplus(
+        totalBudget,
+        daysInMonth(yesterday),
+        spent.data
+      );
+      if (!cancelled && calculation) {
+        setSurplus({ dayKey: yKey, ...calculation, planId: active[0].id });
       }
     })();
     return () => {
@@ -199,18 +223,33 @@ export default function SavingView({ uid, totalBudget, onError }) {
   return (
     <>
       <TutorialTarget id={TUTORIAL_TARGETS.saving.planArea}>
-      <View style={[styles.card, shadow("sm")]}>
+      <View
+        testID="active-saving-plans-card"
+        style={[styles.planCard, shadow("sm"), { height: planAreaHeight }]}
+      >
+        <View style={styles.planHeader}>
+          <Text style={styles.planTitle}>Active saving plans</Text>
+          <Text style={styles.planCount}>{active.length}</Text>
+        </View>
         {active.length ? (
-          <View style={styles.planList}>
-            {active.map((plan) => (
+          <ScrollView
+            testID="active-saving-plans-scroll"
+            style={styles.planScroller}
+            contentContainerStyle={styles.planList}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={active.length > 1}
+          >
+            {active.map((plan, index) => (
               <SavingPlanCard
                 key={plan.id}
                 plan={plan}
                 savedAmount={savedByPlan[plan.id] || 0}
                 onEdit={setPlanModal}
+                showDivider={index < active.length - 1}
               />
             ))}
-          </View>
+          </ScrollView>
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Create a saving plan</Text>
@@ -392,14 +431,45 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
   },
-  planList: { gap: spacing.md },
+  planCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+  },
+  planHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  planTitle: { ...type.title, fontFamily: fonts.bold, color: colors.text },
+  planCount: {
+    ...type.caption,
+    fontFamily: fonts.bold,
+    color: colors.textMuted,
+    backgroundColor: colors.rowTint,
+    minWidth: 24,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    textAlign: "center",
+  },
+  planScroller: { flex: 1 },
+  planList: { paddingHorizontal: spacing.lg },
 
-  emptyState: { gap: spacing.sm, alignItems: "stretch" },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    gap: spacing.sm,
+    padding: spacing.lg,
+    alignItems: "stretch",
+  },
   emptyTitle: { ...type.title, fontFamily: fonts.bold, color: colors.text },
   emptyBody: { ...type.small, color: colors.textMuted },
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import Icon from "../Icon";
 import { Alert, PrimaryButton } from "../ui";
 import { colors, radius, spacing, type } from "../../theme";
 import { pickImage } from "../../storage/uploads";
@@ -99,7 +100,7 @@ export default function SharePostEditor({
                     </>
                 ) : (
                     <View style={styles.imagePickerEmpty}>
-                        <Text style={styles.imagePickerIcon}>📷</Text>
+                        <Icon name="photo_camera" size={26} color={colors.textMuted} />
                         <Text style={styles.imagePickerLabel}>Add a photo (optional)</Text>
                     </View>
                 )}
@@ -182,7 +183,6 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.lg,
         gap: 4,
     },
-    imagePickerIcon: { fontSize: 26 },
     imagePickerLabel: { ...type.body, color: colors.textMuted, fontWeight: "600" },
     imagePickerWithImage: {
         backgroundColor: colors.card,

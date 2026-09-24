@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
-import { Card, PrimaryButton, Screen } from "../components/ui";
-import { colors, domainColors, fonts, radius, spacing, type } from "../theme";
+import { Alert, Card, PrimaryButton, Screen } from "../components/ui";
+import { colors, domains, fonts, radius, spacing, type } from "../theme";
 import { OPTIONAL_CONSENTS, SENSITIVE_NOTICE, SHORT_NOTICE } from "./consentNotice";
 
-export default function ConsentScreen({ onComplete, loading = false }) {
+export default function ConsentScreen({ onComplete, loading = false, error = "" }) {
     const [choices, setChoices] = useState(() =>
         Object.fromEntries(OPTIONAL_CONSENTS.map((o) => [o.key, false]))
     );
@@ -22,7 +22,7 @@ export default function ConsentScreen({ onComplete, loading = false }) {
 
     return (
         <Screen contentContainerStyle={styles.screen}>
-            <Card style={styles.card}>
+            <Card subtle style={styles.card}>
                 <View style={styles.brand}>
                     <View style={styles.brandRow}>
                         <View style={styles.logoDot} />
@@ -36,8 +36,8 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                 {/* Sensitive information — stated, not switchable. */}
                 <View style={styles.group}>
                     <View style={styles.sensitiveHead}>
-                        <View style={[styles.dot, { backgroundColor: domainColors.health }]} />
-                        <View style={[styles.dot, { backgroundColor: domainColors.spirituality }]} />
+                        <View style={[styles.dot, { backgroundColor: domains.health.color }]} />
+                        <View style={[styles.dot, { backgroundColor: domains.spirituality.color }]} />
                         <Text style={styles.groupHeading}>{SENSITIVE_NOTICE.heading}</Text>
                     </View>
                     <Text style={styles.groupBody}>{SENSITIVE_NOTICE.body}</Text>
@@ -60,13 +60,13 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                                     style={[
                                         styles.row,
                                         {
-                                            borderColor: on ? `${colors.blPrimary}55` : colors.border,
-                                            backgroundColor: on ? `${colors.blPrimary}12` : "rgba(255,255,255,0.5)",
+                                            borderColor: on ? `${colors.pulsePrimary}55` : colors.border,
+                                            backgroundColor: on ? `${colors.pulsePrimary}12` : "rgba(255,255,255,0.5)",
                                         },
                                     ]}
                                 >
                                     <View style={styles.rowText}>
-                                        <Text style={[styles.rowLabel, on && { color: colors.blPrimary }]}>
+                                        <Text style={[styles.rowLabel, on && { color: colors.pulsePrimaryDark }]}>
                                             {o.label}
                                         </Text>
                                         <Text style={styles.rowDescription}>{o.description}</Text>
@@ -75,7 +75,7 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                                         value={on}
                                         onValueChange={() => toggle(o.key)}
                                         accessibilityLabel={o.label}
-                                        trackColor={{ false: colors.blOutlineVariant, true: colors.blPrimary }}
+                                        trackColor={{ false: colors.blOutlineVariant, true: colors.pulsePrimary }}
                                         thumbColor={colors.card}
                                     />
                                 </View>
@@ -83,6 +83,8 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                         })}
                     </View>
                 ) : null}
+
+                {error ? <Alert message={error} style={styles.error} /> : null}
 
                 <PrimaryButton
                     label="I agree — continue"
@@ -156,6 +158,7 @@ const styles = StyleSheet.create({
     rowDescription: { ...type.small, fontSize: 12, color: colors.textMuted },
 
     submit: { marginTop: spacing.sm },
+    error: { marginTop: spacing.sm },
     secondary: {
         alignItems: "center",
         justifyContent: "center",

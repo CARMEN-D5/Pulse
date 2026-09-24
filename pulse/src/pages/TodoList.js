@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import DateField from '../components/DateField';
+import Dropdown from '../components/Dropdown';
 import Icon from '../components/Icon';
 import SegmentedField from '../components/SegmentedField';
 import { Alert, Loading, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
@@ -290,7 +291,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
     };
 
     return (
-        <Screen contentContainerStyle={styles.screen}>
+        <Screen contentContainerStyle={styles.screen} gradient={false} safeArea={false}>
             {/* Manual share — hides itself when nothing is completed yet */}
             <ScreenHeader
                 title="My to-do list"
@@ -338,43 +339,30 @@ function TodoList({ user, onBack, onActivityLogged }) {
             </View>
             </TutorialTarget>
 
-            {/* Tabs */}
+            {/* Filters */}
             <TutorialTarget id={TUTORIAL_TARGETS.todo.filters}>
-            <View style={styles.tutorialGroup}>
-            <View style={styles.tabs}>
-                <TabButton
-                    label="Pending"
-                    count={pendingCount}
-                    active={tab === 'pending'}
-                    onPress={() => setTab('pending')}
-                />
-                <TabButton
-                    label="Completed"
-                    count={completedCount}
-                    active={tab === 'completed'}
-                    onPress={() => setTab('completed')}
-                />
-                <TabButton
-                    label="All"
-                    count={`${completedCount}/${totalCount}`}
-                    active={tab === 'all'}
-                    onPress={() => setTab('all')}
-                />
-            </View>
-
-            {/* Sort bar */}
-            <View style={styles.sortBar}>
-                <Text style={styles.sortLabel}>Sort by</Text>
-                <SegmentedField
+            <View style={styles.filterBar}>
+                <Dropdown
+                    label="Show"
                     style={styles.flex}
+                    value={tab}
+                    onChange={setTab}
+                    options={[
+                        { value: 'pending', label: `Pending (${pendingCount})` },
+                        { value: 'completed', label: `Completed (${completedCount})` },
+                        { value: 'all', label: `All (${completedCount}/${totalCount})` },
+                    ]}
+                />
+                <Dropdown
+                    label="Sort by"
+                    style={styles.flex}
+                    value={sortMode}
+                    onChange={setSortMode}
                     options={[
                         { value: 'dueDate', label: '📅 Due date' },
                         { value: 'priority', label: '🔴 Priority' },
                     ]}
-                    value={sortMode}
-                    onChange={setSortMode}
                 />
-            </View>
             </View>
             </TutorialTarget>
 
@@ -493,22 +481,6 @@ function TodoList({ user, onBack, onActivityLogged }) {
     );
 }
 
-function TabButton({ label, count, active, onPress }) {
-    return (
-        <Pressable
-            onPress={onPress}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}
-        >
-            <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
-            <View style={[styles.tabCount, active && styles.tabCountActive]}>
-                <Text style={[styles.tabCountText, active && styles.tabCountTextActive]}>{count}</Text>
-            </View>
-        </Pressable>
-    );
-}
-
 const styles = StyleSheet.create({
     screen: { gap: spacing.md, paddingBottom: 40 },
     flex: { flex: 1 },
@@ -518,8 +490,6 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: colors.card,
         borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
         padding: spacing.lg,
         gap: spacing.md,
     },
@@ -536,35 +506,7 @@ const styles = StyleSheet.create({
     },
     textarea: { minHeight: 72 },
 
-    tabs: { flexDirection: 'row', gap: 6 },
-    tab: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        paddingVertical: spacing.md,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.card,
-    },
-    tabActive: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
-    tabText: { ...type.small, color: colors.text },
-    tabTextActive: { color: '#fff', fontFamily: fonts.semibold },
-    tabCount: {
-        paddingHorizontal: 6,
-        paddingVertical: 1,
-        borderRadius: radius.pill,
-        backgroundColor: colors.pulseBg,
-    },
-    tabCountActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-    tabCountText: { ...type.caption, fontSize: 10, color: colors.textMuted },
-    tabCountTextActive: { color: '#fff' },
-
-    sortBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    tutorialGroup: { gap: spacing.md },
-    sortLabel: { ...type.small, color: colors.textMuted },
+    filterBar: { flexDirection: 'row', gap: spacing.sm },
 
     list: { gap: spacing.sm },
     item: {
@@ -574,8 +516,6 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         backgroundColor: colors.card,
         borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     checkbox: {
         width: 24,
@@ -587,7 +527,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginTop: 2,
     },
-    checkboxChecked: { backgroundColor: colors.blPrimary, borderColor: colors.blPrimary },
+    checkboxChecked: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
 
     editBox: { gap: spacing.sm },
 

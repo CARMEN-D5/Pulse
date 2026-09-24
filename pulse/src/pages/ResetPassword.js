@@ -42,7 +42,7 @@ function ResetPassword({ onSubmit, onBackToLogin }) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconBox}>
-            <Icon name="lock_reset" size={40} color={colors.blPrimary} />
+            <Icon name="lock_reset" size={40} color={colors.pulsePrimaryDark} />
           </View>
           <Text style={styles.title}>Reset Password</Text>
           <Text style={styles.subtitle}>
@@ -55,7 +55,7 @@ function ResetPassword({ onSubmit, onBackToLogin }) {
           {sent ? (
             <View style={styles.form}>
               <View style={styles.successBlock} accessibilityRole="summary">
-                <Icon name="check_circle" size={48} color={colors.blPrimary} />
+                <Icon name="check_circle" size={48} color={colors.pulsePrimaryDark} />
                 <Text style={styles.successText}>
                   If an account exists for <Text style={styles.successEmail}>{email}</Text>, a
                   password reset link has been sent.
@@ -97,7 +97,7 @@ function ResetPassword({ onSubmit, onBackToLogin }) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Icon name="arrow_back" size={16} color={colors.blPrimary} />
+          <Icon name="arrow_back" size={16} color={colors.pulsePrimaryDark} />
           <LinkButton label="Back to Sign In" onPress={onBackToLogin} />
         </View>
       </View>

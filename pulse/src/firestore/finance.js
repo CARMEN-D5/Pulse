@@ -37,11 +37,11 @@ import { db } from "../firebase";
 
 /** The default category set John starts with. Custom categories are a v2. */
 export const DEFAULT_CATEGORIES = [
-  { id: "food",          label: "Food",          icon: "🍜", color: "#E0546E" },
-  { id: "transport",     label: "Transport",     icon: "🚌", color: "#4A6D98" },
-  { id: "rent",          label: "Rent",          icon: "🏠", color: "#8E4570" },
-  { id: "entertainment", label: "Entertainment", icon: "🎬", color: "#D4A94C" },
-  { id: "other",         label: "Other",         icon: "💸", color: "#5A8A4A" },
+  { id: "food",          label: "Food",          icon: "restaurant",        color: "#E0546E" },
+  { id: "transport",     label: "Transport",     icon: "directions_bus",    color: "#4A6D98" },
+  { id: "rent",          label: "Rent",          icon: "home",              color: "#8E4570" },
+  { id: "entertainment", label: "Entertainment", icon: "movie",             color: "#D4A94C" },
+  { id: "other",         label: "Other",         icon: "payments",          color: "#5A8A4A" },
 ];
 
 export function categoryById(id) {

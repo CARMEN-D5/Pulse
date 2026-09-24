@@ -2,8 +2,8 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import Icon from "../components/Icon";
-import { LinkButton, PrimaryButton, Screen } from "../components/ui";
-import { colors, radius, shadow, spacing, type } from "../theme";
+import { Card, LinkButton, PrimaryButton, Screen } from "../components/ui";
+import { colors, radius, spacing, type } from "../theme";
 
 // The five life domains Pulse tracks, shown as a row of hints at the bottom.
 const DOMAIN_HINTS = [
@@ -20,25 +20,25 @@ function Splash({ onLogin, onSignUp }) {
       {/* Brand bar. The web version pinned this to the viewport; on a phone it
           just sits at the top of the scroll content. */}
       <View style={styles.brand}>
-        <Icon name="spa" size={24} color={colors.blPrimary} />
+        <Icon name="spa" size={24} color={colors.pulsePrimaryDark} />
         <Text style={styles.brandName}>Pulse</Text>
       </View>
 
       <View style={styles.main}>
         {/* Hero visual */}
         <View style={styles.heroWrap}>
-          <View style={styles.heroCard}>
-            <Icon name="self_improvement" size={96} color={colors.blPrimary} />
+          <Card subtle style={styles.heroCard}>
+            <Icon name="self_improvement" size={96} color={colors.pulsePrimaryDark} />
             <View style={styles.heroSubIcons}>
               <Icon name="favorite" size={26} color={colors.blOnSurfaceVariant} />
               <Icon name="psychology" size={26} color={colors.blOnSurfaceVariant} />
               <Icon name="groups" size={26} color={colors.blOnSurfaceVariant} />
               <Icon name="work" size={26} color={colors.blOnSurfaceVariant} />
             </View>
-          </View>
+          </Card>
 
           {/* Floating reflection card */}
-          <View style={styles.reflectCard}>
+          <Card subtle style={styles.reflectCard}>
             <View style={styles.reflectHeader}>
               <Icon name="lightbulb" size={16} color={colors.blTertiary} />
               <Text style={styles.reflectLabel}>Reflection</Text>
@@ -46,7 +46,7 @@ function Splash({ onLogin, onSignUp }) {
             <Text style={styles.reflectText}>
               What part of your life needs the most care today?
             </Text>
-          </View>
+          </Card>
         </View>
 
         {/* Content */}
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
 
   brand: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  brandName: { ...type.h3, letterSpacing: -0.3, color: colors.blPrimaryDim },
+  brandName: { ...type.h3, letterSpacing: -0.3, color: colors.pulsePrimaryDark },
 
   main: { width: "100%", maxWidth: 420, alignItems: "center", gap: spacing.xxxl },
 
@@ -111,10 +111,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: "rgba(156, 235, 232, 0.28)",
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    ...shadow("lg"),
   },
   heroSubIcons: { flexDirection: "row", gap: spacing.lg, opacity: 0.5 },
 
@@ -125,10 +121,6 @@ const styles = StyleSheet.create({
     maxWidth: 190,
     padding: spacing.lg,
     borderRadius: radius.lg,
-    backgroundColor: colors.glassStrong,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    ...shadow("md"),
   },
   reflectHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
   reflectLabel: { ...type.caption, color: colors.blTertiary },
@@ -136,7 +128,7 @@ const styles = StyleSheet.create({
 
   content: { alignItems: "center", gap: spacing.md },
   title: { ...type.h1, textAlign: "center", color: colors.blOnSurface },
-  titleAccent: { color: colors.blPrimary },
+  titleAccent: { color: colors.pulsePrimaryDark },
   subtitle: {
     ...type.body,
     textAlign: "center",
