@@ -219,6 +219,7 @@ function Social({ user, onBack }) {
           visibleAuthorUids={visibleAuthorUids}
           friendUids={friendUids}
           onStartConversation={startConversation}
+          onError={setSocialError}
         />
       )}
       {tab === "messages" && (
@@ -321,7 +322,7 @@ function SmallButton({ label, onPress, tone = "primary" }) {
 // Feed tab
 // ============================================================================
 
-function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
+function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation, onError }) {
   const [posts, setPosts] = useState([]);
   const [feedError, setFeedError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -401,7 +402,13 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
   return (
     <View style={styles.feedList}>
       {posts.map((p) => (
-        <PostCard key={p.id} post={p} user={user} onStartConversation={onStartConversation} />
+        <PostCard
+          key={p.id}
+          post={p}
+          user={user}
+          onStartConversation={onStartConversation}
+          onError={onError}
+        />
       ))}
     </View>
   );
@@ -411,7 +418,7 @@ function FeedTab({ user, visibleAuthorUids, friendUids, onStartConversation }) {
 // PostCard — two-slide post, likes, comments
 // ============================================================================
 
-function PostCard({ post, user, onStartConversation, onDeleted }) {
+function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
   const [slide, setSlide] = useState(0);
   const [slideWidth, setSlideWidth] = useState(0);
   const slidesRef = useRef(null);
@@ -441,28 +448,45 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
     // No optimistic update — the snapshot listener fires within ~100ms of
     // the write completing, which is plenty snappy and avoids the brief
     // flicker that an optimistic-then-snapshot-overwrite pattern can cause.
-    await toggleLike(post.id, user.uid);
+    try {
+      const result = await toggleLike(post.id, user.uid);
+      if (!result?.ok) throw new Error(result?.error || "Like update failed");
+    } catch (error) {
+      console.debug("[Pulse] toggle like failed", error?.message);
+      onError?.("Couldn't update that like. Please try again.");
+    }
   };
 
   const onSubmitComment = async () => {
     const text = commentText.trim();
     if (!text) return;
     setSubmitting(true);
-    const res = await addComment(post.id, {
-      authorUid: user.uid,
-      authorName: displayNameFor(user),
-      text,
-    });
-    setSubmitting(false);
-    if (res.ok) {
+    try {
+      const result = await addComment(post.id, {
+        authorUid: user.uid,
+        authorName: displayNameFor(user),
+        text,
+      });
+      if (!result?.ok) throw new Error(result?.error || "Comment save failed");
       setCommentText("");
       // No manual re-fetch — the subscription will pick up the new comment.
+    } catch (error) {
+      console.debug("[Pulse] add comment failed", error?.message);
+      onError?.("Couldn't post your comment. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const onDeleteComment = async (commentId) => {
-    await deleteComment(post.id, commentId);
-    // Subscription handles the UI update.
+    try {
+      const result = await deleteComment(post.id, commentId);
+      if (!result?.ok) throw new Error(result?.error || "Comment delete failed");
+      // Subscription handles the UI update.
+    } catch (error) {
+      console.debug("[Pulse] delete comment failed", error?.message);
+      onError?.("Couldn't delete that comment. Please try again.");
+    }
   };
 
   const onDeletePost = async () => {
@@ -472,11 +496,31 @@ function PostCard({ post, user, onStartConversation, onDeleted }) {
       destructive: true,
     });
     if (!ok) return;
-    // Best-effort image cleanup, then doc — the feed subscription drops it
-    // from the list automatically.
-    if (post.imagePath) await deletePostImage(post.imagePath);
-    await deletePost(post.id);
-    if (onDeleted) onDeleted();
+
+    // Delete the Firestore document first. If that fails, the post and its
+    // image remain intact. Once the post is gone, Storage cleanup is
+    // best-effort: a leftover private blob is preferable to a live post that
+    // points at an image which has already been deleted.
+    try {
+      const postResult = await deletePost(post.id);
+      if (!postResult?.ok) throw new Error(postResult?.error || "Post delete failed");
+      onDeleted?.();
+    } catch (error) {
+      console.debug("[Pulse] delete post failed", error?.message);
+      onError?.("Couldn't delete that post. Please try again.");
+      return;
+    }
+
+    if (!post.imagePath) return;
+    try {
+      const imageResult = await deletePostImage(post.imagePath);
+      if (!imageResult?.ok) throw new Error(imageResult?.error || "Image cleanup failed");
+    } catch (error) {
+      console.debug("[Pulse] post image cleanup failed", error?.message);
+      onError?.(
+        "The post was deleted, but its image couldn't be cleaned up from storage."
+      );
+    }
   };
 
   const onMessageAuthor = () => {

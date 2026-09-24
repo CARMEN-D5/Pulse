@@ -36,6 +36,21 @@ import { confirm } from "../utils/dialogs";
 import { colors, fonts, radius, shadow, spacing, type } from "../theme";
 import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
 
+export function calculateYesterdaySurplus(totalBudget, dayCount, expenses = []) {
+  if (!Number.isFinite(totalBudget) || totalBudget <= 0) return null;
+  if (!Number.isFinite(dayCount) || dayCount <= 0) return null;
+
+  const amounts = expenses.map((entry) => Number(entry?.amount ?? 0));
+  if (amounts.some((amount) => !Number.isFinite(amount))) return null;
+
+  const dailyBudget = totalBudget / dayCount;
+  const spent = amounts.reduce((sum, amount) => sum + amount, 0);
+  const amount = dailyBudget - spent;
+  if (![dailyBudget, spent, amount].every(Number.isFinite) || amount <= 0) return null;
+
+  return { dailyBudget, spent, amount };
+}
+
 export default function SavingView({ uid, totalBudget, onError }) {
   const { height } = useWindowDimensions();
   // Constrain the plan area without tuning it to one emulator. Short phones
@@ -154,7 +169,9 @@ export default function SavingView({ uid, totalBudget, onError }) {
     if (
       !uid ||
       !active.length ||
-      !savingOverviewTutorial.handled
+      !savingOverviewTutorial.handled ||
+      !Number.isFinite(totalBudget) ||
+      totalBudget <= 0
     ) return;
     let cancelled = false;
     (async () => {
@@ -173,11 +190,13 @@ export default function SavingView({ uid, totalBudget, onError }) {
         listExpenses(uid, { monthStart: yStart, monthEnd: yEnd }),
       ]);
       if (!saved.ok || !spent.ok || saved.data.length) return;
-      const dailyBudget = totalBudget / daysInMonth(yesterday);
-      const yesterdaySpent = spent.data.reduce((s, e) => s + Number(e.amount || 0), 0);
-      const amount = dailyBudget - yesterdaySpent;
-      if (!cancelled && amount > 0) {
-        setSurplus({ dayKey: yKey, dailyBudget, spent: yesterdaySpent, amount, planId: active[0].id });
+      const calculation = calculateYesterdaySurplus(
+        totalBudget,
+        daysInMonth(yesterday),
+        spent.data
+      );
+      if (!cancelled && calculation) {
+        setSurplus({ dayKey: yKey, ...calculation, planId: active[0].id });
       }
     })();
     return () => {

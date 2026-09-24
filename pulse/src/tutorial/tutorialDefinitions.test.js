@@ -42,6 +42,13 @@ describe("tutorial catalogue", () => {
     );
   });
 
+  test("does not register a standalone Family & Friends tutorial", () => {
+    expect(TUTORIALS.relationships).toBeUndefined();
+    expect(TUTORIAL_ORDER).not.toContain("relationships");
+    expect(Object.values(TUTORIALS).map((tutorial) => tutorial.title))
+      .not.toContain("Family & Friends");
+  });
+
   test("describes Home scores without calling domain rows trackers", () => {
     const homeScoresStep = TUTORIALS.appOverview.steps[1];
     expect(homeScoresStep.body).toBe(

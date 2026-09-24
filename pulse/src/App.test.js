@@ -44,11 +44,7 @@ jest.mock('./auth/authService', () => ({
   logIn: jest.fn(),
   logOut: jest.fn(),
   resetPassword: jest.fn(),
-  onAuthChange: (cb) => {
-    // Simulate "no user logged in" so App renders the splash screen.
-    cb(null);
-    return () => {};
-  },
+  onAuthChange: jest.fn(),
 }));
 
 jest.mock('./firestore/users', () => ({
@@ -57,10 +53,22 @@ jest.mock('./firestore/users', () => ({
   searchUserByEmail: jest.fn(),
 }));
 
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import App from './App';
+import { onAuthChange } from './auth/authService';
+import { ensureUserDoc, getUserDoc } from './firestore/users';
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  ensureUserDoc.mockResolvedValue({ ok: true });
+  getUserDoc.mockResolvedValue({ ok: true, data: null });
+  onAuthChange.mockImplementation((callback) => {
+    callback(null);
+    return jest.fn();
+  });
+});
 
 test('renders the Pulse splash screen when logged out', async () => {
   render(<App />);
@@ -68,4 +76,23 @@ test('renders the Pulse splash screen when logged out', async () => {
   expect(await screen.findByText(/Start My Journey/i)).toBeOnTheScreen();
   expect(screen.getByText(/I already have an account/i)).toBeOnTheScreen();
   expect(screen.getByText(/Find Your Perfect/i)).toBeOnTheScreen();
+});
+
+test('shows a retry path instead of loading forever when auth initialization fails', async () => {
+  onAuthChange.mockImplementation((callback) => {
+    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada' });
+    return jest.fn();
+  });
+  ensureUserDoc.mockResolvedValue({ ok: false, error: 'network unavailable' });
+
+  render(<App />);
+
+  expect(
+    await screen.findByText(/couldn't finish loading your account/i)
+  ).toBeOnTheScreen();
+  const retry = screen.getByRole('button', { name: 'Try again' });
+  fireEvent.press(retry);
+
+  await waitFor(() => expect(ensureUserDoc).toHaveBeenCalledTimes(2));
+  expect(screen.getByText(/couldn't finish loading your account/i)).toBeOnTheScreen();
 });

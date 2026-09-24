@@ -6,7 +6,7 @@ import { Alert, PrimaryButton, Screen, ScreenHeader } from "../components/ui";
 import { logAction, logReflection } from "../firestore/scoring";
 import { DOMAINS } from "../scoring/scoringEngine";
 import { colors, domains, fonts, radius, shadow, spacing, type } from "../theme";
-import { TUTORIAL_TARGETS, TutorialTarget, useTutorial } from "../tutorial";
+import { TUTORIAL_TARGETS, TutorialTarget } from "../tutorial";
 
 const RATING_LABELS = ["", "Poor", "Fair", "Okay", "Good", "Great"];
 
@@ -50,8 +50,6 @@ function DomainPage({ domainKey, domainScore, user, onBack, onActivityLogged }) 
   const [actionsDone, setActionsDone] = useState([]);
 
   const [error, setError] = useState(null);
-  useTutorial("relationships", { enabled: domainKey === "relationships" });
-
   const handleLogReflection = async () => {
     setReflectionLoading(true);
     setError(null);

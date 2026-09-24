@@ -8,14 +8,16 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Icon from "./Icon";
 import { colors, radius, shadow, spacing, type } from "../theme";
 
-function Dropdown({ label, options, value, onChange, style, accessibilityLabel }) {
+function Dropdown({ label, options = [], value, onChange, style, accessibilityLabel }) {
   const triggerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [menuLayout, setMenuLayout] = useState(null);
 
+  const isEmpty = options.length === 0;
   const selected = options.find((o) => o.value === value);
 
   const openMenu = () => {
+    if (isEmpty) return;
     triggerRef.current?.measureInWindow((x, y, width, height) => {
       setMenuLayout({ x, y, width, height });
       setOpen(true);
@@ -35,17 +37,36 @@ function Dropdown({ label, options, value, onChange, style, accessibilityLabel }
       <Pressable
         ref={triggerRef}
         onPress={openMenu}
-        style={({ pressed }) => [styles.trigger, pressed && styles.triggerPressed]}
+        disabled={isEmpty}
+        style={({ pressed }) => [
+          styles.trigger,
+          pressed && !isEmpty && styles.triggerPressed,
+          isEmpty && styles.triggerDisabled,
+        ]}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || label}
+        accessibilityState={{ disabled: isEmpty, expanded: open && !isEmpty }}
       >
-        <Text style={styles.triggerText} numberOfLines={1}>
-          {selected?.label ?? ""}
+        <Text
+          style={[styles.triggerText, isEmpty && styles.triggerTextDisabled]}
+          numberOfLines={1}
+        >
+          {isEmpty ? "No options available" : selected?.label ?? ""}
         </Text>
-        <Icon name={open ? "expand_less" : "expand_more"} size={20} color={colors.textMuted} />
+        <Icon
+          name={open && !isEmpty ? "expand_less" : "expand_more"}
+          size={20}
+          color={isEmpty ? colors.blOutlineVariant : colors.textMuted}
+        />
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={closeMenu}>
+      <Modal
+        testID="dropdown-options-modal"
+        visible={open && !isEmpty}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
         <Pressable style={styles.backdrop} onPress={closeMenu}>
           {menuLayout ? (
             <View
@@ -105,7 +126,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   triggerPressed: { opacity: 0.8 },
+  triggerDisabled: { opacity: 0.65 },
   triggerText: { ...type.bodyMedium, color: colors.text },
+  triggerTextDisabled: { color: colors.textMuted },
 
   backdrop: { flex: 1 },
   menu: {

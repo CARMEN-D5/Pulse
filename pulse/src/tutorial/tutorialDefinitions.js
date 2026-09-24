@@ -10,7 +10,6 @@ const ROUTES = {
   todo: { view: "todo" },
   activity: { view: "domain", domain: "health" },
   journal: { view: "domain", domain: "spirituality" },
-  relationships: { view: "domain", domain: "relationships" },
   missions: { view: "missions" },
   social: { view: "social" },
   profile: { view: "profile" },
@@ -227,32 +226,11 @@ export const TUTORIALS = {
         body: "The weekly chart helps you notice changes in mood instead of judging a single day in isolation.",
       },
       {
-        route: { view: "domain", activeDomain: "relationships" },
         target: TARGET.journal.entries,
         title: "Journal entries",
         body: "Add a short reflection and emotion tags after choosing a mood. Journal details stay on this device.",
         ctaLabel: "Log today's mood",
         finish: "startCheckin",
-      },
-    ]),
-  },
-
-  relationships: {
-    version: 1,
-    title: "Family & Friends",
-    steps: onRoute(ROUTES.relationships, [
-      {
-        route: { view: "domain", activeDomain: "relationships" },
-        target: TARGET.domain.reflection,
-        title: "Reflect on today",
-        body: "Rate how connected and supported you felt. Reflections contribute to this domain's weekly score.",
-      },
-      {
-        route: { view: "missions" },
-        target: TARGET.domain.actions,
-        title: "Log meaningful actions",
-        body: "Record a connection or relationship mission after you complete it. Actions and consistency help your score grow.",
-        ctaLabel: "Try it now",
       },
     ]),
   },
@@ -330,7 +308,6 @@ export const TUTORIAL_ORDER = [
   "todo",
   "activity",
   "journal",
-  "relationships",
   "missions",
   "social",
   "profile",

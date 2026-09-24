@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { BackHandler, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppShell from "./components/AppShell";
-import { Loading, Screen } from "./components/ui";
+import { Alert, Loading, PrimaryButton, Screen } from "./components/ui";
 import useAppFonts from "./hooks/useAppFonts";
 
 import Splash from "./pages/Splash";
@@ -116,6 +116,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [userDoc, setUserDoc] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [authInitError, setAuthInitError] = useState("");
+  const [authRetryNonce, setAuthRetryNonce] = useState(0);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [activeDomain, setActiveDomain] = useState(null);
   const [scoreVersion, setScoreVersion] = useState(0);
@@ -151,45 +153,77 @@ function App() {
     };
   }, []);
 
-  // Subscribe to Firebase auth state. Runs once on mount.
+  // Subscribe to Firebase auth state on mount. A user-requested retry replaces
+  // the subscription so Firebase immediately replays the current session.
   useEffect(() => {
+    let alive = true;
     const unsubscribe = onAuthChange(async (firebaseUser) => {
+      if (!alive) return;
+      setAuthReady(false);
+      setAuthInitError("");
       setUser(firebaseUser);
-      setAuthReady(true);
 
-      if (firebaseUser) {
-        await ensureUserDoc(firebaseUser);
-        const { data } = await getUserDoc(firebaseUser.uid);
-        setUserDoc(data);
+      try {
+        if (firebaseUser) {
+          const ensured = await ensureUserDoc(firebaseUser);
+          if (!ensured?.ok) throw new Error(ensured?.error || "User profile setup failed");
 
-        // Reconcile device and account records. The profile wins for the
-        // account half, so someone who consented on another handset is not
-        // asked again here.
-        const reconciled = await syncConsent(firebaseUser.uid, data);
-        setConsent(reconciled);
-        setConsentReady(true);
+          const profile = await getUserDoc(firebaseUser.uid);
+          if (!profile?.ok) throw new Error(profile?.error || "User profile load failed");
+          const data = profile.data;
+          if (!alive) return;
+          setUserDoc(data);
 
-        // Routing rules, in order:
-        //   1. No account-level consent yet → consent view. This covers a new
-        //      sign-up, an account predating the feature, and a version bump.
-        //   2. Brand-new sign-up → entry quiz
-        //   3. Existing user without a saved baseline → entry quiz
-        //   4. Otherwise preserve any current authed view, default to home
-        const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS];
-        setView((current) => {
-          if (!accountConsented(reconciled)) return "consent";
-          if (isNewSignUp.current) return "entryQuiz";
-          if (!data?.onboardingCompletedAt) return "entryQuiz";
-          return AUTHED_VIEWS.includes(current) ? current : "home";
-        });
-      } else {
-        setUserDoc(null);
-        const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "consent", "entryQuiz"];
-        setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
+          // Reconcile device and account records. The profile wins for the
+          // account half, so someone who consented on another handset is not
+          // asked again here.
+          const reconciled = await syncConsent(firebaseUser.uid, data);
+          if (!alive) return;
+          setConsent(reconciled);
+          setConsentReady(true);
+
+          // Routing rules, in order:
+          //   1. No account-level consent yet → consent view. This covers a new
+          //      sign-up, an account predating the feature, and a version bump.
+          //   2. Brand-new sign-up → entry quiz
+          //   3. Existing user without a saved baseline → entry quiz
+          //   4. Otherwise preserve any current authed view, default to home
+          const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS];
+          setView((current) => {
+            if (!accountConsented(reconciled)) return "consent";
+            if (isNewSignUp.current) return "entryQuiz";
+            if (!data?.onboardingCompletedAt) return "entryQuiz";
+            return AUTHED_VIEWS.includes(current) ? current : "home";
+          });
+        } else {
+          setUserDoc(null);
+          const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "consent", "entryQuiz"];
+          setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));
+        }
+      } catch (error) {
+        // Keep implementation details out of the UI, but retain a compact
+        // diagnostic for development builds and remote debugging.
+        console.debug("[Pulse] authenticated initialization failed", error?.code, error?.message);
+        if (alive) {
+          setAuthInitError(
+            "We couldn't finish loading your account. Check your connection and try again."
+          );
+        }
+      } finally {
+        if (alive) setAuthReady(true);
       }
     });
-    return unsubscribe;
-  }, []);
+    return () => {
+      alive = false;
+      unsubscribe?.();
+    };
+  }, [authRetryNonce]);
+
+  const retryAuthInitialization = () => {
+    setAuthInitError("");
+    setAuthReady(false);
+    setAuthRetryNonce((value) => value + 1);
+  };
 
   const goBack = useCallback(() => {
     setActiveDomain(null);
@@ -426,6 +460,15 @@ function App() {
       );
     }
 
+    if (authInitError) {
+      return (
+        <Screen scroll={false} center keyboardAvoiding={false}>
+          <Alert message={authInitError} />
+          <PrimaryButton label="Try again" onPress={retryAuthInitialization} />
+        </Screen>
+      );
+    }
+
     switch (view) {
       case "login":
         return (
@@ -527,9 +570,7 @@ function App() {
                 user={user}
                 userDoc={userDoc}
                 scoreVersion={scoreVersion}
-                onDomainSelect={handleDomainSelect}
-                onOpenDomain={handleDomainSelect}
-                onNevigate={handleDomainSelect}
+                onNavigate={handleDomainSelect}
             />
         );
 

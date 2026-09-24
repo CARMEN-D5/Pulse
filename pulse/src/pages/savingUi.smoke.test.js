@@ -68,7 +68,7 @@ import SavingEntryModal from './SavingEntryModal';
 import SavingDetailsModal from './SavingDetailsModal';
 import SavingMilestoneModal from './SavingMilestoneModal';
 import CompletedPlansHistory from './CompletedPlansHistory';
-import SavingView from './SavingView';
+import SavingView, { calculateYesterdaySurplus } from './SavingView';
 
 const PLAN = {
   id: 'plan-1',
@@ -84,6 +84,25 @@ const PLAN = {
 const ENTRY = { id: 'e1', planId: 'plan-1', dayKey: '2026-08-12', amount: 25, source: 'manual' };
 
 const noop = () => {};
+
+describe('saving surplus calculation', () => {
+  test.each([undefined, null, NaN, Infinity, 0, -100])(
+    'does not calculate a surplus for invalid budget %p',
+    (totalBudget) => {
+      expect(calculateYesterdaySurplus(totalBudget, 31, [{ amount: 10 }])).toBeNull();
+    }
+  );
+
+  test('returns finite values for a valid budget and expenses', () => {
+    const result = calculateYesterdaySurplus(3100, 31, [{ amount: 25 }, { amount: '15' }]);
+    expect(result).toEqual({ dailyBudget: 100, spent: 40, amount: 60 });
+    expect(Object.values(result).every(Number.isFinite)).toBe(true);
+  });
+
+  test('does not propagate an invalid expense amount', () => {
+    expect(calculateYesterdaySurplus(3100, 31, [{ amount: 'not-a-number' }])).toBeNull();
+  });
+});
 
 describe('saving UI renders under React Native', () => {
   it('SavingPlanCard', () => {

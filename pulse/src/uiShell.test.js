@@ -47,6 +47,7 @@ import { StyleSheet, Text } from 'react-native';
 import React from 'react';
 
 import AppShell from './components/AppShell';
+import Dropdown from './components/Dropdown';
 import { Card } from './components/ui';
 import Features from './pages/Features';
 import Home, { getOverviewMetrics } from './pages/Home';
@@ -175,14 +176,32 @@ test('Features lists every tool and reports the tapped id', () => {
   expect(onOpen).toHaveBeenCalledWith('finance');
 });
 
+test('Dropdown disables its trigger when no options are available', () => {
+  render(
+    <Dropdown
+      label="Priority"
+      accessibilityLabel="Priority"
+      options={[]}
+      value={null}
+      onChange={jest.fn()}
+    />
+  );
+
+  const trigger = screen.getByLabelText('Priority');
+  expect(trigger.props.accessibilityState).toMatchObject({ disabled: true, expanded: false });
+  expect(screen.getByText('No options available')).toBeOnTheScreen();
+  fireEvent.press(trigger);
+  expect(screen.queryByTestId('dropdown-options-modal')).toBeNull();
+});
+
 test('Home shows Diagram first and keeps its status below the radar', async () => {
-  const onDomainSelect = jest.fn();
+  const onNavigate = jest.fn();
   const rendered = render(
     <Home
       user={{ uid: 'u1', displayName: 'Ada' }}
       userDoc={{ onboardingCompletedAt: 1 }}
       scoreVersion={0}
-      onDomainSelect={onDomainSelect}
+      onNavigate={onNavigate}
     />
   );
 
@@ -212,6 +231,8 @@ test('Home shows Diagram first and keeps its status below the radar', async () =
   expect(screen.getByText('Spirituality')).toBeOnTheScreen();
   expect(screen.getByText('Financial Wellbeing')).toBeOnTheScreen();
   expect(screen.getByText('Building')).toBeOnTheScreen();
+  fireEvent.press(screen.getByText('Strengthen Connections'));
+  expect(onNavigate).toHaveBeenCalledWith('relationships');
 });
 
 test('Home overview sizing is responsive and bounded', () => {

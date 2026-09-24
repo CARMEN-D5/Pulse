@@ -230,7 +230,7 @@ function OverviewTab({ id, label, icon, active, onPress }) {
 /* ── Home / Dashboard ──────────────────────────────────────── */
 function Home({
   user, userDoc, scoreVersion,
-  onDomainSelect, onOpenDomain, onNevigate,
+  onNavigate,
 }) {
   const { width: windowWidth } = useWindowDimensions();
   const {
@@ -243,7 +243,7 @@ function Home({
 
   useTutorial("appOverview", { enabled: Boolean(user?.uid && scores) });
 
-  const openDomain = onDomainSelect || onOpenDomain || onNevigate || (() => {});
+  const openDomain = onNavigate || (() => {});
 
   useEffect(() => {
     if (!user?.uid || !userDoc) return;
