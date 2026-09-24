@@ -132,6 +132,7 @@ function App() {
   const [consent, setConsent] = useState(null);
   const [consentReady, setConsentReady] = useState(false);
   const [consentSaving, setConsentSaving] = useState(false);
+  const [consentError, setConsentError] = useState("");
 
   const fontsReady = useAppFonts();
 
@@ -177,7 +178,17 @@ function App() {
           // Reconcile device and account records. The profile wins for the
           // account half, so someone who consented on another handset is not
           // asked again here.
-          const reconciled = await syncConsent(firebaseUser.uid, data);
+          const syncResult = await syncConsent(firebaseUser.uid, data);
+          if (syncResult?.ok === false) {
+            throw new Error(syncResult?.error || "Consent synchronization failed");
+          }
+          const reconciled =
+            syncResult?.ok === true && Object.prototype.hasOwnProperty.call(syncResult, "data")
+              ? syncResult.data
+              : syncResult;
+          if (!reconciled || typeof reconciled !== "object") {
+            throw new Error("Consent synchronization returned an invalid record");
+          }
           if (!alive) return;
           setConsent(reconciled);
           setConsentReady(true);
@@ -269,12 +280,27 @@ function App() {
   // hands off to the rest of registration.
   const handleConsentComplete = async (choices) => {
     setConsentSaving(true);
-    const record = acceptAccountConsent(consent, choices);
-    await writeLocalConsent(record);
-    if (user?.uid) await writeProfileConsent(user.uid, record);
-    setConsent(record);
-    setConsentSaving(false);
-    setView(userDoc?.onboardingCompletedAt ? "home" : "entryQuiz");
+    setConsentError("");
+
+    try {
+      const record = acceptAccountConsent(consent, choices);
+      await writeLocalConsent(record);
+
+      if (user?.uid) {
+        const result = await writeProfileConsent(user.uid, record);
+        if (!result?.ok) throw new Error(result?.error || "Consent save failed");
+      }
+
+      setConsent(record);
+      setView(userDoc?.onboardingCompletedAt ? "home" : "entryQuiz");
+    } catch (error) {
+      console.debug("[Pulse] consent save failed", error?.code, error?.message);
+      setConsentError(
+        "We couldn't save your consent choices. Check your connection and try again."
+      );
+    } finally {
+      setConsentSaving(false);
+    }
   };
 
   // Shown only while signed out, and only until this device has acknowledged
@@ -498,7 +524,13 @@ function App() {
         );
 
       case "consent":
-        return <ConsentScreen onComplete={handleConsentComplete} loading={consentSaving} />;
+        return (
+          <ConsentScreen
+            onComplete={handleConsentComplete}
+            loading={consentSaving}
+            error={consentError}
+          />
+        );
 
       case "entryQuiz":
         return <EntryQuiz onComplete={handleEntryQuizComplete} loading={onboardingLoading} />;

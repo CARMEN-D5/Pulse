@@ -282,14 +282,15 @@ function timeAgo(ts) {
 
 /** Round avatar with initials — used by posts, comments and conversations. */
 function Avatar({ name, size = 40, showDot = false }) {
+  const sizeStyle = useMemo(
+    () => ({ width: size, height: size, borderRadius: size / 2 }),
+    [size]
+  );
+  const textSizeStyle = useMemo(() => ({ fontSize: size * 0.36 }), [size]);
+
   return (
-    <View
-      style={[
-        styles.avatar,
-        { width: size, height: size, borderRadius: size / 2 },
-      ]}
-    >
-      <Text style={[styles.avatarText, { fontSize: size * 0.36 }]}>{initialsFor(name)}</Text>
+    <View style={[styles.avatar, sizeStyle]}>
+      <Text style={[styles.avatarText, textSizeStyle]}>{initialsFor(name)}</Text>
       {showDot ? <View style={styles.unreadDot} /> : null}
     </View>
   );
@@ -428,6 +429,7 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const isMine = post.authorUid === user?.uid;
+  const slideStyle = useMemo(() => ({ width: slideWidth }), [slideWidth]);
 
   // Live subscriptions — likes and comments update without a refresh.
   // Both are scoped to this post, so leaving the page (component unmount)
@@ -584,7 +586,7 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
             onMomentumScrollEnd={onSlidesScrollEnd}
           >
             {hasImage ? (
-              <View style={{ width: slideWidth, height: "100%" }}>
+              <View style={[styles.postSlide, slideStyle]}>
                 <Image
                   source={{ uri: post.imageUrl }}
                   style={styles.postImage}
@@ -593,7 +595,7 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
                 />
               </View>
             ) : null}
-            <View style={{ width: slideWidth, height: "100%" }}>
+            <View style={[styles.postSlide, slideStyle]}>
               <View style={styles.reflection}>
                 <Text style={styles.reflectionLabel}>What I did to improve</Text>
                 <Text style={styles.reflectionText}>{post.reflection}</Text>
@@ -1251,6 +1253,7 @@ const styles = StyleSheet.create({
   },
 
   postAuthor: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  postSlide: { height: "100%" },
   postName: { ...type.label, fontSize: 14, color: colors.text },
   postWhen: { ...type.caption, fontSize: 11, color: colors.textMuted },
 

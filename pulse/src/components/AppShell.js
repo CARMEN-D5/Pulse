@@ -33,14 +33,16 @@ export function AppBar({ initials, onOpenProfile }) {
         onPress={onOpenProfile}
         accessibilityRole="button"
         accessibilityLabel="Open profile"
-        hitSlop={8}
-        style={({ pressed }) => [styles.avatarBtn, pressed && styles.pressed]}
+        hitSlop={2}
+        style={({ pressed }) => [styles.avatarTouchTarget, pressed && styles.pressed]}
       >
-        {initials ? (
-          <Text style={styles.avatarText}>{initials}</Text>
-        ) : (
-          <Icon name="person" size={18} color="#6B5A78" />
-        )}
+        <View style={styles.avatarVisual}>
+          {initials ? (
+            <Text style={styles.avatarText}>{initials}</Text>
+          ) : (
+            <Icon name="person" size={18} color="#6B5A78" />
+          )}
+        </View>
       </Pressable>
     </View>
   );
@@ -125,7 +127,13 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  avatarBtn: {
+  avatarTouchTarget: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarVisual: {
     width: 32,
     height: 32,
     borderRadius: radius.pill,

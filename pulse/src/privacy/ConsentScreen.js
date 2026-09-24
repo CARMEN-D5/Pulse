@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
-import { Card, PrimaryButton, Screen } from "../components/ui";
+import { Alert, Card, PrimaryButton, Screen } from "../components/ui";
 import { colors, domains, fonts, radius, spacing, type } from "../theme";
 import { OPTIONAL_CONSENTS, SENSITIVE_NOTICE, SHORT_NOTICE } from "./consentNotice";
 
-export default function ConsentScreen({ onComplete, loading = false }) {
+export default function ConsentScreen({ onComplete, loading = false, error = "" }) {
     const [choices, setChoices] = useState(() =>
         Object.fromEntries(OPTIONAL_CONSENTS.map((o) => [o.key, false]))
     );
@@ -84,6 +84,8 @@ export default function ConsentScreen({ onComplete, loading = false }) {
                     </View>
                 ) : null}
 
+                {error ? <Alert message={error} style={styles.error} /> : null}
+
                 <PrimaryButton
                     label="I agree — continue"
                     onPress={() => submit()}
@@ -156,6 +158,7 @@ const styles = StyleSheet.create({
     rowDescription: { ...type.small, fontSize: 12, color: colors.textMuted },
 
     submit: { marginTop: spacing.sm },
+    error: { marginTop: spacing.sm },
     secondary: {
         alignItems: "center",
         justifyContent: "center",

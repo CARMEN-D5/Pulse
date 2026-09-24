@@ -47,7 +47,7 @@ import { StyleSheet, Text } from 'react-native';
 import React from 'react';
 
 import AppShell from './components/AppShell';
-import Dropdown from './components/Dropdown';
+import Dropdown, { getDropdownMenuPlacement } from './components/Dropdown';
 import { Card } from './components/ui';
 import Features from './pages/Features';
 import Home, { getOverviewMetrics } from './pages/Home';
@@ -164,6 +164,10 @@ test('AppShell renders the wordmark and all four tabs', () => {
   );
   fireEvent.press(screen.getByLabelText('Social'));
   expect(onTabChange).toHaveBeenCalledWith('social');
+
+  const avatarTouchTarget = StyleSheet.flatten(screen.getByLabelText('Open profile').props.style);
+  expect(avatarTouchTarget.width).toBeGreaterThanOrEqual(44);
+  expect(avatarTouchTarget.height).toBeGreaterThanOrEqual(44);
 });
 
 test('Features lists every tool and reports the tapped id', () => {
@@ -192,6 +196,29 @@ test('Dropdown disables its trigger when no options are available', () => {
   expect(screen.getByText('No options available')).toBeOnTheScreen();
   fireEvent.press(trigger);
   expect(screen.queryByTestId('dropdown-options-modal')).toBeNull();
+});
+
+test('Dropdown opens below when there is room and flips above near the viewport bottom', () => {
+  const below = getDropdownMenuPlacement({
+    triggerY: 100,
+    triggerHeight: 40,
+    screenHeight: 800,
+    optionCount: 3,
+  });
+  expect(below.openUpward).toBe(false);
+  expect(below.top).toBe(144);
+  expect(below.top + below.maxHeight).toBeLessThanOrEqual(792);
+
+  const above = getDropdownMenuPlacement({
+    triggerY: 700,
+    triggerHeight: 40,
+    screenHeight: 800,
+    optionCount: 4,
+  });
+  expect(above.openUpward).toBe(true);
+  expect(above.top).toBeLessThan(700);
+  expect(above.top).toBeGreaterThanOrEqual(8);
+  expect(above.top + above.maxHeight).toBeLessThanOrEqual(700);
 });
 
 test('Home shows Diagram first and keeps its status below the radar', async () => {

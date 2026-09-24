@@ -3,12 +3,45 @@
 // `@react-native-picker/picker` so the menu matches the app's own design
 // tokens instead of the OS-native picker UI.
 import React, { useRef, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 import Icon from "./Icon";
 import { colors, radius, shadow, spacing, type } from "../theme";
 
+const MENU_GAP = 4;
+const VIEWPORT_MARGIN = 8;
+const ESTIMATED_OPTION_HEIGHT = 44;
+const MENU_VERTICAL_PADDING = 8;
+const MAX_MENU_HEIGHT = 240;
+
+export function getDropdownMenuPlacement({ triggerY, triggerHeight, screenHeight, optionCount }) {
+  const estimatedHeight = Math.min(
+    MAX_MENU_HEIGHT,
+    optionCount * ESTIMATED_OPTION_HEIGHT + MENU_VERTICAL_PADDING
+  );
+  const belowTop = triggerY + triggerHeight + MENU_GAP;
+  const bottomSpace = Math.max(0, screenHeight - VIEWPORT_MARGIN - belowTop);
+  const aboveSpace = Math.max(0, triggerY - VIEWPORT_MARGIN - MENU_GAP);
+  const openUpward = bottomSpace < estimatedHeight && aboveSpace > bottomSpace;
+  const availableSpace = openUpward ? aboveSpace : bottomSpace;
+  const maxHeight = Math.min(estimatedHeight, availableSpace);
+  const top = openUpward
+    ? Math.max(VIEWPORT_MARGIN, triggerY - MENU_GAP - maxHeight)
+    : Math.max(VIEWPORT_MARGIN, Math.min(belowTop, screenHeight - VIEWPORT_MARGIN - maxHeight));
+
+  return { top, maxHeight, openUpward };
+}
+
 function Dropdown({ label, options = [], value, onChange, style, accessibilityLabel }) {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const triggerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [menuLayout, setMenuLayout] = useState(null);
@@ -19,7 +52,14 @@ function Dropdown({ label, options = [], value, onChange, style, accessibilityLa
   const openMenu = () => {
     if (isEmpty) return;
     triggerRef.current?.measureInWindow((x, y, width, height) => {
-      setMenuLayout({ x, y, width, height });
+      const placement = getDropdownMenuPlacement({
+        triggerY: y,
+        triggerHeight: height,
+        screenHeight,
+        optionCount: options.length,
+      });
+      const left = Math.max(VIEWPORT_MARGIN, Math.min(x, screenWidth - VIEWPORT_MARGIN - width));
+      setMenuLayout({ left, width, ...placement });
       setOpen(true);
     });
   };
@@ -73,35 +113,38 @@ function Dropdown({ label, options = [], value, onChange, style, accessibilityLa
               style={[
                 styles.menu,
                 {
-                  top: menuLayout.y + menuLayout.height + 4,
-                  left: menuLayout.x,
+                  top: menuLayout.top,
+                  left: menuLayout.left,
                   minWidth: menuLayout.width,
+                  maxHeight: menuLayout.maxHeight,
                 },
               ]}
             >
-              {options.map((option) => {
-                const isSelected = option.value === value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => handleSelect(option.value)}
-                    style={({ pressed }) => [
-                      styles.option,
-                      isSelected && styles.optionSelected,
-                      pressed && styles.optionPressed,
-                    ]}
-                    accessibilityRole="menuitem"
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
-                      {option.label}
-                    </Text>
-                    {isSelected ? (
-                      <Icon name="check" size={18} color={colors.pulsePrimary} />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
+              <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+                {options.map((option) => {
+                  const isSelected = option.value === value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => handleSelect(option.value)}
+                      style={({ pressed }) => [
+                        styles.option,
+                        isSelected && styles.optionSelected,
+                        pressed && styles.optionPressed,
+                      ]}
+                      accessibilityRole="menuitem"
+                      accessibilityState={{ selected: isSelected }}
+                    >
+                      <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
+                        {option.label}
+                      </Text>
+                      {isSelected ? (
+                        <Icon name="check" size={18} color={colors.pulsePrimary} />
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
           ) : null}
         </Pressable>

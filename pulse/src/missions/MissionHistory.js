@@ -10,7 +10,7 @@
  *   onBack  callback → returns to DailyMissions
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import Icon from '../components/Icon';
@@ -57,11 +57,23 @@ function aggregateDomains(records) {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function PctBar({ pct, color }) {
+    const fillStyle = useMemo(
+        () => ({ width: `${pct}%`, backgroundColor: color }),
+        [pct, color]
+    );
     return (
         <View style={styles.pctTrack}>
-            <View style={[styles.pctFill, { width: `${pct}%`, backgroundColor: color }]} />
+            <View style={[styles.pctFill, fillStyle]} />
         </View>
     );
+}
+
+function DomainStrip({ share, color, label }) {
+    const stripStyle = useMemo(
+        () => ({ flex: share, backgroundColor: color }),
+        [share, color]
+    );
+    return <View style={stripStyle} accessibilityLabel={`${label}: ${share}%`} />;
 }
 
 /** One day row used in This Week and All Time tabs. */
@@ -272,10 +284,11 @@ function TabAllTime({ history }) {
                     // flex: 0 collapses a domain with no missions, same as the
                     // web build's `flex: share`.
                     return (
-                        <View
+                        <DomainStrip
                             key={key}
-                            style={{ flex: share, backgroundColor: meta.color }}
-                            accessibilityLabel={`${meta.label}: ${share}%`}
+                            share={share}
+                            color={meta.color}
+                            label={meta.label}
                         />
                     );
                 })}
