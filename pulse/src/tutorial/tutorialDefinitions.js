@@ -174,7 +174,7 @@ export const TUTORIALS = {
         route: { view: "domain", activeDomain: "health" },
         target: TARGET.todo.list,
         title: "Complete and manage tasks",
-        body: "Tap a checkbox when a task is done. Existing tasks can also be edited or deleted.",
+        body: "Tap a checkbox when a task is done. Tap a task to edit it, or use the trash icon to delete it. Long-press delete still works too.",
         ctaLabel: "Try it now",
       },
     ]),

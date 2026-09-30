@@ -42,6 +42,12 @@ describe("tutorial catalogue", () => {
     );
   });
 
+  test("to-do guidance explains the visible delete action and retained long press", () => {
+    expect(TUTORIALS.todo.steps.at(-1).body).toBe(
+      "Tap a checkbox when a task is done. Tap a task to edit it, or use the trash icon to delete it. Long-press delete still works too."
+    );
+  });
+
   test("does not register a standalone Family & Friends tutorial", () => {
     expect(TUTORIALS.relationships).toBeUndefined();
     expect(TUTORIAL_ORDER).not.toContain("relationships");

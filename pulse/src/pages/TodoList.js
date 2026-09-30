@@ -181,8 +181,8 @@ function TodoList({ user, onBack, onActivityLogged }) {
             description: editDesc,
             ...updatedFields
         };
-        if (finalFields.text && finalFields.text.trim() === "") {
-            setEditingId(null);
+        if (typeof finalFields.text !== 'string' || !finalFields.text.trim()) {
+            setError('Task title cannot be empty.');
             return;
         }
         try {
@@ -395,6 +395,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                                 style={styles.input}
                                                 value={editText}
                                                 onChangeText={setEditText}
+                                                accessibilityLabel="Task title"
                                                 autoFocus
                                                 returnKeyType="done"
                                                 onSubmitEditing={() => saveEdit(todo.id)}
@@ -421,7 +422,11 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                                 placeholder="Due date (optional)"
                                             />
 
-                                            <PrimaryButton label="Done" onPress={() => saveEdit(todo.id)} />
+                                            <PrimaryButton
+                                                label="Done"
+                                                onPress={() => saveEdit(todo.id)}
+                                                disabled={!editText.trim()}
+                                            />
                                         </View>
                                     ) : (
                                         // Tap to edit, long-press to delete — the touch equivalents
@@ -430,7 +435,8 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                             onPress={() => startEdit(todo)}
                                             onLongPress={() => deleteTodo(todo)}
                                             accessibilityRole="button"
-                                            accessibilityHint="Tap to edit, long press to delete"
+                                            accessibilityLabel={`Edit ${todo.text}`}
+                                            accessibilityHint="Tap to edit. Long press to delete."
                                         >
                                             <View style={styles.titleRow}>
                                                 <Text
@@ -471,6 +477,20 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                         </Pressable>
                                     )}
                                 </View>
+
+                                <Pressable
+                                    onPress={() => deleteTodo(todo)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Delete ${todo.text}`}
+                                    accessibilityHint="Opens a confirmation before deleting this task."
+                                    hitSlop={2}
+                                    style={({ pressed }) => [
+                                        styles.deleteButton,
+                                        pressed && styles.deleteButtonPressed,
+                                    ]}
+                                >
+                                    <Icon name="delete_outline" size={20} color={colors.blError} />
+                                </Pressable>
                             </View>
                         );
                     })}
@@ -530,6 +550,17 @@ const styles = StyleSheet.create({
     checkboxChecked: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
 
     editBox: { gap: spacing.sm },
+
+    deleteButton: {
+        width: 44,
+        height: 44,
+        marginTop: -8,
+        marginRight: -8,
+        borderRadius: radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    deleteButtonPressed: { backgroundColor: 'rgba(179, 58, 58, 0.08)' },
 
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
     itemText: { ...type.bodyMedium, color: colors.text },
