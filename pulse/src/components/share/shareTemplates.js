@@ -337,7 +337,14 @@ export const TEMPLATES = [
         id: "todo-cleared",
         domain: "todo",
         label: "List cleared",
-        isAvailable: (p) => (p?.completedCount ?? 0) > 0,
+        // Only offer the "cleared" template when the user has actually
+        // ticked every outstanding task. Previously this fired the moment
+        // any task was done, which incorrectly claimed a clean sweep.
+        isAvailable: (p) => {
+            const total = Number(p?.totalCount);
+            const done = Number(p?.completedCount);
+            return total > 0 && done === total;
+        },
         title: () => "Cleared my whole to-do list today",
         render: (p, ctx) => (
             <Card username={ctx.username}>

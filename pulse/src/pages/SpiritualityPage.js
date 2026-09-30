@@ -83,7 +83,10 @@ function SpiritualityPage({ user, onBack, onActivityLogged }) {
   const handleJournalSave = (text, emotions) => {
     persistMood(pendingMoodId, text, emotions);
 
-    if (text.trim() || emotions.length > 0) {
+    // Open the share prompt for any mood check-in — the `journal-mood`
+    // template works with just a mood, and openSharePrompt itself no-ops
+    // if no templates end up being available for the payload.
+    if (pendingMoodId != null) {
       openSharePrompt(
         "journal",
         {

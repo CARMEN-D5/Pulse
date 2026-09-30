@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert as RNAlert,
   Image,
   Linking,
   Modal,
@@ -13,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Icon from "../components/Icon";
+import { getTemplate } from "../components/share";
 import { Alert, Screen, ScreenHeader } from "../components/ui";
 import {
   acceptFriendRequest,
@@ -480,15 +482,30 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
     }
   };
 
-  const onDeleteComment = async (commentId) => {
-    try {
-      const result = await deleteComment(post.id, commentId);
-      if (!result?.ok) throw new Error(result?.error || "Comment delete failed");
-      // Subscription handles the UI update.
-    } catch (error) {
-      console.debug("[Pulse] delete comment failed", error?.message);
-      onError?.("Couldn't delete that comment. Please try again.");
-    }
+  const onDeleteComment = (commentId) => {
+    // Match the post-delete UX — confirm before destructive action.
+    RNAlert.alert(
+      "Delete comment?",
+      "This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await deleteComment(post.id, commentId);
+              if (!result?.ok) throw new Error(result?.error || "Comment delete failed");
+              // Subscription handles the UI update.
+            } catch (error) {
+              console.debug("[Pulse] delete comment failed", error?.message);
+              onError?.("Couldn't delete that comment. Please try again.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const onDeletePost = async () => {
@@ -536,7 +553,23 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
   };
 
   const hasImage = Boolean(post.imageUrl);
-  const slidesCount = hasImage ? 2 : 1;
+
+  // Achievement posts persist a `templateId` + `payload`. Look up the
+  // matching template so we can re-render its visual card here — this
+  // is what makes DM shares and feed posts look like the preview the
+  // user saw in the share popup, not just a raw reflection.
+  const achievementTemplate =
+    post.type === "achievement" && post.templateId && post.payload
+      ? getTemplate(post.templateId)
+      : null;
+  const hasAchievement = Boolean(achievementTemplate);
+
+  // Slide order: image (if any) → achievement card (if any) → reflection.
+  const slides = [];
+  if (hasImage) slides.push("image");
+  if (hasAchievement) slides.push("achievement");
+  slides.push("reflection");
+  const slidesCount = slides.length;
 
   const onSlidesLayout = (e) => setSlideWidth(e.nativeEvent.layout.width);
 
@@ -585,29 +618,36 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={onSlidesScrollEnd}
           >
-            {hasImage ? (
-              <View style={[styles.postSlide, slideStyle]}>
-                <Image
-                  source={{ uri: post.imageUrl }}
-                  style={styles.postImage}
-                  resizeMode="cover"
-                  accessibilityLabel="Post image"
-                />
+            {slides.map((kind, i) => (
+              <View key={kind + i} style={[styles.postSlide, slideStyle]}>
+                {kind === "image" ? (
+                  <Image
+                    source={{ uri: post.imageUrl }}
+                    style={styles.postImage}
+                    resizeMode="cover"
+                    accessibilityLabel="Post image"
+                  />
+                ) : kind === "achievement" ? (
+                  <View style={styles.achievementSlide}>
+                    {achievementTemplate.render(post.payload, {
+                      username: post.authorName,
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.reflection}>
+                    <Text style={styles.reflectionLabel}>What I did to improve</Text>
+                    <Text style={styles.reflectionText}>{post.reflection}</Text>
+                  </View>
+                )}
               </View>
-            ) : null}
-            <View style={[styles.postSlide, slideStyle]}>
-              <View style={styles.reflection}>
-                <Text style={styles.reflectionLabel}>What I did to improve</Text>
-                <Text style={styles.reflectionText}>{post.reflection}</Text>
-              </View>
-            </View>
+            ))}
           </ScrollView>
         ) : null}
       </View>
 
       {slidesCount > 1 ? (
         <View style={styles.slideNav}>
-          {[0, 1].map((i) => (
+          {slides.map((_, i) => (
             <Pressable
               key={i}
               onPress={() => goToSlide(i)}
@@ -678,33 +718,34 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
                   </Text>
                   <View style={styles.commentMetaRow}>
                     <Text style={styles.commentMeta}>{timeAgo(c.createdAt)}</Text>
-                    {c.authorUid === user.uid ? (
-                      <>
-                        <Text style={styles.commentMeta}>·</Text>
-                        <Pressable
-                          onPress={() => onDeleteComment(c.id)}
-                          hitSlop={6}
-                          accessibilityRole="button"
-                        >
-                          <Text style={styles.commentMeta}>delete</Text>
-                        </Pressable>
-                      </>
-                    ) : null}
                   </View>
                 </View>
+                {c.authorUid === user.uid ? (
+                  <Pressable
+                    onPress={() => onDeleteComment(c.id)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete comment"
+                    style={styles.commentDeleteBtn}
+                  >
+                    <Text style={styles.commentDeleteText}>×</Text>
+                  </Pressable>
+                ) : null}
               </View>
             ))
           )}
 
           <View style={styles.commentForm}>
             <TextInput
-              style={[styles.input, styles.flex]}
+              style={[styles.input, styles.commentInput, styles.flex]}
               placeholder="Add a comment…"
               placeholderTextColor={colors.textMuted}
               value={commentText}
               onChangeText={setCommentText}
-              returnKeyType="send"
-              onSubmitEditing={onSubmitComment}
+              multiline
+              textAlignVertical="top"
+              blurOnSubmit={false}
+              scrollEnabled
             />
             <SmallButton label={submitting ? "…" : "Post"} onPress={onSubmitComment} />
           </View>
@@ -842,7 +883,7 @@ function MessagesTab({
       {/* ------------------------------------------------------------ */}
       {/* Find a friend                                                 */}
       {/* ------------------------------------------------------------ */}
-      <View style={[styles.card, shadow("sm")]}>
+      <View style={[styles.card, styles.addFriendCard, shadow("sm")]}>
         <Text style={styles.composerTitle}>Add a friend</Text>
         <Text style={styles.composerHint}>
           Search for a Pulse user by email and send a friend request. Once they accept, you'll
@@ -1258,7 +1299,10 @@ const styles = StyleSheet.create({
   postWhen: { ...type.caption, fontSize: 11, color: colors.textMuted },
 
   postSlides: {
-    height: 220,
+    // Reduced from 220 → 180 so the like / comment / share row stays
+    // above the fold on typical phone viewports. Users no longer need
+    // to scroll to reach the action bar on the first post in the feed.
+    height: 180,
     borderRadius: radius.md,
     overflow: "hidden",
   },
@@ -1274,6 +1318,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.pulseBg,
     gap: 6,
     justifyContent: "center",
+  },
+  // Achievement templates render as their own Card. Wrap them in a
+  // container that centres the card in the fixed-height slide and gives
+  // it a matching background so it doesn't visually clash with the
+  // image/reflection slides.
+  achievementSlide: {
+    height: "100%",
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.pulseBg,
+    justifyContent: "center",
+    alignItems: "center",
   },
   reflectionLabel: {
     ...type.caption,
@@ -1298,7 +1354,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   actionBtn: { paddingVertical: 2 },
   actionText: { ...type.small, color: colors.textMuted },
@@ -1306,13 +1363,33 @@ const styles = StyleSheet.create({
   actionTextDanger: { color: colors.error },
 
   comments: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md },
-  comment: { flexDirection: "row", gap: spacing.sm },
+  comment: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm },
   commentLine: { ...type.small, fontSize: 13, color: colors.text },
   commentAuthor: { fontFamily: fonts.bold },
   commentText: { color: colors.text },
   commentMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   commentMeta: { ...type.caption, fontSize: 11, color: colors.textMuted },
-  commentForm: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  commentForm: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
+  // Multiline input grows with content but caps at a reasonable height so
+  // the send button and rest of the card stay in view.
+  commentInput: { minHeight: 40, maxHeight: 120, paddingTop: 10 },
+  // Delete lives at a fixed top-right of the comment row so its position
+  // does not shift with comment length or wrap.
+  commentDeleteBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: spacing.xs,
+  },
+  commentDeleteText: {
+    ...type.body,
+    fontSize: 18,
+    lineHeight: 20,
+    color: colors.textMuted,
+    fontFamily: fonts.bold,
+  },
 
   input: {
     borderWidth: 1,
@@ -1342,7 +1419,20 @@ const styles = StyleSheet.create({
 
   convList: { gap: spacing.md },
   convRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  searchResult: { marginTop: 4 },
+  searchResult: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.rowTint,
+  },
+  // Extra breathing room on the Add-a-friend card so the section doesn't
+  // feel cramped compared to the rest of the Social tab.
+  addFriendCard: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
   friendMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.md },
   convName: { ...type.label, fontSize: 14, color: colors.text },
   convLast: { ...type.caption, fontSize: 12, color: colors.textMuted },
