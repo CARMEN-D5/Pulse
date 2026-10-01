@@ -667,6 +667,10 @@ export const serialisePayload = (domain, payload) => {
 
 const styles = StyleSheet.create({
     card: {
+        // Fill the parent width — in both the share-editor preview and
+        // the feed slide the parent provides the slot. Combined with
+        // aspectRatio: 1 the card renders as a full-width square.
+        width: "100%",
         aspectRatio: 1,
         backgroundColor: colors.accentSoft,
         borderRadius: radius.lg,

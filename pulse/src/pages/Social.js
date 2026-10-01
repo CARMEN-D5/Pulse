@@ -571,6 +571,13 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
   slides.push("reflection");
   const slidesCount = slides.length;
 
+  // Achievement templates are square (aspectRatio 1), so we grow the
+  // slide area to be as tall as it is wide — otherwise the square card
+  // scales down to the slide height and its contents become unreadable.
+  // Fall back to a fixed 180pt for non-achievement posts (image +
+  // reflection) which is the comfortable "above-the-fold" height.
+  const slidesHeight = hasAchievement && slideWidth > 0 ? slideWidth : 180;
+
   const onSlidesLayout = (e) => setSlideWidth(e.nativeEvent.layout.width);
 
   const onSlidesScrollEnd = (e) => {
@@ -606,9 +613,9 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
         ) : null}
       </View>
 
-      {/* Slides — a fixed-height container so switching slides never
-          reflows the card; real horizontal swipe, dots stay in sync. */}
-      <View style={styles.postSlides} onLayout={onSlidesLayout}>
+      {/* Slides — height is fixed per render; grows for achievement posts
+          so the square template Card fits without being clipped. */}
+      <View style={[styles.postSlides, { height: slidesHeight }]} onLayout={onSlidesLayout}>
         {slideWidth > 0 ? (
           <ScrollView
             ref={slidesRef}
@@ -628,11 +635,11 @@ function PostCard({ post, user, onStartConversation, onDeleted, onError }) {
                     accessibilityLabel="Post image"
                   />
                 ) : kind === "achievement" ? (
-                  <View style={styles.achievementSlide}>
-                    {achievementTemplate.render(post.payload, {
-                      username: post.authorName,
-                    })}
-                  </View>
+                  // No wrapper padding — let the template Card fill the
+                  // slide so no peachy background bleeds around the edges.
+                  achievementTemplate.render(post.payload, {
+                    username: post.authorName,
+                  })
                 ) : (
                   <View style={styles.reflection}>
                     <Text style={styles.reflectionLabel}>What I did to improve</Text>
@@ -889,6 +896,17 @@ function MessagesTab({
           Search for a Pulse user by email and send a friend request. Once they accept, you'll
           see each other's posts and be able to message.
         </Text>
+
+        {/* Show the signed-in user's own email so friends know what to
+            search for when they want to add them back. */}
+        {user?.email ? (
+          <View style={styles.myEmailBox}>
+            <Text style={styles.myEmailLabel}>YOUR EMAIL</Text>
+            <Text style={styles.myEmailValue} numberOfLines={1}>
+              {user.email}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.searchRow}>
           <TextInput
@@ -1260,6 +1278,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.lg,
     gap: spacing.md,
+    // Breathing room between stacked cards (e.g. Add-a-friend above Friends).
+    marginBottom: spacing.lg,
   },
   feedList: { gap: spacing.xl },
   empty: { ...type.small, color: colors.textMuted, textAlign: "center", paddingVertical: spacing.sm },
@@ -1299,10 +1319,9 @@ const styles = StyleSheet.create({
   postWhen: { ...type.caption, fontSize: 11, color: colors.textMuted },
 
   postSlides: {
-    // Reduced from 220 → 180 so the like / comment / share row stays
-    // above the fold on typical phone viewports. Users no longer need
-    // to scroll to reach the action bar on the first post in the feed.
-    height: 180,
+    // Height is set inline per-render — 180pt for image / reflection
+    // posts, square (= full card width) for achievement posts so the
+    // template Card isn't scaled down.
     borderRadius: radius.md,
     overflow: "hidden",
   },
@@ -1318,18 +1337,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.pulseBg,
     gap: 6,
     justifyContent: "center",
-  },
-  // Achievement templates render as their own Card. Wrap them in a
-  // container that centres the card in the fixed-height slide and gives
-  // it a matching background so it doesn't visually clash with the
-  // image/reflection slides.
-  achievementSlide: {
-    height: "100%",
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.pulseBg,
-    justifyContent: "center",
-    alignItems: "center",
   },
   reflectionLabel: {
     ...type.caption,
@@ -1432,6 +1439,28 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
+  },
+  // "Your email" chip so a friend can quickly read it off the user's
+  // screen to send a request back.
+  myEmailBox: {
+    backgroundColor: colors.rowTint,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: 2,
+  },
+  myEmailLabel: {
+    ...type.caption,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: colors.textMuted,
+    fontWeight: "700",
+  },
+  myEmailValue: {
+    ...type.body,
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: "700",
   },
   friendMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.md },
   convName: { ...type.label, fontSize: 14, color: colors.text },

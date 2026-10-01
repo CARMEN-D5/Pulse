@@ -163,9 +163,16 @@ function Profile({ user, onLogout, onReplayTutorial }) {
               <Text style={styles.avatarText}>{initials}</Text>
             </LinearGradient>
 
-            <Text style={styles.name} numberOfLines={1} accessibilityRole="header">
-              {displayName}
-            </Text>
+            <View style={styles.identityBlock}>
+              <Text style={styles.name} numberOfLines={1} accessibilityRole="header">
+                {displayName}
+              </Text>
+              {user?.email ? (
+                <Text style={styles.identityEmail} numberOfLines={1}>
+                  {user.email}
+                </Text>
+              ) : null}
+            </View>
 
             <TutorialTarget id={TUTORIAL_TARGETS.profile.settings}>
               <Pressable
@@ -218,12 +225,20 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   avatarText: { fontFamily: fonts.extrabold, fontSize: 24, color: colors.text },
-  name: {
+  identityBlock: {
     flex: 1,
+    gap: 2,
+  },
+  name: {
     ...type.h2,
     fontFamily: fonts.extrabold,
     fontSize: 22,
     color: colors.text,
+  },
+  identityEmail: {
+    ...type.caption,
+    fontSize: 13,
+    color: colors.textMuted,
   },
   gear: { padding: spacing.xs },
 
