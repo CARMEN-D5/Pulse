@@ -382,13 +382,19 @@ export const TEMPLATES = [
                     {(p.missions ?? []).map((m, i) => {
                         const meta = domainMeta(m.domain);
                         return (
-                            <Text
+                            <View
                                 key={`${m.domain}-${i}`}
-                                style={[styles.tag, { borderColor: `${meta.color}44`, color: meta.color }]}
+                                style={[styles.tagRow, { borderColor: `${meta.color}44` }]}
                             >
-                                <Icon name={domains[m.domain]?.icon ?? "star"} size={12} color={meta.color} />{" "}
-                                {meta.label}
-                            </Text>
+                                <Icon
+                                    name={domains[m.domain]?.icon ?? "star"}
+                                    size={12}
+                                    color={meta.color}
+                                />
+                                <Text style={[styles.tagRowText, { color: meta.color }]}>
+                                    {meta.label}
+                                </Text>
+                            </View>
                         );
                     })}
                 </View>
@@ -702,6 +708,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.sm,
         paddingVertical: 2,
         overflow: "hidden",
+    },
+    // Flex-row variant for pills that embed an icon alongside text —
+    // nesting <Icon /> inside <Text> breaks Android baseline layout
+    // and distorts the pill vertically.
+    tagRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.pill,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 3,
+    },
+    tagRowText: {
+        ...type.caption,
+        includeFontPadding: false,
     },
 
     statGrid: {
