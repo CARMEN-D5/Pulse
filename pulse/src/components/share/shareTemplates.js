@@ -337,7 +337,14 @@ export const TEMPLATES = [
         id: "todo-cleared",
         domain: "todo",
         label: "List cleared",
-        isAvailable: (p) => (p?.completedCount ?? 0) > 0,
+        // Only offer the "cleared" template when the user has actually
+        // ticked every outstanding task. Previously this fired the moment
+        // any task was done, which incorrectly claimed a clean sweep.
+        isAvailable: (p) => {
+            const total = Number(p?.totalCount);
+            const done = Number(p?.completedCount);
+            return total > 0 && done === total;
+        },
         title: () => "Cleared my whole to-do list today",
         render: (p, ctx) => (
             <Card username={ctx.username}>
@@ -375,13 +382,19 @@ export const TEMPLATES = [
                     {(p.missions ?? []).map((m, i) => {
                         const meta = domainMeta(m.domain);
                         return (
-                            <Text
+                            <View
                                 key={`${m.domain}-${i}`}
-                                style={[styles.tag, { borderColor: `${meta.color}44`, color: meta.color }]}
+                                style={[styles.tagRow, { borderColor: `${meta.color}44` }]}
                             >
-                                <Icon name={domains[m.domain]?.icon ?? "star"} size={12} color={meta.color} />{" "}
-                                {meta.label}
-                            </Text>
+                                <Icon
+                                    name={domains[m.domain]?.icon ?? "star"}
+                                    size={12}
+                                    color={meta.color}
+                                />
+                                <Text style={[styles.tagRowText, { color: meta.color }]}>
+                                    {meta.label}
+                                </Text>
+                            </View>
                         );
                     })}
                 </View>
@@ -660,6 +673,10 @@ export const serialisePayload = (domain, payload) => {
 
 const styles = StyleSheet.create({
     card: {
+        // Fill the parent width — in both the share-editor preview and
+        // the feed slide the parent provides the slot. Combined with
+        // aspectRatio: 1 the card renders as a full-width square.
+        width: "100%",
         aspectRatio: 1,
         backgroundColor: colors.accentSoft,
         borderRadius: radius.lg,
@@ -691,6 +708,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.sm,
         paddingVertical: 2,
         overflow: "hidden",
+    },
+    // Flex-row variant for pills that embed an icon alongside text —
+    // nesting <Icon /> inside <Text> breaks Android baseline layout
+    // and distorts the pill vertically.
+    tagRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.pill,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 3,
+    },
+    tagRowText: {
+        ...type.caption,
+        includeFontPadding: false,
     },
 
     statGrid: {
