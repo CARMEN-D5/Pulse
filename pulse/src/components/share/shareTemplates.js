@@ -81,6 +81,11 @@ const UNKNOWN_MOOD = {
 
 const moodOrFallback = (moodId) => moodOf(moodId) ?? UNKNOWN_MOOD;
 
+const strengthSetCount = (set = {}) => {
+    const count = Number(set.setCount);
+    return Number.isInteger(count) && count > 0 ? count : 1;
+};
+
 /**
  * Strength totals. Every value in the doc is a string ("60", "", "8"), so
  * everything goes through num() before it's added up.
@@ -91,8 +96,9 @@ export const workoutStats = (activity = {}) => {
     let volumeKg = 0;
     for (const ex of exercises) {
         for (const s of ex.sets ?? []) {
-            setCount += 1;
-            volumeKg += num(s.weight) * num(s.reps);
+            const count = strengthSetCount(s);
+            setCount += count;
+            volumeKg += num(s.weight) * num(s.reps) * count;
         }
     }
     return {
@@ -298,12 +304,13 @@ export const TEMPLATES = [
                 <View style={styles.exerciseList}>
                     {p.exercises.slice(0, 5).map((ex, i) => {
                         const sets = ex.sets ?? [];
+                        const setCount = sets.reduce((total, set) => total + strengthSetCount(set), 0);
                         const top = topWeight(ex);
                         return (
                             <Text key={`${ex.name}-${i}`} style={styles.exerciseRow}>
                                 – {ex.name || "Exercise"}{" "}
                                 <Text style={styles.muted}>
-                                    ({plural(sets.length, "set", "sets")}
+                                    ({plural(setCount, "set", "sets")}
                                     {top > 0 ? ` · ${top} kg` : ""})
                                 </Text>
                             </Text>
@@ -600,6 +607,7 @@ const SERIALISERS = {
             sets: (ex.sets ?? []).slice(0, 20).map((s) => ({
                 weight: num(s.weight),
                 reps: num(s.reps),
+                setCount: strengthSetCount(s),
             })),
         })),
     }),

@@ -36,6 +36,7 @@ export default function DateField({
   clearable = true,
   minimumDate,
   maximumDate,
+  compact = false,
   style,
 }) {
   const [open, setOpen] = useState(false);
@@ -60,7 +61,7 @@ export default function DateField({
         onPress={openPicker}
         accessibilityRole="button"
         accessibilityLabel={value ? `Date: ${value}. Tap to change.` : placeholder}
-        style={({ pressed }) => [styles.field, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.field, compact && styles.fieldCompact, pressed && styles.pressed]}
       >
         <Icon name="calendar_today" size={18} color={colors.blOutline} />
         <Text style={[styles.value, !value && styles.placeholder]} numberOfLines={1}>
@@ -126,6 +127,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: "rgba(255,255,255,0.7)",
+  },
+  fieldCompact: {
+    minHeight: 44,
+    paddingVertical: spacing.sm,
   },
   pressed: { opacity: 0.7 },
   value: { ...type.body, flex: 1, color: colors.text },
