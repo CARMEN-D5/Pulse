@@ -73,6 +73,15 @@ const PAGE_OPTIONS = [
     { value: 'templates', label: 'Templates' },
 ];
 
+
+function getTodayDate() {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
 const EMPTY_EXERCISES = [{ name: '', sets: [{ weight: '', reps: '' }] }];
 
 function PhysicalActivity({ user, onBack, onActivityLogged }) {
@@ -80,7 +89,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
     const [activities, setActivities] = useState([]);
     const [input, setInput] = useState('');
     const [descInput, setDescInput] = useState('');
-    const [activityDate, setActivityDate] = useState('');
+    const [activityDate, setActivityDate] = useState(getTodayDate());
     const [tab, setTab] = useState('cardio');
     const [pageTab, setPageTab] = useState('new');
     const [templateType, setTemplateType] = useState('cardio');
@@ -137,8 +146,12 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
         let finalFields = {
             text: editText,
             description: editDesc,
+            activityDate: activity.activityDate,
             distance: editDistance,
             duration: editTime,
+            exercises: editExercises,
+            exercises: editExercises,
+            exercises: editExercises,
             exercises: editExercises,
             ...updateFields
         };
@@ -149,10 +162,42 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
             finalFields.duration = 0;
         }
 
-        if (finalFields.text && finalFields.text.trim() === "") {
-            setEditingId(null);
+        if (!finalFields.text || finalFields.text.trim() === "") {
+            setError('Activity name is required.');
             return;
         }
+
+        if (!finalFields.activityDate || finalFields.activityDate === '9999-12-31') {
+            setError('Activity date is required.');
+            return;
+        }
+
+        if (activity.type === 'cardio') {
+            if (!finalFields.distance || Number(finalFields.distance) <= 0) {
+                setError('Please enter a valid distance.');
+                return;
+            }
+
+            if (!finalFields.duration || Number(finalFields.duration) <= 0) {
+                setError('Please enter a valid duration.');
+                return;
+            }
+        }
+
+        if (activity.type === 'strength') {
+            const hasValidExercise = (finalFields.exercises || []).some(exercise =>
+                exercise.name?.trim() &&
+                (exercise.sets || []).some(
+                    set => Number(set.weight) > 0 && Number(set.reps) > 0
+                )
+            );
+
+            if (!hasValidExercise) {
+                setError('Please enter an exercise with weight and reps.');
+                return;
+            }
+        }
+
         try {
             setError(null);
             const activityRef = doc(db, 'users', user.uid, 'physicalActivities', id);
@@ -169,6 +214,35 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
     // Create Activity
     const addActivity = async () => {
         if (!input.trim()) return;
+
+        if (!input.trim()) {
+            setError('Please enter an activity name.');
+            return;
+        }
+
+        if (!activityDate) {
+            setError('Please enter an activity date.');
+            return;
+        }
+
+        if (tab === 'cardio' && (!distance || !time)) {
+            setError('Please enter both distance and duration.');
+            return;
+        }
+
+        if (tab === 'strength') {
+            const hasValidExercise = exercises.some(exercise =>
+                exercise.name.trim() &&
+                (exercise.sets || []).some(
+                    set => Number(set.weight) > 0 && Number(set.reps) > 0
+                )
+            );
+
+            if (!hasValidExercise) {
+                setError('Please enter an exercise with weight and reps.');
+                return;
+            }
+        }
 
         try {
             setError(null);
@@ -199,7 +273,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
             // Reset runs either way, shared or not.
             setInput('');
             setDescInput('');
-            setActivityDate('');
+            setActivityDate(getTodayDate());
             setTab('cardio');
             setDistance('');
             setTime('');
@@ -320,7 +394,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                     style={styles.input}
                     value={input}
                     onChangeText={setInput}
-                    placeholder="New Activity..."
+                    placeholder="New Activity *"
                     placeholderTextColor={colors.textMuted}
                 />
                 <TextInput
@@ -336,7 +410,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                 <DateField
                     value={activityDate}
                     onChange={setActivityDate}
-                    placeholder="Activity date"
+                    placeholder="Activity date *"
                 />
 
                 <SegmentedField options={TYPE_OPTIONS} value={tab} onChange={setTab} />
@@ -355,8 +429,9 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                             style={[styles.input, styles.flex]}
                             value={time}
                             onChangeText={setTime}
-                            placeholder="Duration (HH:MM)"
+                            placeholder="Duration (minutes)"
                             placeholderTextColor={colors.textMuted}
+                            keyboardType="number-pad"
                         />
                     </View>
                 ) : null}
@@ -461,7 +536,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                     <>
                                         <Text style={styles.metaLabel}>Type: Cardio</Text>
                                         <Text style={styles.metaText}>Distance: {activity.distance}km</Text>
-                                        <Text style={styles.metaText}>Time: {activity.duration}</Text>
+                                        <Text style={styles.metaText}>Duration: {activity.duration} min</Text>
                                     </>
                                 ) : (
                                     <>
@@ -473,7 +548,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                                 </Text>
                                                 {(exercise.sets ?? []).map((set, index2) => (
                                                     <Text key={index2} style={styles.setText}>
-                                                        {set.weight} x{set.reps}
+                                                        {set.weight} kg × {set.reps} reps
                                                     </Text>
                                                 ))}
                                             </View>
@@ -517,7 +592,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                     <DateField
                                         value={activity.activityDate === '9999-12-31' ? '' : activity.activityDate}
                                         onChange={(v) => saveEdit(activity.id, { activityDate: v || '9999-12-31' })}
-                                        placeholder="Activity date"
+                                        placeholder="Activity date*"
                                     />
 
                                     {activity.type === 'cardio' ? (
@@ -599,6 +674,11 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                     )}
 
                                     <PrimaryButton label="Done" onPress={() => saveEdit(activity.id)} />
+
+                                    <SmallButton
+                                        label="Delete"
+                                        onPress={() => deleteActivity(activity)}
+                                    />
                                 </View>
                             ) : (
                                 // Tap to edit, long-press to delete — the touch
@@ -610,6 +690,10 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                     accessibilityHint="Tap to edit, long press to delete"
                                 >
                                     <Text style={styles.itemText}>{activity.text}</Text>
+
+                                    <Text style={styles.actionHint}>
+                                        Tap to edit • Long press to delete
+                                    </Text>
 
                                     {activity.description ? (
                                         <Text style={styles.itemDescription}>{activity.description}</Text>
@@ -626,7 +710,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                             <>
                                                 <Text style={styles.metaLabel}>Type: Cardio</Text>
                                                 <Text style={styles.metaText}>Distance: {activity.distance}km</Text>
-                                                <Text style={styles.metaText}>Time: {activity.duration}</Text>
+                                                <Text style={styles.metaText}>Duration: {activity.duration} min</Text>
                                             </>
                                         ) : (
                                             <>
@@ -638,7 +722,7 @@ function PhysicalActivity({ user, onBack, onActivityLogged }) {
                                                         </Text>
                                                         {(exercise.sets ?? []).map((set, index2) => (
                                                             <Text key={index2} style={styles.setText}>
-                                                                {set.weight} x{set.reps}
+                                                                {set.weight} kg × {set.reps} reps
                                                             </Text>
                                                         ))}
                                                     </View>
@@ -694,6 +778,12 @@ const styles = StyleSheet.create({
     flex: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     pressed: { opacity: 0.7 },
+
+    actionHint: {
+        ...type.caption,
+        color: colors.textMuted,
+        marginTop: 4,
+    },
 
     card: {
         backgroundColor: colors.card,
