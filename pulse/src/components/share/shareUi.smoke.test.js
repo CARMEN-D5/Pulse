@@ -63,11 +63,15 @@ describe('template selection', () => {
 
   it('sums strength volume across sets', () => {
     expect(workoutStats(STRENGTH)).toEqual({ exerciseCount: 1, setCount: 2, volumeKg: 840 });
+    expect(workoutStats({
+      ...STRENGTH,
+      exercises: [{ name: 'Bench', sets: [{ weight: '15', reps: '12', setCount: '3' }] }],
+    })).toEqual({ exerciseCount: 1, setCount: 3, volumeKg: 540 });
   });
 
   it('serialises numeric strings into numbers', () => {
     const out = serialisePayload('fitness', STRENGTH);
-    expect(out.exercises[0].sets[0]).toEqual({ weight: 60, reps: 8 });
+    expect(out.exercises[0].sets[0]).toEqual({ weight: 60, reps: 8, setCount: 1 });
   });
 });
 

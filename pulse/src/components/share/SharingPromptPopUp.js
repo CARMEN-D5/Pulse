@@ -297,7 +297,12 @@ function formatDmSummary(template, payload, reflection) {
     if (Array.isArray(p.exercises)) {
         const exerciseCount = p.exercises.length;
         const setCount = p.exercises.reduce((s, ex) =>
-            s + (Array.isArray(ex.sets) ? ex.sets.length : 0), 0);
+            s + (Array.isArray(ex.sets)
+                ? ex.sets.reduce((total, set) => {
+                    const count = Number(set.setCount);
+                    return total + (Number.isInteger(count) && count > 0 ? count : 1);
+                }, 0)
+                : 0), 0);
         if (exerciseCount) facts.push(`${exerciseCount} exercises`);
         if (setCount) facts.push(`${setCount} sets`);
     }
