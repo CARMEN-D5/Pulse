@@ -2,7 +2,7 @@
 jest.mock('../firebase', () => ({ db: {} }));
 
 jest.mock('firebase/firestore', () => ({
-  doc:             jest.fn(),
+  doc:             jest.fn((_db, ...parts) => parts.join('/')),
   setDoc:          jest.fn(),
   updateDoc:       jest.fn(),
   collection:      jest.fn(),
@@ -129,6 +129,21 @@ describe('logAction', () => {
     await logAction('uid-123', 'productivity', 'task');
     const [, data] = addDoc.mock.calls[0];
     expect(data.points).toBe(25);  // productivity task = 25 pts
+  });
+
+  test('uses a stable document for an idempotent action event', async () => {
+    await logAction('uid-123', 'productivity', 'task', { eventId: 'todo-task-1' });
+
+    expect(setDoc).toHaveBeenCalledWith(
+      'users/uid-123/actions/todo-task-1',
+      expect.objectContaining({
+        domain: 'productivity',
+        actionType: 'task',
+        points: 25,
+      }),
+      { merge: true }
+    );
+    expect(addDoc).not.toHaveBeenCalled();
   });
 
   test('returns { ok: false } for unknown action type', async () => {
