@@ -130,23 +130,42 @@ function TodoList({ user, onBack, onActivityLogged }) {
     const [error, setError] = useState(null);
     const [sortMode, setSortMode] = useState('dueDate'); // 'dueDate' | 'priority'
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
+    const [loadRetryNonce, setLoadRetryNonce] = useState(0);
 
     // 1. Listen to Firestore
     // Subscribe to this user's todo collection, ordered by most recent.
     // This ensures the UI stays in sync without manual refreshing.
     useEffect(() => {
-        if (!user) return;
-
-        const todoRef = collection(db, 'users', user.uid, 'todos');
-        const q = query(todoRef, orderBy('dueDate', 'asc'));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            setTodos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        if (!user) {
             setLoading(false);
-        });
+            return undefined;
+        }
+
+        setLoading(true);
+        setLoadError(null);
+
+        const handleLoadFailure = (snapshotError) => {
+            console.debug('[Pulse] To-do subscription failed', snapshotError?.code);
+            setLoading(false);
+            setLoadError("We couldn't load your tasks. Check your connection and try again.");
+        };
+
+        let unsubscribe = () => {};
+        try {
+            const todoRef = collection(db, 'users', user.uid, 'todos');
+            const q = query(todoRef, orderBy('dueDate', 'asc'));
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                setTodos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+                setLoading(false);
+                setLoadError(null);
+            }, handleLoadFailure);
+        } catch (snapshotError) {
+            handleLoadFailure(snapshotError);
+        }
 
         return () => unsubscribe();
-    }, [user]);
+    }, [user, loadRetryNonce]);
 
     const pendingCount   = todos.filter(t => !t.completed).length;
     const completedCount = todos.filter(t => t.completed).length;
@@ -181,10 +200,11 @@ function TodoList({ user, onBack, onActivityLogged }) {
             description: editDesc,
             ...updatedFields
         };
-        if (finalFields.text && finalFields.text.trim() === "") {
-            setEditingId(null);
+        if (typeof finalFields.text !== 'string' || !finalFields.text.trim()) {
+            setError('Task title cannot be empty.');
             return;
         }
+        finalFields.text = finalFields.text.trim();
         try {
             setError(null);
             const todoRef = doc(db, 'users', user.uid, 'todos', id);
@@ -202,14 +222,16 @@ function TodoList({ user, onBack, onActivityLogged }) {
     // Add a new task to Firestore.
     // Use serverTimestamp to ensure consistent sorting across time zones.
     const addTodo = async () => {
-        if (!input.trim()) return;
+        const trimmedTitle = input.trim();
+        if (!trimmedTitle) return;
 
         try {
             setError(null);
             await addDoc(collection(db, 'users', user.uid, 'todos'), {
-                text: input,
+                text: trimmedTitle,
                 description: descInput,
                 completed: false,
+                productivityRewarded: false,
                 createdAt: serverTimestamp(),
                 dueDate: dueDate || "9999-12-31",
                 reminderSet: false,
@@ -229,15 +251,40 @@ function TodoList({ user, onBack, onActivityLogged }) {
     // Update the 'completed' field.
     // This state change is reflected instantly in the UI via the onSnapshot listener.
     const toggleComplete = async (todo) => {
+        const completing = !todo.completed;
+        const shouldReward = completing && todo.productivityRewarded !== true;
+        const todoRef = doc(db, 'users', user.uid, 'todos', todo.id);
+
         try {
             setError(null);
-            const todoRef = doc(db, 'users', user.uid, 'todos', todo.id);
             await updateDoc(todoRef, {
-                completed: !todo.completed
+                completed: completing
             });
-            if (!todo.completed) {
-                logAction(user.uid, 'productivity', 'task');
-                onActivityLogged?.();
+            if (completing) {
+                if (shouldReward) {
+                    const reward = await logAction(
+                        user.uid,
+                        'productivity',
+                        'task',
+                        { eventId: `todo-${todo.id}` }
+                    );
+                    if (reward?.ok) {
+                        // This flag avoids unnecessary repeat writes. The
+                        // deterministic action id above remains the final
+                        // duplicate guard if this follow-up write is delayed.
+                        try {
+                            await updateDoc(todoRef, { productivityRewarded: true });
+                        } catch (rewardMarkerError) {
+                            console.debug(
+                                '[Pulse] To-do reward marker update failed',
+                                rewardMarkerError?.code
+                            );
+                        }
+                        onActivityLogged?.();
+                    } else {
+                        console.debug('[Pulse] To-do reward logging failed', reward?.error);
+                    }
+                }
 
                 // Share prompt — two-part gate:
                 //   action: a task was just ticked off
@@ -312,6 +359,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
                     style={styles.input}
                     value={input}
                     onChangeText={setInput}
+                    accessibilityLabel="New task title"
                     placeholder="New task..."
                     placeholderTextColor={colors.textMuted}
                     returnKeyType="done"
@@ -368,6 +416,14 @@ function TodoList({ user, onBack, onActivityLogged }) {
 
             {loading ? (
                 <Loading label="Loading…" style={styles.loading} />
+            ) : loadError ? (
+                <View style={styles.loadErrorBox}>
+                    <Alert message={loadError} />
+                    <PrimaryButton
+                        label="Try again"
+                        onPress={() => setLoadRetryNonce((value) => value + 1)}
+                    />
+                </View>
             ) : (
                 <TutorialTarget id={TUTORIAL_TARGETS.todo.list}>
                 <View style={styles.list}>
@@ -395,6 +451,7 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                                 style={styles.input}
                                                 value={editText}
                                                 onChangeText={setEditText}
+                                                accessibilityLabel="Task title"
                                                 autoFocus
                                                 returnKeyType="done"
                                                 onSubmitEditing={() => saveEdit(todo.id)}
@@ -421,7 +478,11 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                                 placeholder="Due date (optional)"
                                             />
 
-                                            <PrimaryButton label="Done" onPress={() => saveEdit(todo.id)} />
+                                            <PrimaryButton
+                                                label="Done"
+                                                onPress={() => saveEdit(todo.id)}
+                                                disabled={!editText.trim()}
+                                            />
                                         </View>
                                     ) : (
                                         // Tap to edit, long-press to delete — the touch equivalents
@@ -430,7 +491,8 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                             onPress={() => startEdit(todo)}
                                             onLongPress={() => deleteTodo(todo)}
                                             accessibilityRole="button"
-                                            accessibilityHint="Tap to edit, long press to delete"
+                                            accessibilityLabel={`Edit ${todo.text}`}
+                                            accessibilityHint="Tap to edit. Long press to delete."
                                         >
                                             <View style={styles.titleRow}>
                                                 <Text
@@ -471,6 +533,20 @@ function TodoList({ user, onBack, onActivityLogged }) {
                                         </Pressable>
                                     )}
                                 </View>
+
+                                <Pressable
+                                    onPress={() => deleteTodo(todo)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Delete ${todo.text}`}
+                                    accessibilityHint="Opens a confirmation before deleting this task."
+                                    hitSlop={2}
+                                    style={({ pressed }) => [
+                                        styles.deleteButton,
+                                        pressed && styles.deleteButtonPressed,
+                                    ]}
+                                >
+                                    <Icon name="delete_outline" size={20} color={colors.blError} />
+                                </Pressable>
                             </View>
                         );
                     })}
@@ -486,6 +562,7 @@ const styles = StyleSheet.create({
     flex: { flex: 1 },
     pressed: { opacity: 0.7 },
     loading: { paddingVertical: 40 },
+    loadErrorBox: { gap: spacing.sm },
 
     card: {
         backgroundColor: colors.card,
@@ -530,6 +607,17 @@ const styles = StyleSheet.create({
     checkboxChecked: { backgroundColor: colors.pulsePrimary, borderColor: colors.pulsePrimary },
 
     editBox: { gap: spacing.sm },
+
+    deleteButton: {
+        width: 44,
+        height: 44,
+        marginTop: -8,
+        marginRight: -8,
+        borderRadius: radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    deleteButtonPressed: { backgroundColor: 'rgba(179, 58, 58, 0.08)' },
 
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
     itemText: { ...type.bodyMedium, color: colors.text },
