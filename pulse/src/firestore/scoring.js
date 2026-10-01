@@ -74,17 +74,24 @@ export async function logReflection(uid, domainKey, rating) {
 // ---------------------------------------------------------------------------
 
 // Log a user action. actionType must match a key in DOMAINS[domainKey].actions.
-export async function logAction(uid, domainKey, actionType) {
+export async function logAction(uid, domainKey, actionType, { eventId } = {}) {
   const action = DOMAINS[domainKey]?.actions?.[actionType];
   if (!action) return { ok: false, error: 'Unknown action type' };
   try {
-    await addDoc(collection(db, 'users', uid, 'actions'), {
+    const data = {
       domain: domainKey,
       actionType,
       points: action.points,
       date: todayString(),
       createdAt: serverTimestamp(),
-    });
+    };
+    if (eventId) {
+      // A stable event id makes repeat submissions idempotent. This is used
+      // by To-do completion so toggling one task cannot create extra rewards.
+      await setDoc(doc(db, 'users', uid, 'actions', eventId), data, { merge: true });
+    } else {
+      await addDoc(collection(db, 'users', uid, 'actions'), data);
+    }
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err?.message };
