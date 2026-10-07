@@ -20,19 +20,22 @@
       "bundleIdentifier": "com.pulse.balancedlife",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Pulse needs access to your photo library so you can attach a photo to a post.",
-        "NSCameraUsageDescription": "Pulse needs access to your camera so you can take a photo for a post."
+        "NSCameraUsageDescription": "Pulse needs access to your camera so you can take a photo for a post.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.pulse.balancedlife",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#fff5f7"
       },
       "permissions": [
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "CAMERA"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -52,6 +55,11 @@
         }
       ],
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9a8b9472-501d-44bc-b3fa-1104b77cbc33"
+      }
+    }
   }
 }

@@ -14,6 +14,7 @@ import {
 } from "../components/ui";
 import { colors } from "../theme";
 import { notify } from "../utils/dialogs";
+import { resendVerification } from "../auth/authService";
 import styles from "./authStyles";
 
 function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
@@ -22,6 +23,8 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
   const [errors, setErrors] = useState({});
   const [loginError, setLoginError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const validate = () => {
     const next = {};
@@ -48,6 +51,7 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
 
       if (!result?.ok) {
         setLoginError(result?.error || "Login failed. Please try again.");
+        setNeedsVerification(!!result?.needsVerification);
       }
     } finally {
       setSubmitting(false);
@@ -69,6 +73,18 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
         {/* Form card */}
         <Card subtle>
           <Alert message={loginError} />
+          {needsVerification && (
+            <LinkButton
+              label={resending ? "Sending…" : "Resend verification email"}
+              onPress={async () => {
+                setResending(true);
+                const r = await resendVerification();
+                setResending(false);
+                if (r.ok) setLoginError("Verification email sent! Check your inbox.");
+                else setLoginError(r.error);
+              }}
+            />
+          )}
 
           <View style={styles.form}>
             <TextField

@@ -54,6 +54,8 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
 
       if (!result?.ok) {
         setServerError(result?.error || "Could not complete registration. Please try again.");
+      } else if (result?.verificationSent) {
+        setServerError("Account created! Please check your email to verify your account before signing in.");
       }
     } finally {
       setSubmitting(false);

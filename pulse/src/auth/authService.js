@@ -7,6 +7,7 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signOut,
   updateProfile,
@@ -52,6 +53,7 @@ export async function signUp({ name, email, password }) {
     if (name) {
       await updateProfile(cred.user, { displayName: name });
     }
+    await sendEmailVerification(cred.user);
     // Create the /users/{uid} profile document.
     // Pass a fresh-shaped object because updateProfile doesn't mutate
     // the cred.user reference's displayName until the next refresh.
@@ -60,7 +62,7 @@ export async function signUp({ name, email, password }) {
       email: cred.user.email,
       displayName: name || cred.user.displayName || null,
     });
-    return { ok: true, user: cred.user };
+    return { ok: true, user: cred.user, verificationSent: true };
   } catch (err) {
     return { ok: false, error: friendlyError(err) };
   }
@@ -70,7 +72,27 @@ export async function signUp({ name, email, password }) {
 export async function logIn({ email, password }) {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
+    if (!cred.user.emailVerified) {
+      return {
+        ok: false,
+        error: "Please verify your email before signing in. Check your inbox for the verification link.",
+        needsVerification: true,
+        user: cred.user,
+      };
+    }
     return { ok: true, user: cred.user };
+  } catch (err) {
+    return { ok: false, error: friendlyError(err) };
+  }
+}
+
+/** Resend verification email to the current user. */
+export async function resendVerification() {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { ok: false, error: "Not signed in." };
+    await sendEmailVerification(user);
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: friendlyError(err) };
   }

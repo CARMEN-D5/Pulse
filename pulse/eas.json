@@ -1,0 +1,37 @@
+{
+  "cli": {
+    "version": ">= 24.8.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyB-ZUL4GWrb6t__cmrLPAndQOzHdYepCJM",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "pulse-8c791.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "pulse-8c791",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "pulse-8c791.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "296606498683",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:296606498683:web:cfb03d4ad55f8461e087de",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-VYX9TKKRT9"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6818018212"
+      }
+    }
+  }
+}
