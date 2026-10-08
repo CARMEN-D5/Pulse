@@ -62,7 +62,9 @@ export async function signUp({ name, email, password }) {
       email: cred.user.email,
       displayName: name || cred.user.displayName || null,
     });
-    return { ok: true, user: cred.user, verificationSent: true };
+    // Sign out so the auth observer doesn't route the unverified user in.
+    await signOut(auth);
+    return { ok: true, verificationSent: true };
   } catch (err) {
     return { ok: false, error: friendlyError(err) };
   }
@@ -73,11 +75,12 @@ export async function logIn({ email, password }) {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (!cred.user.emailVerified) {
+      // Sign out immediately so the auth observer doesn't route them in.
+      await signOut(auth);
       return {
         ok: false,
         error: "Please verify your email before signing in. Check your inbox for the verification link.",
         needsVerification: true,
-        user: cred.user,
       };
     }
     return { ok: true, user: cred.user };

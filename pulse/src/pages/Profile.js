@@ -162,6 +162,17 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
   const [success, setSuccess] = useState("");
   const [avatarUri, setAvatarUri] = useState(user?.photoURL || null);
 
+  React.useEffect(() => {
+    if (visible) {
+      setDisplayName(user?.displayName || "");
+      setCurrentPassword("");
+      setNewPassword("");
+      setError("");
+      setSuccess("");
+      setAvatarUri(user?.photoURL || null);
+    }
+  }, [visible, user]);
+
   const pickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -195,12 +206,21 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
         displayName: displayName.trim() || currentUser.displayName,
         photoURL,
       });
-      await updateUserDoc(currentUser.uid, {
+      const docResult = await updateUserDoc(currentUser.uid, {
         displayName: displayName.trim() || currentUser.displayName,
         photoURL,
       });
+      if (docResult && !docResult.ok) {
+        throw new Error(docResult.error || "Failed to update profile document.");
+      }
 
-      if (newPassword && currentPassword) {
+      if (newPassword || currentPassword) {
+        if (!newPassword || !currentPassword) {
+          throw new Error("Both current and new password are required to change your password.");
+        }
+        if (newPassword.length < 6) {
+          throw new Error("New password must be at least 6 characters.");
+        }
         const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
         await reauthenticateWithCredential(currentUser, credential);
         await updatePassword(currentUser, newPassword);

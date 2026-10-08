@@ -162,10 +162,10 @@ function App() {
       if (!alive) return;
       setAuthReady(false);
       setAuthInitError("");
-      setUser(firebaseUser);
 
       try {
-        if (firebaseUser) {
+        if (firebaseUser && firebaseUser.emailVerified) {
+          setUser(firebaseUser);
           const ensured = await ensureUserDoc(firebaseUser);
           if (!ensured?.ok) throw new Error(ensured?.error || "User profile setup failed");
 
@@ -207,6 +207,7 @@ function App() {
             return AUTHED_VIEWS.includes(current) ? current : "home";
           });
         } else {
+          setUser(null);
           setUserDoc(null);
           const AUTHED_VIEWS = [...TAB_VIEWS, ...STACKED_VIEWS, "consent", "entryQuiz"];
           setView((current) => (AUTHED_VIEWS.includes(current) ? "splash" : current));

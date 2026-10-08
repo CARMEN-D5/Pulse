@@ -22,6 +22,7 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [loginError, setLoginError] = useState("");
+  const [loginSuccess, setLoginSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resending, setResending] = useState(false);
@@ -41,6 +42,7 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
     const nextErrors = validate();
     setErrors(nextErrors);
     setLoginError("");
+    setLoginSuccess("");
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
@@ -73,6 +75,7 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
         {/* Form card */}
         <Card subtle>
           <Alert message={loginError} />
+          <Alert message={loginSuccess} tone="success" />
           {needsVerification && (
             <LinkButton
               label={resending ? "Sending…" : "Resend verification email"}
@@ -80,8 +83,12 @@ function Login({ onSubmit, onForgotPassword, onBack, onSwitchToSignUp }) {
                 setResending(true);
                 const r = await resendVerification();
                 setResending(false);
-                if (r.ok) setLoginError("Verification email sent! Check your inbox.");
-                else setLoginError(r.error);
+                if (r.ok) {
+                  setLoginError("");
+                  setLoginSuccess("Verification email sent! Check your inbox.");
+                } else {
+                  setLoginError(r.error);
+                }
               }}
             />
           )}
