@@ -33,3 +33,58 @@ jest.mock("expo-image-picker", () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
   MediaTypeOptions: { Images: "Images" },
 }));
+
+// Firebase SDK ships ESM that Jest's default transform chokes on
+// (@firebase/util/dist/postinstall.mjs). Mock the SDK entry points globally
+// so every test suite can import them without transform errors.
+jest.mock("firebase/auth", () => ({
+  createUserWithEmailAndPassword: jest.fn(),
+  signInWithEmailAndPassword: jest.fn(),
+  sendEmailVerification: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+  signOut: jest.fn(),
+  updateProfile: jest.fn(),
+  updatePassword: jest.fn(),
+  EmailAuthProvider: { credential: jest.fn() },
+  reauthenticateWithCredential: jest.fn(),
+  onAuthStateChanged: jest.fn(() => () => {}),
+  getReactNativePersistence: jest.fn(),
+  initializeAuth: jest.fn(),
+}));
+
+jest.mock("firebase/firestore", () => ({
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  addDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  collection: jest.fn(),
+  getDocs: jest.fn(),
+  onSnapshot: jest.fn(() => () => {}),
+  query: jest.fn((q) => q),
+  where: jest.fn(),
+  orderBy: jest.fn(),
+  limit: jest.fn(),
+  serverTimestamp: jest.fn(),
+  increment: jest.fn(),
+  writeBatch: jest.fn(),
+  Timestamp: { now: jest.fn(), fromDate: jest.fn() },
+  getFirestore: jest.fn(),
+  initializeFirestore: jest.fn(),
+  memoryLocalCache: jest.fn(),
+}));
+
+jest.mock("firebase/storage", () => ({
+  ref: jest.fn(),
+  uploadBytes: jest.fn(),
+  getDownloadURL: jest.fn(),
+  deleteObject: jest.fn(),
+  getStorage: jest.fn(),
+}));
+
+jest.mock("firebase/app", () => ({
+  getApp: jest.fn(),
+  getApps: jest.fn(() => []),
+  initializeApp: jest.fn(() => ({})),
+}));

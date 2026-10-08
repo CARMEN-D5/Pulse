@@ -12,11 +12,8 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 import Icon from "../components/Icon";
 import { colors, fonts, profileColors, radius, shadow, spacing, type } from "../theme";
 import ProgressAnalytics from "./ProgressAnalytics";
-import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
-import { auth } from "../firebase";
+import { getCurrentUser, updateUserProfile, changePassword, uploadAvatar } from "../auth/authService";
 import { updateUserDoc } from "../firestore/users";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../firebase";
 import {
   TUTORIAL_ORDER,
   TUTORIAL_TARGETS,
@@ -190,22 +187,35 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
     setError("");
     setSuccess("");
     try {
-      const currentUser = auth.currentUser;
+      const currentUser = getCurrentUser();
       if (!currentUser) throw new Error("Not signed in.");
+
+      // Validate password fields before any writes so nothing is partially saved.
+      const wantsPasswordChange = !!(newPassword || currentPassword);
+      if (wantsPasswordChange) {
+        if (!newPassword || !currentPassword) {
+          throw new Error("Both current and new password are required to change your password.");
+        }
+        if (newPassword.length < 6) {
+          throw new Error("New password must be at least 6 characters.");
+        }
+      }
 
       let photoURL = currentUser.photoURL;
       if (avatarUri && avatarUri !== currentUser.photoURL) {
         const response = await fetch(avatarUri);
         const blob = await response.blob();
-        const storageRef = ref(storage, `avatars/${currentUser.uid}`);
-        await uploadBytes(storageRef, blob);
-        photoURL = await getDownloadURL(storageRef);
+        const upload = await uploadAvatar(currentUser.uid, blob);
+        if (!upload.ok) throw new Error(upload.error || "Failed to upload avatar.");
+        photoURL = upload.url;
       }
 
-      await updateProfile(currentUser, {
+      const profileResult = await updateUserProfile({
         displayName: displayName.trim() || currentUser.displayName,
         photoURL,
       });
+      if (!profileResult.ok) throw new Error(profileResult.error);
+
       const docResult = await updateUserDoc(currentUser.uid, {
         displayName: displayName.trim() || currentUser.displayName,
         photoURL,
@@ -214,16 +224,9 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
         throw new Error(docResult.error || "Failed to update profile document.");
       }
 
-      if (newPassword || currentPassword) {
-        if (!newPassword || !currentPassword) {
-          throw new Error("Both current and new password are required to change your password.");
-        }
-        if (newPassword.length < 6) {
-          throw new Error("New password must be at least 6 characters.");
-        }
-        const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
-        await reauthenticateWithCredential(currentUser, credential);
-        await updatePassword(currentUser, newPassword);
+      if (wantsPasswordChange) {
+        const pwResult = await changePassword({ currentPassword, newPassword });
+        if (!pwResult.ok) throw new Error(pwResult.error);
       }
 
       setSuccess("Profile updated!");

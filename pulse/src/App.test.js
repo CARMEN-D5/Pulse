@@ -101,7 +101,7 @@ test('renders the Pulse splash screen when logged out', async () => {
 
 test('shows a retry path instead of loading forever when auth initialization fails', async () => {
   onAuthChange.mockImplementation((callback) => {
-    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada' });
+    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada', emailVerified: true });
     return jest.fn();
   });
   ensureUserDoc.mockResolvedValue({ ok: false, error: 'network unavailable' });
@@ -120,7 +120,7 @@ test('shows a retry path instead of loading forever when auth initialization fai
 
 test('saves consent and continues to the entry quiz', async () => {
   onAuthChange.mockImplementation((callback) => {
-    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada' });
+    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada', emailVerified: true });
     return jest.fn();
   });
   getUserDoc.mockResolvedValue({ ok: true, data: { onboardingCompletedAt: null } });
@@ -135,7 +135,7 @@ test('saves consent and continues to the entry quiz', async () => {
 
 test('restores the consent button after a failed save so the user can retry', async () => {
   onAuthChange.mockImplementation((callback) => {
-    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada' });
+    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada', emailVerified: true });
     return jest.fn();
   });
   getUserDoc.mockResolvedValue({ ok: true, data: { onboardingCompletedAt: null } });
@@ -161,7 +161,7 @@ test('restores the consent button after a failed save so the user can retry', as
 
 test('treats an unsuccessful consent sync result as an auth initialization failure', async () => {
   onAuthChange.mockImplementation((callback) => {
-    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada' });
+    callback({ uid: 'u1', email: 'ada@example.com', displayName: 'Ada', emailVerified: true });
     return jest.fn();
   });
   getUserDoc.mockResolvedValue({ ok: true, data: { onboardingCompletedAt: 1 } });
