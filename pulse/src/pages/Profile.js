@@ -166,6 +166,8 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
       setNewPassword("");
       setError("");
       setSuccess("");
+      setPwError("");
+      setPwSuccess("");
       setAvatarUri(user?.photoURL || null);
     }
   }, [visible, user]);
@@ -182,24 +184,17 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
     }
   };
 
-  const handleSave = async () => {
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const handleSaveProfile = async () => {
     setSaving(true);
     setError("");
     setSuccess("");
     try {
       const currentUser = getCurrentUser();
       if (!currentUser) throw new Error("Not signed in.");
-
-      // Validate password fields before any writes so nothing is partially saved.
-      const wantsPasswordChange = !!(newPassword || currentPassword);
-      if (wantsPasswordChange) {
-        if (!newPassword || !currentPassword) {
-          throw new Error("Both current and new password are required to change your password.");
-        }
-        if (newPassword.length < 6) {
-          throw new Error("New password must be at least 6 characters.");
-        }
-      }
 
       let photoURL = currentUser.photoURL;
       if (avatarUri && avatarUri !== currentUser.photoURL) {
@@ -224,19 +219,35 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
         throw new Error(docResult.error || "Failed to update profile document.");
       }
 
-      if (wantsPasswordChange) {
-        const pwResult = await changePassword({ currentPassword, newPassword });
-        if (!pwResult.ok) throw new Error(pwResult.error);
-      }
-
       setSuccess("Profile updated!");
-      setCurrentPassword("");
-      setNewPassword("");
       onUpdated?.();
     } catch (err) {
       setError(err?.message || "Failed to update profile.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPwSaving(true);
+    setPwError("");
+    setPwSuccess("");
+    try {
+      if (!currentPassword || !newPassword) {
+        throw new Error("Both current and new password are required.");
+      }
+      if (newPassword.length < 6) {
+        throw new Error("New password must be at least 6 characters.");
+      }
+      const pwResult = await changePassword({ currentPassword, newPassword });
+      if (!pwResult.ok) throw new Error(pwResult.error);
+      setPwSuccess("Password updated!");
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      setPwError(err?.message || "Failed to change password.");
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -252,6 +263,7 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
           </View>
 
           <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.lg }}>
+            {/* ── Profile section ── */}
             <Pressable onPress={pickAvatar} style={styles.avatarEditRow} accessibilityRole="button">
               {avatarUri ? (
                 <Image source={{ uri: avatarUri }} style={styles.avatarEdit} />
@@ -272,7 +284,23 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
               placeholderTextColor={colors.textMuted}
             />
 
-            <Text style={[styles.editLabel, { marginTop: spacing.md }]}>Change Password</Text>
+            {error ? <Text style={styles.editError}>{error}</Text> : null}
+            {success ? <Text style={styles.editSuccess}>{success}</Text> : null}
+
+            <Pressable
+              onPress={handleSaveProfile}
+              disabled={saving}
+              style={({ pressed }) => [styles.saveButton, (pressed || saving) && styles.pressed]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.saveButtonText}>{saving ? "Saving…" : "Save Changes"}</Text>
+            </Pressable>
+
+            {/* ── Password section ── */}
+            <View style={styles.sectionDivider} />
+            <Text style={styles.sectionTitle}>Security</Text>
+
+            <Text style={styles.editLabel}>Current Password</Text>
             <TextInput
               style={styles.editInput}
               value={currentPassword}
@@ -281,6 +309,7 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
               placeholderTextColor={colors.textMuted}
               secureTextEntry
             />
+            <Text style={styles.editLabel}>New Password</Text>
             <TextInput
               style={styles.editInput}
               value={newPassword}
@@ -290,16 +319,20 @@ function EditProfileModal({ visible, user, onClose, onUpdated }) {
               secureTextEntry
             />
 
-            {error ? <Text style={styles.editError}>{error}</Text> : null}
-            {success ? <Text style={styles.editSuccess}>{success}</Text> : null}
+            {pwError ? <Text style={styles.editError}>{pwError}</Text> : null}
+            {pwSuccess ? <Text style={styles.editSuccess}>{pwSuccess}</Text> : null}
 
             <Pressable
-              onPress={handleSave}
-              disabled={saving}
-              style={({ pressed }) => [styles.saveButton, (pressed || saving) && styles.pressed]}
+              onPress={handleChangePassword}
+              disabled={pwSaving || (!currentPassword && !newPassword)}
+              style={({ pressed }) => [
+                styles.saveButton,
+                styles.secondaryButton,
+                (pressed || pwSaving || (!currentPassword && !newPassword)) && styles.pressed,
+              ]}
               accessibilityRole="button"
             >
-              <Text style={styles.saveButtonText}>{saving ? "Saving…" : "Save Changes"}</Text>
+              <Text style={styles.saveButtonText}>{pwSaving ? "Saving…" : "Update Password"}</Text>
             </Pressable>
           </ScrollView>
         </View>
@@ -545,6 +578,20 @@ const styles = StyleSheet.create({
     ...type.label,
     color: "#fff",
     fontFamily: fonts.bold,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.sm,
+  },
+  sectionTitle: {
+    ...type.label,
+    color: colors.text,
+    fontFamily: fonts.bold,
+    fontSize: 15,
+  },
+  secondaryButton: {
+    backgroundColor: colors.textMuted,
   },
 });
 
