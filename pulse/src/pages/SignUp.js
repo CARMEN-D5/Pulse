@@ -23,6 +23,7 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [serverSuccess, setServerSuccess] = useState("");
 
   const validate = () => {
     const next = {};
@@ -42,6 +43,7 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
 
   const handleSubmit = async () => {
     setServerError("");
+    setServerSuccess("");
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -54,6 +56,8 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
 
       if (!result?.ok) {
         setServerError(result?.error || "Could not complete registration. Please try again.");
+      } else if (result?.verificationSent) {
+        setServerSuccess("Account created! Please check your email to verify your account before signing in.");
       }
     } finally {
       setSubmitting(false);
@@ -75,6 +79,7 @@ function SignUp({ onSubmit, onExit, onSwitchToLogin }) {
         {/* Form card */}
         <Card subtle>
           <Alert message={serverError} />
+          <Alert message={serverSuccess} tone="success" />
 
           <View style={styles.form}>
             <TextField

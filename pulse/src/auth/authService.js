@@ -7,13 +7,18 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signOut,
   updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
   onAuthStateChanged,
 } from "firebase/auth";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-import { auth } from "../firebase";
+import { auth, storage } from "../firebase";
 import { ensureUserDoc } from "../firestore/users";
 
 /**
@@ -52,6 +57,7 @@ export async function signUp({ name, email, password }) {
     if (name) {
       await updateProfile(cred.user, { displayName: name });
     }
+    await sendEmailVerification(cred.user);
     // Create the /users/{uid} profile document.
     // Pass a fresh-shaped object because updateProfile doesn't mutate
     // the cred.user reference's displayName until the next refresh.
@@ -60,7 +66,9 @@ export async function signUp({ name, email, password }) {
       email: cred.user.email,
       displayName: name || cred.user.displayName || null,
     });
-    return { ok: true, user: cred.user };
+    // Sign out so the auth observer doesn't route the unverified user in.
+    await signOut(auth);
+    return { ok: true, verificationSent: true };
   } catch (err) {
     return { ok: false, error: friendlyError(err) };
   }
@@ -70,7 +78,28 @@ export async function signUp({ name, email, password }) {
 export async function logIn({ email, password }) {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
+    if (!cred.user.emailVerified) {
+      // Don't sign out — the auth observer already gates on emailVerified,
+      // and the Login page needs auth.currentUser alive to resend verification.
+      return {
+        ok: false,
+        error: "Please verify your email before signing in. Check your inbox for the verification link.",
+        needsVerification: true,
+      };
+    }
     return { ok: true, user: cred.user };
+  } catch (err) {
+    return { ok: false, error: friendlyError(err) };
+  }
+}
+
+/** Resend verification email to the current user. */
+export async function resendVerification() {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { ok: false, error: "Not signed in." };
+    await sendEmailVerification(user);
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: friendlyError(err) };
   }
@@ -94,6 +123,49 @@ export async function logOut() {
   try {
     await signOut(auth);
     return { ok: true };
+  } catch (err) {
+    return { ok: false, error: friendlyError(err) };
+  }
+}
+
+/** Return the currently signed-in Firebase user (or null). */
+export function getCurrentUser() {
+  return auth.currentUser;
+}
+
+/** Update the signed-in user's displayName and/or photoURL. */
+export async function updateUserProfile({ displayName, photoURL }) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { ok: false, error: "Not signed in." };
+    await updateProfile(user, { displayName, photoURL });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: friendlyError(err) };
+  }
+}
+
+/** Re-authenticate and change the signed-in user's password. */
+export async function changePassword({ currentPassword, newPassword }) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { ok: false, error: "Not signed in." };
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, newPassword);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: friendlyError(err) };
+  }
+}
+
+/** Upload a profile avatar and return its download URL. */
+export async function uploadAvatar(uid, blob) {
+  try {
+    const storageRef = ref(storage, `avatars/${uid}`);
+    await uploadBytes(storageRef, blob);
+    const url = await getDownloadURL(storageRef);
+    return { ok: true, url };
   } catch (err) {
     return { ok: false, error: friendlyError(err) };
   }

@@ -5,12 +5,15 @@
 // The analytics themselves live in ProgressAnalytics; this screen embeds that
 // page and supplies the header, so the two never drift apart.
 import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import Icon from "../components/Icon";
 import { colors, fonts, profileColors, radius, shadow, spacing, type } from "../theme";
 import ProgressAnalytics from "./ProgressAnalytics";
+import { getCurrentUser, updateUserProfile, changePassword, uploadAvatar } from "../auth/authService";
+import { updateUserDoc } from "../firestore/users";
 import {
   TUTORIAL_ORDER,
   TUTORIAL_TARGETS,
@@ -20,13 +23,25 @@ import {
   useTutorialContext,
 } from "../tutorial";
 
-function SettingsMenu({ visible, seeding, onSeed, onLogout, onOpenHelp, onClose }) {
+function SettingsMenu({ visible, seeding, onSeed, onLogout, onOpenHelp, onOpenEdit, onClose }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close settings">
         {/* Swallow presses on the sheet itself so it does not close. */}
         <Pressable style={[styles.sheet, shadow("lg")]} onPress={() => {}}>
           <Text style={styles.sheetTitle}>Settings</Text>
+
+          <Pressable
+            onPress={() => {
+              onClose();
+              onOpenEdit?.();
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.sheetRow, pressed && styles.pressed]}
+          >
+            <Icon name="edit" size={20} color={colors.pulsePrimaryDark} />
+            <Text style={styles.sheetRowText}>Edit profile</Text>
+          </Pressable>
 
           <Pressable
             onPress={() => {
@@ -135,9 +150,202 @@ function HelpTutorials({ visible, onClose, onReplayTutorial }) {
   );
 }
 
+function EditProfileModal({ visible, user, onClose, onUpdated }) {
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [avatarUri, setAvatarUri] = useState(user?.photoURL || null);
+
+  React.useEffect(() => {
+    if (visible) {
+      setDisplayName(user?.displayName || "");
+      setCurrentPassword("");
+      setNewPassword("");
+      setError("");
+      setSuccess("");
+      setPwError("");
+      setPwSuccess("");
+      setAvatarUri(user?.photoURL || null);
+    }
+  }, [visible, user]);
+
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const currentUser = getCurrentUser();
+      if (!currentUser) throw new Error("Not signed in.");
+
+      let photoURL = currentUser.photoURL;
+      if (avatarUri && avatarUri !== currentUser.photoURL) {
+        const response = await fetch(avatarUri);
+        const blob = await response.blob();
+        const upload = await uploadAvatar(currentUser.uid, blob);
+        if (!upload.ok) throw new Error(upload.error || "Failed to upload avatar.");
+        photoURL = upload.url;
+      }
+
+      const profileResult = await updateUserProfile({
+        displayName: displayName.trim() || currentUser.displayName,
+        photoURL,
+      });
+      if (!profileResult.ok) throw new Error(profileResult.error);
+
+      const docResult = await updateUserDoc(currentUser.uid, {
+        displayName: displayName.trim() || currentUser.displayName,
+        photoURL,
+      });
+      if (docResult && !docResult.ok) {
+        throw new Error(docResult.error || "Failed to update profile document.");
+      }
+
+      setSuccess("Profile updated!");
+      onUpdated?.();
+    } catch (err) {
+      setError(err?.message || "Failed to update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPwSaving(true);
+    setPwError("");
+    setPwSuccess("");
+    try {
+      if (!currentPassword || !newPassword) {
+        throw new Error("Both current and new password are required.");
+      }
+      if (newPassword.length < 6) {
+        throw new Error("New password must be at least 6 characters.");
+      }
+      const pwResult = await changePassword({ currentPassword, newPassword });
+      if (!pwResult.ok) throw new Error(pwResult.error);
+      setPwSuccess("Password updated!");
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      setPwError(err?.message || "Failed to change password.");
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.helpBackdrop}>
+        <View style={[styles.helpSheet, shadow("lg")]}>
+          <View style={styles.helpHeader}>
+            <Text style={styles.helpTitle}>Edit Profile</Text>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
+              <Icon name="close" size={22} color={colors.text} />
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.lg }}>
+            {/* ── Profile section ── */}
+            <Pressable onPress={pickAvatar} style={styles.avatarEditRow} accessibilityRole="button">
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarEdit} />
+              ) : (
+                <LinearGradient colors={profileColors.gradient} style={styles.avatarEdit}>
+                  <Icon name="camera_alt" size={28} color="#fff" />
+                </LinearGradient>
+              )}
+              <Text style={styles.avatarEditLabel}>Change photo</Text>
+            </Pressable>
+
+            <Text style={styles.editLabel}>Display Name</Text>
+            <TextInput
+              style={styles.editInput}
+              value={displayName}
+              onChangeText={setDisplayName}
+              placeholder="Your name"
+              placeholderTextColor={colors.textMuted}
+            />
+
+            {error ? <Text style={styles.editError}>{error}</Text> : null}
+            {success ? <Text style={styles.editSuccess}>{success}</Text> : null}
+
+            <Pressable
+              onPress={handleSaveProfile}
+              disabled={saving}
+              style={({ pressed }) => [styles.saveButton, (pressed || saving) && styles.pressed]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.saveButtonText}>{saving ? "Saving…" : "Save Changes"}</Text>
+            </Pressable>
+
+            {/* ── Password section ── */}
+            <View style={styles.sectionDivider} />
+            <Text style={styles.sectionTitle}>Security</Text>
+
+            <Text style={styles.editLabel}>Current Password</Text>
+            <TextInput
+              style={styles.editInput}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder="Current password"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+            />
+            <Text style={styles.editLabel}>New Password</Text>
+            <TextInput
+              style={styles.editInput}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="New password (6+ characters)"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+            />
+
+            {pwError ? <Text style={styles.editError}>{pwError}</Text> : null}
+            {pwSuccess ? <Text style={styles.editSuccess}>{pwSuccess}</Text> : null}
+
+            <Pressable
+              onPress={handleChangePassword}
+              disabled={pwSaving || (!currentPassword && !newPassword)}
+              style={({ pressed }) => [
+                styles.saveButton,
+                styles.secondaryButton,
+                (pressed || pwSaving || (!currentPassword && !newPassword)) && styles.pressed,
+              ]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.saveButtonText}>{pwSaving ? "Saving…" : "Update Password"}</Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function Profile({ user, onLogout, onReplayTutorial }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [, forceUpdate] = useState(0);
   useTutorial("profile", { enabled: Boolean(user?.uid) });
 
   const displayName =
@@ -154,14 +362,18 @@ function Profile({ user, onLogout, onReplayTutorial }) {
       renderHeader={({ onSeed, seeding }) => (
         <>
           <View style={styles.header}>
-            <LinearGradient
-              colors={profileColors.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.avatar}
-            >
-              <Text style={styles.avatarText}>{initials}</Text>
-            </LinearGradient>
+            {user?.photoURL ? (
+              <Image source={{ uri: user.photoURL }} style={styles.avatar} />
+            ) : (
+              <LinearGradient
+                colors={profileColors.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatar}
+              >
+                <Text style={styles.avatarText}>{initials}</Text>
+              </LinearGradient>
+            )}
 
             <View style={styles.identityBlock}>
               <Text style={styles.name} numberOfLines={1} accessibilityRole="header">
@@ -193,12 +405,19 @@ function Profile({ user, onLogout, onReplayTutorial }) {
             onSeed={onSeed}
             onLogout={onLogout}
             onOpenHelp={() => setHelpOpen(true)}
+            onOpenEdit={() => setEditOpen(true)}
             onClose={() => setMenuOpen(false)}
           />
           <HelpTutorials
             visible={helpOpen}
             onClose={() => setHelpOpen(false)}
             onReplayTutorial={onReplayTutorial}
+          />
+          <EditProfileModal
+            visible={editOpen}
+            user={user}
+            onClose={() => setEditOpen(false)}
+            onUpdated={() => forceUpdate((n) => n + 1)}
           />
         </>
       )}
@@ -309,6 +528,71 @@ const styles = StyleSheet.create({
     backgroundColor: colors.rowTint,
   },
   restartText: { ...type.label, color: colors.pulsePrimaryDark },
+  avatarEditRow: {
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  avatarEdit: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  avatarEditLabel: {
+    ...type.caption,
+    color: colors.pulsePrimaryDark,
+  },
+  editLabel: {
+    ...type.label,
+    color: colors.text,
+    fontSize: 13,
+  },
+  editInput: {
+    ...type.bodyMedium,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.card,
+  },
+  editError: {
+    ...type.small,
+    color: "#d32f2f",
+  },
+  editSuccess: {
+    ...type.small,
+    color: "#2e7d32",
+  },
+  saveButton: {
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.pulsePrimaryDark,
+  },
+  saveButtonText: {
+    ...type.label,
+    color: "#fff",
+    fontFamily: fonts.bold,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.sm,
+  },
+  sectionTitle: {
+    ...type.label,
+    color: colors.text,
+    fontFamily: fonts.bold,
+    fontSize: 15,
+  },
+  secondaryButton: {
+    backgroundColor: colors.textMuted,
+  },
 });
 
 export default Profile;
