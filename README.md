@@ -1,93 +1,203 @@
-# Pulse
+<div align="center">
+  <img src="pulse/assets/icon.png" alt="Pulse app icon" width="120" />
+  <h1>Pulse</h1>
+  <p><strong>Build a more balanced life, one small action at a time.</strong></p>
+  <p>A cross-platform wellbeing app for understanding and improving balance across five connected areas of life.</p>
+</div>
 
+## About Pulse
 
+Pulse turns the Balanced Life model into a practical mobile experience. An entry check-in establishes a baseline across five domains - Spirituality, Family & Friends, Health & Fitness, Finance, and Productivity - and the app then helps users build sustainable routines through daily missions, personal trackers, progress insights, and optional social encouragement.
+
+The project was developed for ANU TechLauncher / COMP8715 by a five-person student team. It runs on iOS, Android, and web from one Expo and React Native codebase, with Firebase providing authentication, data storage, real-time updates, and media storage.
+
+> Pulse is a wellbeing and self-reflection tool. It is not a medical, psychological, or financial advice service.
+
+## Features
+
+- **Balanced Life dashboard** - view five domain scores, Life Strength, Evenness, and an overall Balanced Life Score.
+- **Entry quiz** - create a starting baseline with one self-rating for each life domain.
+- **Daily missions** - receive three achievable actions each day, with lower-scoring domains prioritised when appropriate.
+- **Mood and journal** - record a daily mood, emotion tags, and an optional private reflection.
+- **Physical activity** - log cardio and strength sessions, reuse favourite workouts as templates, and review activity history.
+- **Budget tracker** - configure accounts and category limits, log expenses, and review charts, category progress, and a daily spending calendar.
+- **Saving plans** - create goals, record savings, track milestones, and direct unused daily budget toward an active plan.
+- **To-do list** - organise tasks by due date and priority, with completion contributing to the Productivity domain.
+- **Social feed and messaging** - connect with friends, share check-ins or achievement cards, react and comment, and send direct messages.
+- **Progress analytics** - explore overall and domain trends across 4-, 8-, and 12-week ranges.
+- **Guided tutorials** - get contextual first-use help and replay walkthroughs from the Profile area.
+
+## How scoring works
+
+Each domain begins with an entry-quiz score from 20 to 100. During a Monday-to-Sunday week, Pulse combines three types of evidence:
+
+| Component | Weight | Calculation |
+| --- | ---: | --- |
+| Reflection | 30% | Average 1-5 rating, converted to a 0-100 scale |
+| Action | 40% | Earned action points divided by the domain's weekly target, capped at 100 |
+| Consistency | 30% | Active days divided by seven, capped at 100 |
+
+The observed result is converted into a gradual weekly adjustment between -2 and +2, then applied to the frozen week-start score. Weeks with no actions keep the previous score unchanged.
+
+The overall score rewards both strength and balance:
+
+```text
+Life Strength       = average of the five domain scores
+Evenness            = 100 - (2 x standard deviation), clamped to 0-100
+Balanced Life Score = 50% Life Strength + 50% Evenness
+```
+
+## Technology
+
+| Area | Technology |
+| --- | --- |
+| App | JavaScript, React 19, React Native 0.83, Expo SDK 55 |
+| Backend | Firebase Authentication, Cloud Firestore, Cloud Storage |
+| Device storage | AsyncStorage, Expo SecureStore |
+| UI and media | Expo Image Picker, Manrope, Expo Vector Icons, React Native SVG |
+| Testing | Jest, jest-expo, React Native Testing Library |
+
+The codebase separates React Native pages and components from Firebase service modules and pure domain logic. The scoring and mission engines have no UI or network dependency, which keeps their rules deterministic and testable.
 
 ## Getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### Prerequisites
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- [Node.js LTS](https://nodejs.org/)
+- npm (included with Node.js)
+- A Firebase project with Email/Password Authentication, Cloud Firestore, and Cloud Storage enabled
+- One of the following:
+  - [Expo Go](https://expo.dev/go) on a physical iOS or Android device
+  - [Android Studio](https://developer.android.com/studio) and an Android Virtual Device
+  - Xcode and the iOS Simulator on macOS
 
-## Add your files
+### 1. Clone the repository
 
-* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```bash
+git clone https://github.com/CARMEN-D5/Pulse.git
+cd Pulse/pulse
 ```
-cd existing_repo
-git remote add origin https://gitlab.comp.anu.edu.au/u7923295/pulse.git
-git branch -M main
-git push -uf origin main
+
+### 2. Install dependencies
+
+```bash
+npm install
 ```
 
-## Integrate with your tools
+### 3. Configure Firebase
 
-* [Set up project integrations](https://gitlab.comp.anu.edu.au/u7923295/pulse/-/settings/integrations)
+Create `pulse/.env.local` and copy the web-app configuration values from Firebase Console:
 
-## Collaborate with your team
+```dotenv
+EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
 
-* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Do not commit `.env.local`. Firebase client configuration is not a server-side secret, but access must still be protected by correctly deployed Firestore and Storage rules.
 
-## Test and Deploy
+### 4. Start the app
 
-Use the built-in continuous integration in GitLab.
+```bash
+npm start
+```
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+Scan the QR code with Expo Go, or use one of the platform commands below.
 
-***
+| Command | Purpose |
+| --- | --- |
+| `npm run android` | Start Expo and open Android |
+| `npm run ios` | Start Expo and open iOS (macOS required) |
+| `npm run web` | Start the web version |
+| `npm run build:web` | Export a production web build |
+| `npm run prebuild` | Generate native iOS and Android projects |
 
-# Editing this README
+### Network note
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+The current Firebase setup uses forced long polling and an in-memory Firestore cache. A live network connection is required, and some managed university networks may block Firebase traffic. If authentication or data loading stalls, retry on a home network or mobile hotspot.
 
-## Suggestions for a good README
+## Testing
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Run the Jest suite from the `pulse` application directory:
 
-## Name
-Choose a self-explaining name for your project.
+```bash
+npm test -- --runInBand
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+The latest local verification on `main` completed with **16 of 17 suites passing** and **346 of 364 tests passing**. The remaining failures are in `src/missions/DailyMission.test.js`: its test renderer does not yet provide the `SharePromptProvider` now required by the Daily Missions screen. The scoring engine, scoring simulations, mission engine, Firebase scoring service, sharing, tutorials, saving milestones, shell, and app tests passed in that run.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+The handover QA report also records manual testing across Android and iOS, 21 formal peer reviews, and more than 40 user-test cases. See the project documentation for the original test programme and historical results.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## Project structure
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```text
+Pulse/
+├── Documentation/          Project, architecture, testing, and handover PDFs
+├── pulse/                  Expo application
+│   ├── assets/             Icons and launch assets
+│   ├── documents/          In-app privacy and consent content
+│   ├── src/
+│   │   ├── components/     Shared UI, tutorials, and sharing components
+│   │   ├── firestore/      Firebase data-access services
+│   │   ├── missions/       Daily mission engine and history
+│   │   ├── pages/          Feature screens
+│   │   ├── scoring/        Pure scoring engine and simulations
+│   │   ├── tutorial/       Tutorial definitions and state
+│   │   └── App.js          Application composition and navigation state
+│   ├── app.json            Expo application configuration
+│   ├── firestore.rules     Firestore security rules
+│   ├── storage.rules       Cloud Storage security rules
+│   └── package.json        Dependencies and scripts
+└── README.md
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## Documentation
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+- [Introduction](Documentation/Introduction.pdf)
+- [Technical Architecture and Scoring System](Documentation/Technical%20Architecture%20and%20Scoring%20System.pdf)
+- [Testing and Quality Assurance Report](Documentation/Testing%20and%20Quality%20Assurance%20Report.pdf)
+- [User Stories, Personas & Scenarios](Documentation/User%20Stories%2C%20Personas%20%26%20Scenarios.pdf)
+- [User Flow Charts](Documentation/userFlowChart.pdf)
+- [Demo Script, Known Issues & Future Improvements](Documentation/Demo%20Script%2C%20Known%20Issues%20%26%20Future%20Improvements.pdf)
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## Release considerations
+
+Before a public release:
+
+- Re-run the full automated and device test suites.
+- Audit Firestore and Storage rules against every current collection and media path.
+- Review the visibility of fields stored in root user-profile documents.
+- Publish a privacy policy and support contact.
+- Remove or gate development-only data generators.
+- Review Android permissions and retain only those required by implemented features.
+- Validate cloud-build environment variables and test the release build on physical devices.
+- Complete a trademark and asset-rights review for the Pulse name and icon.
 
 ## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+1. Create a branch from the latest `main`.
+2. Keep Firebase access in the service layer and deterministic rules in pure modules.
+3. Add or update tests for behaviour changes.
+4. Run `npm test -- --runInBand` and exercise the affected flow on a device or emulator.
+5. Open a pull request with the change, test evidence, and any Firebase rule or configuration impact.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Never commit local environment files, service-account credentials, private keys, or real user data.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## Team
+
+Pulse was developed by:
+
+- Anthea Cai Soltes
+- Matthew Bialocerkowski
+- Sajeevan Anandakumar
+- Viet An Pham
+- Yuting Mao
+
+Built as part of ANU TechLauncher / COMP8715 Software Engineering Project, 2026.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+No open-source license has been added to this repository. Contact the project maintainers before copying, modifying, or redistributing the code or assets.
